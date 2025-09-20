@@ -9,20 +9,23 @@
 ## ✨ Features
 
 ### 🌟 Rating Integration
+
 - **Goodreads ratings** displayed directly on Audible pages
 - **Visual highlighting** for highly-rated books (>4.2 stars)
 - **Rating breakdowns** on hover with star distribution
 - **Review counts** to gauge popularity
 
 ### 🔍 Smart Filtering
+
 - Filter by **minimum rating** (1.0 - 5.0 stars)
-- Filter by **rating count** for statistical significance  
+- Filter by **rating count** for statistical significance
 - **Tag-based filtering** using Goodreads shelves/genres
 - **Visual dimming** of filtered books for easy scanning
 
 ### 🌍 Multi-Region Support (v1.1+)
+
 - Works on **Audible.co.uk** (UK)
-- Works on **Audible.com** (US) 
+- Works on **Audible.com** (US)
 - Works on **Audible.ca** (Canada)
 - Works on **Audible.com.au** (Australia)
 - Works on **Audible.in** (India)
@@ -30,13 +33,16 @@
 - Per-region settings and cache
 
 ### ⚡ Performance
+
 - **Intelligent caching** of last 1000 books per region
 - **Rate-limited scraping** to respect source websites
 - **Batch processing** for efficient page enhancement
 - **Non-blocking UI** updates
 
 ### 📚 Enhanced Pages
+
 Works seamlessly on:
+
 - Book detail pages
 - Search results
 - Category browsing
@@ -48,11 +54,13 @@ Works seamlessly on:
 ## 🚀 Installation
 
 ### From Chrome Web Store (Recommended)
+
 1. Visit [Chrome Web Store](https://chrome.google.com/webstore)
 2. Click "Add to Chrome"
 3. Navigate to your preferred Audible site and enjoy!
 
 ### From Source (Development)
+
 ```bash
 # Clone repository
 git clone https://github.com/yourusername/audible-ex.git
@@ -83,24 +91,27 @@ npm run build
 Access settings by clicking the extension icon:
 
 ### Global Settings
-| Setting | Description | Default |
-|---------|-------------|---------|
-| **Rating Source** | Choose between Goodreads, StoryGraph, etc. | Goodreads |
-| **Highlight Threshold** | Books above this are highlighted | 4.2 stars |
-| **Cache Size** | Number of books to cache per region | 1000 |
-| **Request Delay** | Time between API requests | 1 second |
+
+| Setting                 | Description                                | Default   |
+| ----------------------- | ------------------------------------------ | --------- |
+| **Rating Source**       | Choose between Goodreads, StoryGraph, etc. | Goodreads |
+| **Highlight Threshold** | Books above this are highlighted           | 4.2 stars |
+| **Cache Size**          | Number of books to cache per region        | 1000      |
+| **Request Delay**       | Time between API requests                  | 1 second  |
 
 ### Per-Region Settings
-| Setting | Description | Default |
-|---------|-------------|---------|
-| **Minimum Rating** | Hide books below this rating | 3.0 stars |
-| **Minimum Reviews** | Ensure statistical significance | 100 reviews |
-| **Active Tags** | Filter by these tags | None |
-| **Region Enabled** | Enable/disable for specific region | Enabled |
+
+| Setting             | Description                        | Default     |
+| ------------------- | ---------------------------------- | ----------- |
+| **Minimum Rating**  | Hide books below this rating       | 3.0 stars   |
+| **Minimum Reviews** | Ensure statistical significance    | 100 reviews |
+| **Active Tags**     | Filter by these tags               | None        |
+| **Region Enabled**  | Enable/disable for specific region | Enabled     |
 
 ## 🌐 Supported Regions
 
 ### Currently Supported (v1.1)
+
 - 🇬🇧 **United Kingdom** - audible.co.uk
 - 🇺🇸 **United States** - audible.com
 - 🇨🇦 **Canada** - audible.ca
@@ -108,6 +119,7 @@ Access settings by clicking the extension icon:
 - 🇮🇳 **India** - audible.in
 
 ### Planned Support
+
 - 🇩🇪 Germany - audible.de
 - 🇫🇷 France - audible.fr
 - 🇮🇹 Italy - audible.it
@@ -117,11 +129,13 @@ Access settings by clicking the extension icon:
 ## 🛠️ Development
 
 ### Prerequisites
+
 - Node.js 18+
 - npm or pnpm
 - Chrome browser
 
 ### Tech Stack
+
 - **WXT** - Chrome extension framework
 - **React 18** - UI components
 - **TypeScript** - Type safety
@@ -131,6 +145,7 @@ Access settings by clicking the extension icon:
 - **Shadcn/ui** - UI components
 
 ### Project Structure
+
 ```
 audible-ex/
 ├── docs/               # Documentation
@@ -150,6 +165,7 @@ audible-ex/
 ```
 
 ### Commands
+
 ```bash
 # Install dependencies
 npm install
@@ -178,6 +194,7 @@ npm run format
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
 ### Quick Contribution Guide
+
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Commit your changes (`git commit -m 'Add amazing feature'`)
@@ -185,6 +202,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 5. Open a Pull Request
 
 ### Adding Support for New Regions
+
 1. Add domain configuration in `src/domains/`
 2. Update selectors for the new region
 3. Test thoroughly on the target site
@@ -193,6 +211,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 ## 📝 Roadmap
 
 ### Version 1.0 (Current MVP)
+
 - ✅ Goodreads integration
 - ✅ Basic filtering
 - ✅ Caching system
@@ -200,6 +219,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 - ✅ Audible UK support
 
 ### Version 1.1 (In Development)
+
 - [ ] Multi-region support (US, CA, AU, IN)
 - [ ] Alternative sources (StoryGraph, Hardcover)
 - [ ] Series detection
@@ -207,6 +227,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 - [ ] Grid view support
 
 ### Version 2.0 (Future)
+
 - [ ] AI-powered recommendations
 - [ ] Profile imports
 - [ ] Export functionality

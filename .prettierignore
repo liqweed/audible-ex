@@ -1,0 +1,27 @@
+# Build outputs
+.output/
+dist/
+.wxt/
+
+# Dependencies
+node_modules/
+
+# Logs
+*.log
+
+# Lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.temp
