@@ -18,17 +18,20 @@ Transform the Audible browsing experience from a simple catalog into an intellig
 ## User Personas
 
 ### Primary: The Discerning Listener
+
 - Heavy Audible user with active subscription
 - Reads 2-4 books per month
 - Values highly-rated, well-reviewed content
 - Frustrated by lack of rating information on Audible
 
-### Secondary: The Series Enthusiast  
+### Secondary: The Series Enthusiast
+
 - Focuses on reading complete series
 - Wants to know book order and series information
 - Avoids starting incomplete series
 
 ### Tertiary: The International User
+
 - Uses multiple Audible marketplaces
 - Travels frequently or has moved countries
 - Wants consistent experience across regions
@@ -36,6 +39,7 @@ Transform the Audible browsing experience from a simple catalog into an intellig
 ## MVP Features (Priority Order)
 
 ### P0 - Core Infrastructure
+
 1. **Rate Limiting System** (#26)
    - Configurable delay between requests (default: 1 request/second)
    - Exponential backoff on errors
@@ -47,6 +51,7 @@ Transform the Audible browsing experience from a simple catalog into an intellig
    - Progress indicator for batch operations
 
 ### P0 - Rating Integration
+
 3. **Goodreads Data Scraping** (#1)
    - Extract rating score (1-5 stars)
    - Link to Goodreads book page
@@ -69,6 +74,7 @@ Transform the Audible browsing experience from a simple catalog into an intellig
    - Compact display format
 
 ### P0 - Filtering System
+
 7. **Filter by Minimum Rating** (#8)
    - Slider UI (1.0 - 5.0 stars)
    - Real-time filtering
@@ -85,6 +91,7 @@ Transform the Audible browsing experience from a simple catalog into an intellig
    - Popular tags quick access
 
 ### P0 - Data Management
+
 10. **Local Caching System** (#24)
     - Cache last 1000 book lookups
     - LRU (Least Recently Used) eviction
@@ -104,6 +111,7 @@ Transform the Audible browsing experience from a simple catalog into an intellig
 ## Post-MVP Features
 
 ### Version 1.1 - Enhanced Coverage
+
 - **Multi-region Support** - Support for Audible.com and other Audible domains
 - Alternative rating services (#6) - StoryGraph, Hardcover, Kaguya integration
 - Series detection and order (#15, #16)
@@ -112,6 +120,7 @@ Transform the Audible browsing experience from a simple catalog into an intellig
 - Configuration profiles per domain
 
 ### Version 1.2 - User Experience
+
 - Filter visibility indicators (#13)
 - Quick preview expansion (#22)
 - Visual dimming controls (#23)
@@ -119,6 +128,7 @@ Transform the Audible browsing experience from a simple catalog into an intellig
 - Import user profiles (#32, #33)
 
 ### Version 2.0 - Advanced Features
+
 - AI-powered filtering (#28, #29)
 - Taste-based recommendations (#34, #35)
 - Export functionality (#36)
@@ -128,6 +138,7 @@ Transform the Audible browsing experience from a simple catalog into an intellig
 ## Enhanced Pages
 
 The extension will enhance the following Audible pages across all supported domains:
+
 - Book detail pages
 - Search results
 - Category browse pages
@@ -139,15 +150,18 @@ The extension will enhance the following Audible pages across all supported doma
 ## Supported Domains (Post-MVP)
 
 ### MVP (Version 1.0)
+
 - audible.co.uk (Primary)
 
 ### Version 1.1
+
 - audible.com (US)
 - audible.ca (Canada)
 - audible.com.au (Australia)
 - audible.in (India)
 
 ### Future Consideration
+
 - audible.de (Germany)
 - audible.fr (France)
 - audible.it (Italy)
@@ -157,16 +171,19 @@ The extension will enhance the following Audible pages across all supported doma
 ## Technical Requirements
 
 ### Performance
+
 - Page enhancement < 500ms
 - Batch processing without blocking UI
 - Smooth scrolling during filtering
 
 ### Browser Support
+
 - Chrome 100+ (primary)
 - Edge 100+ (should work, not tested)
 - Manifest V3 compliant
 
 ### Data Privacy
+
 - No user data collection
 - All processing client-side
 - Optional API keys stored locally
@@ -209,12 +226,14 @@ The extension will enhance the following Audible pages across all supported doma
 ## Release Plan
 
 ### MVP - Version 1.0
+
 - Core features 1-12
 - Basic configuration UI
 - Error handling and recovery
 - Audible UK support only
 
 ### Version 1.1
+
 - Multi-region support (US, CA, AU, IN)
 - Alternative rating sources
 - Series detection
@@ -222,6 +241,7 @@ The extension will enhance the following Audible pages across all supported doma
 - Per-domain configuration
 
 ### Version 2.0
+
 - AI integration
 - Profile imports
 - Advanced analytics
@@ -230,6 +250,7 @@ The extension will enhance the following Audible pages across all supported doma
 ## Localization Strategy
 
 ### Version 1.1 Considerations
+
 - Auto-detect Audible domain
 - Adjust selectors per domain
 - Handle currency display
@@ -238,11 +259,11 @@ The extension will enhance the following Audible pages across all supported doma
 
 ## Risks and Mitigations
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| Goodreads blocks scraping | High | Implement alternative sources, use different user agents |
-| Audible layout changes | Medium | CSS selector abstraction layer, quick update process |
-| Performance degradation | Medium | Aggressive caching, lazy loading, worker threads |
-| Rate limiting by source | Low | Exponential backoff, user-configurable delays |
-| Multi-domain complexity | Medium | Domain-specific configuration, thorough testing |
-| Regional content differences | Low | Flexible matching algorithms, fallback strategies |
+| Risk                         | Impact | Mitigation                                               |
+| ---------------------------- | ------ | -------------------------------------------------------- |
+| Goodreads blocks scraping    | High   | Implement alternative sources, use different user agents |
+| Audible layout changes       | Medium | CSS selector abstraction layer, quick update process     |
+| Performance degradation      | Medium | Aggressive caching, lazy loading, worker threads         |
+| Rate limiting by source      | Low    | Exponential backoff, user-configurable delays            |
+| Multi-domain complexity      | Medium | Domain-specific configuration, thorough testing          |
+| Regional content differences | Low    | Flexible matching algorithms, fallback strategies        |
