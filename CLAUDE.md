@@ -106,3 +106,32 @@ No specific test commands are defined in package.json. Based on the architecture
 - Integration tests for content script injection
 - E2E tests for full user workflows
 - Regional testing across supported domains
+
+## GitHub Issues Management
+
+Use the `gh` command line tool to manage GitHub issues for this project:
+
+```bash
+# List open issues
+gh issue list
+
+# View a specific issue
+gh issue view <issue-number>
+
+# Create a new issue
+gh issue create --title "Issue title" --body "Issue description"
+
+# Close an issue
+gh issue close <issue-number>
+
+# Reopen an issue
+gh issue reopen <issue-number>
+
+# Add labels to an issue
+gh issue edit <issue-number> --add-label "bug,enhancement"
+
+# Assign an issue
+gh issue edit <issue-number> --add-assignee @username
+```
+
+Project issues are tracked at: https://github.com/liqweed/audible-ex/issues
