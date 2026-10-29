@@ -1,0 +1,55 @@
+// Renovate keeps dependencies, the tools in mise.toml and GitHub Actions
+// current (docs/PLAN.md § CI, DECISIONS.md D12). One weekly pull request per
+// kind of update, and a separate one for WXT, Effect and Vite, which need a
+// manual browser check before merging. Every version stays pinned exactly.
+// Major versions come as their own pull request within each group.
+{
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  extends: [
+    // Pins Actions to a commit digest (helpers:pinGitHubActionDigests) and
+    // waits a few days before proposing a fresh npm release.
+    'config:best-practices',
+    // Exact versions, never ranges, for dependencies and devDependencies.
+    ':pinAllExceptPeerDependencies',
+    // One pull request a week, early on Monday (UTC).
+    'schedule:weekly',
+    // chore(deps): conventional commits, as the repository requires.
+    ':semanticCommitTypeAll(chore)',
+  ],
+  // No weekly lock file refresh: it would bump transitive dependencies of WXT
+  // and Vite without the browser check.
+  lockFileMaintenance: { enabled: false },
+  // Later rules win, so the browser-check group comes last.
+  packageRules: [
+    {
+      matchManagers: ['npm', 'bun'],
+      groupName: 'npm dependencies',
+    },
+    {
+      matchManagers: ['mise'],
+      groupName: 'mise tools',
+    },
+    {
+      matchManagers: ['github-actions'],
+      groupName: 'GitHub Actions',
+    },
+    {
+      // The Bun version is set in mise.toml, package.json (packageManager) and
+      // @types/bun: update them together so CI and the lockfile agree.
+      matchPackageNames: ['bun', '@types/bun'],
+      groupName: 'Bun',
+    },
+    {
+      // Updates that can change how the built extension behaves in Chrome.
+      matchPackageNames: [
+        'wxt',
+        '@wxt-dev/**',
+        'effect',
+        '@effect/**',
+        'vite',
+        '@tailwindcss/vite',
+      ],
+      groupName: 'WXT, Effect and Vite (check in the browser)',
+    },
+  ],
+}

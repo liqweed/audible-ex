@@ -61,8 +61,8 @@ CI and Jig (see [CI](#ci) below)
 - [ ] Create the GitHub labels `label-taxonomy.yaml` defines, then file the plan
       as issues with `/jig:file-issue`: one `epic` per phase, one issue per task.
       Close #3–#13 as superseded by D1, each pointing at its replacement.
-- [ ] Renovate (or Dependabot) for dependency and action updates, grouped
-      weekly, pinned versions only.
+- [ ] Renovate for dependency and action updates, grouped weekly, pinned
+      versions only (D12).
 
 Spikes, each a short note in the pull request
 

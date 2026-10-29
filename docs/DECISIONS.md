@@ -119,3 +119,17 @@ script's rescans, which is plain DOM code; `@tanstack/react-pacer` is added only
 if its hooks prove worth it in the panel. `@types/chrome` is dropped, since WXT
 supplies the browser types. Rejected: keeping PostCSS (a second plugin path
 beside Vite's) and adding `react-pacer` up front.
+
+## D12 — Renovate keeps pins current (2026-10-29)
+
+Dependencies, the tools in `mise.toml` and the GitHub Actions in the workflow
+are all pinned exactly, so something has to propose updates or they go stale
+unseen. Renovate (`.github/renovate.json5`, the Mend Renovate GitHub App) opens
+one pull request a week per kind of update (npm, mise tools, Actions digests),
+and a separate one for WXT, Effect and Vite, which need a manual browser check
+before merging; Bun's three pins move together; major versions get their own
+pull requests; there is no lock file refresh. Commits are `chore(deps)`, nothing
+automerges, and a person merges as for any other change. It is a service, not a
+dependency of the repository, and does nothing until the Mend Renovate GitHub
+App is installed on the repository. Rejected: Dependabot, which
+has no `mise.toml` support and so would leave the toolchain pins unmanaged.
