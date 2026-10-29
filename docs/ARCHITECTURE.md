@@ -203,7 +203,8 @@ shadow root (`position: fixed`), which isolates it from page styles too.
 runs on every Audible page, so it stays lean; the concurrency and error handling Effect is good at
 live in the background. Import Effect modules by path (`effect/Schema`), never from the `effect`
 barrel: measured with Bun's bundler, a Schema-only module was 23 KB gzipped via `effect/Schema` and
-97 KB via `effect`. A lint rule enforces this in `src/content` and `src/ui`.
+97 KB via `effect`. A Biome rule enforces this in the content script, the UI and the modules they
+share (`src/schema`, `src/storage`).
 
 ## 7. Filters
 
@@ -329,6 +330,8 @@ src/
                              #   port-client.ts, badges.css
   ui/                        # React: panel/, components/ (Radix-based), hooks/
   storage/                   # WXT storage item definitions
+  assets/                    # brand/ logo sources; icon.png (Conductor's repository icon)
+  public/                    # icon/ PNGs, copied into the build as-is
 test/
   preload.ts
   fixtures/{audible,goodreads}/

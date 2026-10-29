@@ -1,16 +1,17 @@
 #!/usr/bin/env bun
 /**
- * Renders every derived icon from the two logo sources in assets/brand/. Run `bun scripts/gen-icons.ts`
- * after changing either source, and commit the results; never edit the outputs by hand.
+ * Renders every derived icon from the two logo sources in src/assets/brand/. Run
+ * `bun scripts/gen-icons.ts` after changing either source, and commit the results; never edit the
+ * outputs by hand.
  *
- *   assets/brand/logo-small.svg → public/icon/16.png, 32.png      (toolbar sizes: headphones and star only)
- *   assets/brand/logo.svg       → public/icon/48.png, 96.png, 128.png
- *                               → assets/icon.png (256 px)         (Conductor's repository icon)
- *   assets/brand/logo-small.svg → .idea/icon.svg, icon_dark.svg    (IntelliJ's project icon)
+ *   src/assets/brand/logo-small.svg → src/public/icon/16.png, 32.png   (toolbar sizes: headphones and star only)
+ *   src/assets/brand/logo.svg       → src/public/icon/48.png, 96.png, 128.png
+ *                                   → src/assets/icon.png (256 px)      (Conductor's repository icon)
+ *   src/assets/brand/logo-small.svg → .idea/icon.svg, icon_dark.svg     (IntelliJ's project icon)
  *
  * PNGs are rasterised by Chromium at their final size, so small sizes are drawn for that size rather
  * than scaled down from a large bitmap. Playwright's own Chromium is used when installed
- * (`npx playwright install chromium`); otherwise the installed Google Chrome.
+ * (`bunx playwright install chromium`); otherwise the installed Google Chrome.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -23,8 +24,8 @@ const write = (p: string, data: string | Uint8Array) => {
   writeFileSync(join(ROOT, p), data)
 }
 
-const full = read('assets/brand/logo.svg')
-const small = read('assets/brand/logo-small.svg')
+const full = read('src/assets/brand/logo.svg')
+const small = read('src/assets/brand/logo-small.svg')
 
 // Indigo on IntelliJ's dark theme has too little contrast; its dark icon uses indigo-300.
 const INDIGO = '#312E81'
@@ -39,12 +40,12 @@ const withNote = (svg: string, source: string) =>
   svg.replace(/<!--[\s\S]*?-->/, generatedNote(source))
 
 const pngs: { out: string; svg: string; px: number }[] = [
-  { out: 'public/icon/16.png', svg: small, px: 16 },
-  { out: 'public/icon/32.png', svg: small, px: 32 },
-  { out: 'public/icon/48.png', svg: full, px: 48 },
-  { out: 'public/icon/96.png', svg: full, px: 96 },
-  { out: 'public/icon/128.png', svg: full, px: 128 },
-  { out: 'assets/icon.png', svg: full, px: 256 },
+  { out: 'src/public/icon/16.png', svg: small, px: 16 },
+  { out: 'src/public/icon/32.png', svg: small, px: 32 },
+  { out: 'src/public/icon/48.png', svg: full, px: 48 },
+  { out: 'src/public/icon/96.png', svg: full, px: 96 },
+  { out: 'src/public/icon/128.png', svg: full, px: 128 },
+  { out: 'src/assets/icon.png', svg: full, px: 256 },
 ]
 
 // Software rendering and a fixed colour profile keep the output byte-for-byte reproducible.
@@ -61,7 +62,7 @@ try {
   })
   for (const { out, svg, px } of pngs) {
     await page.setContent(
-      `<!doctype html><style>body{margin:0;background:transparent}svg{display:block}</style>${sized(svg, px)}`,
+      `<!doctype html><style>body{margin:0;background:transparent}svg{display:block}</style>${sized(svg, px)}`
     )
     // A clipped page screenshot, not an element screenshot: the latter waits for the element to
     // be "stable", which can time out in headless Chrome.
@@ -76,7 +77,7 @@ try {
   await browser.close()
 }
 
-const ideaSmall = withNote(sized(small, 20), 'assets/brand/logo-small.svg')
+const ideaSmall = withNote(sized(small, 20), 'src/assets/brand/logo-small.svg')
 write('.idea/icon.svg', ideaSmall)
 write('.idea/icon_dark.svg', ideaSmall.replaceAll(INDIGO, INDIGO_ON_DARK))
 console.log('.idea/icon.svg, .idea/icon_dark.svg')

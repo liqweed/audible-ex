@@ -47,7 +47,8 @@ Toolchain
       fake browser as `globalThis.browser`/`chrome`). Confirm the `@/` alias
       resolves under `bun test`.
 - [ ] Biome: `biome.json` with `noRestrictedImports` banning the `effect` barrel
-      in `src/content` and `src/ui`.
+      in content-script and UI code and the modules they share (`src/schema`,
+      `src/storage`).
 - [ ] Scripts: `dev`, `build`, `zip`, `test`, `lint`, `format`, `check`,
       `e2e` (ARCHITECTURE.md §13), and `typecheck`, which runs
       `wxt prepare && tsc --noEmit`.

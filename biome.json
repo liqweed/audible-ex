@@ -1,0 +1,106 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "includes": [
+      "**",
+      "!**/.output",
+      "!**/.wxt",
+      "!**/node_modules",
+      "!reference",
+      "!src/public/icon",
+      "!src/assets/icon.png",
+      "!src/assets/brand",
+      "!.idea",
+      "!bun.lock"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 80,
+    "lineEnding": "lf"
+  },
+  "javascript": {
+    "formatter": {
+      "semicolons": "asNeeded",
+      "quoteStyle": "single",
+      "jsxQuoteStyle": "single",
+      "trailingCommas": "es5",
+      "arrowParentheses": "asNeeded",
+      "bracketSpacing": true,
+      "bracketSameLine": false,
+      "quoteProperties": "asNeeded"
+    }
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    },
+    "formatter": {
+      "quoteStyle": "single"
+    }
+  },
+  "yaml": {
+    "formatter": {
+      "quoteStyle": "single"
+    }
+  },
+  "markdown": {
+    "formatter": {
+      "enabled": false
+    },
+    "linter": {
+      "enabled": false
+    }
+  },
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended"
+    }
+  },
+  "overrides": [
+    {
+      "includes": [
+        "src/content/**",
+        "src/ui/**",
+        "src/schema/**",
+        "src/storage/**",
+        "src/entrypoints/content.ts",
+        "src/entrypoints/*.content.ts",
+        "src/entrypoints/*.content/**",
+        "src/entrypoints/content/**",
+        "src/entrypoints/popup/**",
+        "src/entrypoints/options/**"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "effect": "Import Effect modules by path (e.g. `import * as Schema from 'effect/Schema'`), never from the `effect` barrel: content-script and UI bundles stay small (ARCHITECTURE.md §6)."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

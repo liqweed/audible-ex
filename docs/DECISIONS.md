@@ -104,3 +104,18 @@ with rulesets and a protected environment, which GitHub Free doesn't offer on a
 private repository. Until the repository is public (PLAN.md phase 5), a person
 cuts releases by hand. Rejected: waiting until phase 5 to start (the notes for
 0.1–0.4 would have to be reconstructed), upgrading to GitHub Pro for this alone.
+
+## D11 — Toolchain details settled while moving to Bun (2026-10-29)
+
+Moving the scaffold to the D2 stack (issue #18) needed four choices D2 didn't
+name. `@types/bun` is added: TypeScript 7 includes no type packages by default,
+and `tsc` can't type `bun:test` without it. Tailwind moves from
+`@tailwindcss/postcss` to `@tailwindcss/vite`, configured in `wxt.config.ts` as
+§2 of ARCHITECTURE.md says, and to 4.3, the first Tailwind 4 release whose Vite
+plugin supports Vite 8; `postcss.config.js`, `autoprefixer` and
+`tailwind.config.ts` go, since Tailwind 4 reads its theme from CSS. TanStack
+Pacer is the core `@tanstack/pacer`: its main use is batching the content
+script's rescans, which is plain DOM code; `@tanstack/react-pacer` is added only
+if its hooks prove worth it in the panel. `@types/chrome` is dropped, since WXT
+supplies the browser types. Rejected: keeping PostCSS (a second plugin path
+beside Vite's) and adding `react-pacer` up front.

@@ -21,8 +21,8 @@ changelog:
   file: CHANGELOG.md
   format: keep-a-changelog
   # What ships in the extension: a change here needs a note that asks for a
-  # release. src/ alone once phase 0 moves entrypoints and assets under it.
-  release_paths: [src/, entrypoints/, public/, assets/, wxt.config.ts]
+  # release. Entrypoints, assets and public files all live under src/.
+  release_paths: [src/, wxt.config.ts]
 pull_requests:
   # One pull request per change against main; a person merges.
   stacking: none

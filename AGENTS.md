@@ -14,10 +14,11 @@ userscript in [reference/](reference/audible-goodreads-ratings.user.js).
 
 ## Status
 
-Design and plan are agreed. Phase 0 (toolchain: Bun, WXT `srcDir: 'src'`,
-`bun test`, Biome, CI) has **not** started: the tree still holds the npm/Vitest/
-Zustand scaffold that phase 0 removes. Don't build on `src/stores`, `src/lib`,
-`DomainDetector` or `vitest.config.ts`.
+Design and plan are agreed. Phase 0's toolchain is in place: Bun, WXT with
+`srcDir: 'src'`, `bun test`, Biome and TypeScript 7; `bun check` and
+`bun run build` work. CI is still to come (#19), so run the gates yourself
+before pushing. The entrypoints are empty shells; extension behaviour starts in
+phase 1.
 
 ## Non-negotiables
 
@@ -50,9 +51,8 @@ bun check   # biome ci → tsc --noEmit → bun test
 bun run build   # wxt build; also run it when you touch wxt.config.ts or entrypoints
 ```
 
-Until phase 0 lands there is no working gate and no CI. For docs-only changes,
-run `npm install && npx prettier --check <changed files>` (the current scaffold's
-formatter).
+Until CI lands (#19), run both yourself before pushing. Biome doesn't check
+Markdown (DECISIONS.md D4): keep docs tidy by review.
 
 ## Guardrails
 
@@ -92,35 +92,35 @@ bun scripts/capture-fixtures.ts      # refresh Audible/Goodreads fixtures
 
 ## Change together
 
-| When you change                             | Also change, in the same commit                                                          |
-| ------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| A port message                              | `src/schema/messages.ts`, both sides, a test, ARCHITECTURE.md §5                         |
-| A `chrome.storage` item or the prefs shape  | `src/storage/`, a migration (bump `version`), ARCHITECTURE.md §8                         |
-| Permissions, host permissions or `matches`  | `src/core/regions.ts`, ARCHITECTURE.md §11, the privacy statement                        |
-| Matching rules (`src/core/matching.ts`)     | A fixture case for the book that motivated it                                            |
-| Filter semantics (`src/core/filter.ts`)     | ARCHITECTURE.md §7 and PRD R3                                                            |
-| A dependency                                | An entry in `docs/DECISIONS.md` first                                                    |
-| A job name in `.github/workflows/ci.yml`    | `ci.required_checks` in `.config/jig.yaml`                                               |
-| A phase's scope or order                    | `docs/PLAN.md`                                                                           |
-| Anything a user of the extension notices    | A change note in `changes/` (`/jig:changelog`); never edit `CHANGELOG.md` or the version |
-| What ships (`release_paths`)                | `changelog.release_paths` in `.config/jig.yaml`                                          |
-| `assets/brand/logo.svg` or `logo-small.svg` | Run `bun scripts/gen-icons.ts` and commit every output (see Derived files)               |
+| When you change                                 | Also change, in the same commit                                                          |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| A port message                                  | `src/schema/messages.ts`, both sides, a test, ARCHITECTURE.md §5                         |
+| A `chrome.storage` item or the prefs shape      | `src/storage/`, a migration (bump `version`), ARCHITECTURE.md §8                         |
+| Permissions, host permissions or `matches`      | `src/core/regions.ts`, ARCHITECTURE.md §11, the privacy statement                        |
+| Matching rules (`src/core/matching.ts`)         | A fixture case for the book that motivated it                                            |
+| Filter semantics (`src/core/filter.ts`)         | ARCHITECTURE.md §7 and PRD R3                                                            |
+| A dependency                                    | An entry in `docs/DECISIONS.md` first                                                    |
+| A job name in `.github/workflows/ci.yml`        | `ci.required_checks` in `.config/jig.yaml`                                               |
+| A phase's scope or order                        | `docs/PLAN.md`                                                                           |
+| Anything a user of the extension notices        | A change note in `changes/` (`/jig:changelog`); never edit `CHANGELOG.md` or the version |
+| What ships (`release_paths`)                    | `changelog.release_paths` in `.config/jig.yaml`                                          |
+| `src/assets/brand/logo.svg` or `logo-small.svg` | Run `bun scripts/gen-icons.ts` and commit every output (see Derived files)               |
 
 ## Derived files
 
 Generated, committed, and never edited by hand; change the source and
 regenerate.
 
-| Files                                                             | Source                        | Regenerate                 |
-| ----------------------------------------------------------------- | ----------------------------- | -------------------------- |
-| `public/icon/{16,32,48,96,128}.png` (extension icons)             | `assets/brand/logo*.svg`      | `bun scripts/gen-icons.ts` |
-| `assets/icon.png` (Conductor's repository icon)                   | `assets/brand/logo.svg`       | `bun scripts/gen-icons.ts` |
-| `.idea/icon.svg`, `.idea/icon_dark.svg` (IntelliJ's project icon) | `assets/brand/logo-small.svg` | `bun scripts/gen-icons.ts` |
-| `CHANGELOG.md` sections and the `package.json` version            | `changes/*.md`                | Jig's release step         |
+| Files                                                             | Source                            | Regenerate                 |
+| ----------------------------------------------------------------- | --------------------------------- | -------------------------- |
+| `src/public/icon/{16,32,48,96,128}.png` (extension icons)         | `src/assets/brand/logo*.svg`      | `bun scripts/gen-icons.ts` |
+| `src/assets/icon.png` (Conductor's repository icon)               | `src/assets/brand/logo.svg`       | `bun scripts/gen-icons.ts` |
+| `.idea/icon.svg`, `.idea/icon_dark.svg` (IntelliJ's project icon) | `src/assets/brand/logo-small.svg` | `bun scripts/gen-icons.ts` |
+| `CHANGELOG.md` sections and the `package.json` version            | `changes/*.md`                    | Jig's release step         |
 
-Conductor picks the first of a fixed list of paths (its FAQ); `assets/icon.png`
-is on it, and so is `src/assets/icon.png`, where phase 0 moves it. IntelliJ
-reads `.idea/icon.svg` and `.idea/icon_dark.svg`.
+Conductor picks the first of a fixed list of paths (its FAQ);
+`src/assets/icon.png` is on it. IntelliJ reads `.idea/icon.svg` and
+`.idea/icon_dark.svg`.
 
 ## Working with Jig
 

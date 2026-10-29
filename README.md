@@ -12,8 +12,8 @@ Works on all ten Audible marketplaces: `.com`, `.co.uk`, `.ca`, `.com.au`,
 
 ## Status
 
-Not released yet. The design and plan are done; development starts with phase 0
-(toolchain). Until the extension reaches parity, the userscript in
+Not released yet. The design and plan are done, and the toolchain is in place;
+porting the userscript (phase 1) comes next. Until the extension reaches parity, the userscript in
 [`reference/`](reference/audible-goodreads-ratings.user.js) does the rating part
 in any userscript manager (Tampermonkey, Violentmonkey).
 
@@ -29,7 +29,7 @@ in any userscript manager (Tampermonkey, Violentmonkey).
 ## Development
 
 Stack: WXT on Vite, React 19, Tailwind 4, Effect 4, TanStack, TypeScript 7,
-Bun, Biome. Tool versions are pinned in `mise.toml` (phase 0).
+Bun, Biome. Tool versions are pinned in `mise.toml`.
 
 ```sh
 mise install && bun install
@@ -38,8 +38,7 @@ bun check         # lint, types, tests: what CI runs
 bun run build     # .output/chrome-mv3, load it as an unpacked extension
 ```
 
-These commands work once phase 0 is merged; see [AGENTS.md](AGENTS.md) for the
-current state.
+See [AGENTS.md](AGENTS.md) for the current state.
 
 ## Privacy
 

@@ -1,0 +1,4 @@
+[test]
+preload = ["./test/preload.ts"]
+# Unit and component tests only: Playwright specs (`bun e2e`) and the userscript reference stay out.
+pathIgnorePatterns = ["**/*.spec.ts", "**/*.spec.tsx", "e2e/**", "reference/**", "node_modules/**", ".output/**"]
