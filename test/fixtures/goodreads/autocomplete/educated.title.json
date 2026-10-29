@@ -1,0 +1,142 @@
+[
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1774287363i/35133922._SY75_.jpg",
+    "bookId": "35133922",
+    "workId": "53814228",
+    "bookUrl": "/book/show/35133922-educated",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 1,
+    "title": "Educated",
+    "bookTitleBare": "Educated",
+    "numPages": 352,
+    "avgRating": "4.46",
+    "ratingsCount": 1993689,
+    "author": {
+      "id": 16121977,
+      "name": "Tara Westover",
+      "isGoodreadsAuthor": true,
+      "profileUrl": "https://www.goodreads.com/author/show/16121977.Tara_Westover",
+      "worksListUrl": "https://www.goodreads.com/author/list/16121977.Tara_Westover"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "<b>#1 NEW YORK TIMES, WALL STREET JOURNAL, AND BOSTON GLOBE BESTSELLER • One of the most acclaimed books of our time: an unforgettable memoir about a young woman who, kept out of…</b>",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/35133922-educated"
+    }
+  },
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1168566225i/34534._SY75_.jpg",
+    "bookId": "34534",
+    "workId": "1179689",
+    "bookUrl": "/book/show/34534.The_Amazing_Maurice_and_His_Educated_Rodents",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 2,
+    "title": "The Amazing Maurice and His Educated Rodents (Discworld, #28)",
+    "bookTitleBare": "The Amazing Maurice and His Educated Rodents",
+    "numPages": 256,
+    "avgRating": "4.09",
+    "ratingsCount": 54268,
+    "author": {
+      "id": 1654,
+      "name": "Terry Pratchett",
+      "isGoodreadsAuthor": false,
+      "profileUrl": "https://www.goodreads.com/author/show/1654.Terry_Pratchett",
+      "worksListUrl": "https://www.goodreads.com/author/list/1654.Terry_Pratchett"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "Maurice and the rats have teamed up with a young lad named Keith to implement a clever moneymaking scheme. Upon entering a town, the rats make a general nuisance of themselves…",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/34534.The_Amazing_Maurice_and_His_Educated_Rodents"
+    }
+  },
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1327941866i/86145._SY75_.jpg",
+    "bookId": "86145",
+    "workId": "4391399",
+    "bookUrl": "/book/show/86145.The_Well_Educated_Mind",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 3,
+    "title": "The Well-Educated Mind: A Guide to the Classical Education You Never Had",
+    "bookTitleBare": "The Well-Educated Mind: A Guide to the Classical Education You Never Had",
+    "numPages": 432,
+    "avgRating": "4.00",
+    "ratingsCount": 3890,
+    "author": {
+      "id": 49276,
+      "name": "Susan Wise Bauer",
+      "isGoodreadsAuthor": false,
+      "profileUrl": "https://www.goodreads.com/author/show/49276.Susan_Wise_Bauer",
+      "worksListUrl": "https://www.goodreads.com/author/list/49276.Susan_Wise_Bauer"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "Have you lost the art of reading for pleasure? Are there books you know you should read but haven&apos;t because they seem too daunting? In <em>The Well-Educated Mind</em>, Susan Wise Bauer…",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/86145.The_Well_Educated_Mind"
+    }
+  },
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1636602489i/59589837._SY75_.jpg",
+    "bookId": "59589837",
+    "workId": "93848429",
+    "bookUrl": "/book/show/59589837-educated-by-the-earl",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 4,
+    "title": "Educated by the Earl (Second Sons of London, #1)",
+    "bookTitleBare": "Educated by the Earl",
+    "numPages": 274,
+    "avgRating": "4.27",
+    "ratingsCount": 2232,
+    "author": {
+      "id": 15846438,
+      "name": "Alexa Aston",
+      "isGoodreadsAuthor": true,
+      "profileUrl": "https://www.goodreads.com/author/show/15846438.Alexa_Aston",
+      "worksListUrl": "https://www.goodreads.com/author/list/15846438.Alexa_Aston"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "<b><i>First sons inherit all. Third sons are promised to the church. Second sons do their duty and serve in the military—unless fate intervenes and turns their lives upside down.</i><br/><br/>Wel…</b>",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/59589837-educated-by-the-earl"
+    }
+  },
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1756180401i/231126841._SY75_.jpg",
+    "bookId": "231126841",
+    "workId": "244538918",
+    "bookUrl": "/book/show/231126841-mutiny",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 5,
+    "title": "Mutiny: The Rise and Revolt of the College-Educated Working Class",
+    "bookTitleBare": "Mutiny: The Rise and Revolt of the College-Educated Working Class",
+    "numPages": 384,
+    "avgRating": "3.36",
+    "ratingsCount": 260,
+    "author": {
+      "id": 5207445,
+      "name": "Noam Scheiber",
+      "isGoodreadsAuthor": false,
+      "profileUrl": "https://www.goodreads.com/author/show/5207445.Noam_Scheiber",
+      "worksListUrl": "https://www.goodreads.com/author/list/5207445.Noam_Scheiber"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "<b>The story of a disillusioned generation that set out to reclaim its dignity and take on corporate America.<br/></b><br/>In recent years, young college grads have faced an alarming crushing …",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/231126841-mutiny"
+    }
+  }
+]

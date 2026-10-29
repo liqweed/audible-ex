@@ -1,0 +1,142 @@
+[
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1411852091i/24280._SY75_.jpg",
+    "bookId": "24280",
+    "workId": "3208463",
+    "bookUrl": "/book/show/24280.Les_Mis_rables",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 1,
+    "title": "Les Misérables",
+    "bookTitleBare": "Les Misérables",
+    "numPages": 1488,
+    "avgRating": "4.22",
+    "ratingsCount": 869002,
+    "author": {
+      "id": 13661,
+      "name": "Victor Hugo",
+      "isGoodreadsAuthor": false,
+      "profileUrl": "https://www.goodreads.com/author/show/13661.Victor_Hugo",
+      "worksListUrl": "https://www.goodreads.com/author/list/13661.Victor_Hugo"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "Victor Hugo&apos;s tale of injustice, heroism and love follows the fortunes of Jean Valjean, an escaped convict determined to put his criminal past behind him. But his attempts to …",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/24280.Les_Mis_rables"
+    }
+  },
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1421108133i/21433251._SX50_.jpg",
+    "bookId": "21433251",
+    "workId": "40743791",
+    "bookUrl": "/book/show/21433251-les-mis-rables",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 2,
+    "title": "Les Misérables",
+    "bookTitleBare": "Les Misérables",
+    "numPages": 337,
+    "avgRating": "4.11",
+    "ratingsCount": 8276,
+    "author": {
+      "id": 6113990,
+      "name": "Stacy King",
+      "isGoodreadsAuthor": true,
+      "profileUrl": "https://www.goodreads.com/author/show/6113990.Stacy_King",
+      "worksListUrl": "https://www.goodreads.com/author/list/6113990.Stacy_King"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "Adapted for stage and screen, loved by millions, Victor Hugo&apos;s classic novel of love and tragedy set in 19th century France is reborn in this fantastic new manga edition!<br/><br/>Gorge…",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/21433251-les-mis-rables"
+    }
+  },
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1719424244i/209036163._SX50_.jpg",
+    "bookId": "209036163",
+    "workId": "215174158",
+    "bookUrl": "/book/show/209036163-victor-hugo-s-wondrous-feast",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 3,
+    "title": "Victor Hugo’s Wondrous Feast: The True Story of How the Author of Les Misérables Invited the World to Love",
+    "bookTitleBare": "Victor Hugo’s Wondrous Feast: The True Story of How the Author of Les Misérables Invited the World to Love",
+    "numPages": 32,
+    "avgRating": "4.39",
+    "ratingsCount": 54,
+    "author": {
+      "id": 1122935,
+      "name": "David T. Warner",
+      "isGoodreadsAuthor": false,
+      "profileUrl": "https://www.goodreads.com/author/show/1122935.David_T_Warner",
+      "worksListUrl": "https://www.goodreads.com/author/list/1122935.David_T_Warner"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "<b>The heartwarming, true story about the transformative power of love and good works, nurtured in the home of Victor Hugo, author of <i>Les Misérables</i>.</b><br/><br/><i>Guernsey, Channel Islands, 18…</i>",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/209036163-victor-hugo-s-wondrous-feast"
+    }
+  },
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1719164208i/1572079._SY75_.jpg",
+    "bookId": "1572079",
+    "workId": "43824482",
+    "bookUrl": "/book/show/1572079.Fantine",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 4,
+    "title": "Fantine (Les Misérables, #1)",
+    "bookTitleBare": "Fantine",
+    "numPages": 992,
+    "avgRating": "4.40",
+    "ratingsCount": 14013,
+    "author": {
+      "id": 13661,
+      "name": "Victor Hugo",
+      "isGoodreadsAuthor": false,
+      "profileUrl": "https://www.goodreads.com/author/show/13661.Victor_Hugo",
+      "worksListUrl": "https://www.goodreads.com/author/list/13661.Victor_Hugo"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "Jean Valjean, un ancien forçat condamné en 1796, trouve asile, après avoir été libéré du bagne et avoir longtemps erré, chez Mgr Myriel, évêque de Digne. Il se laisse tenter p…",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/1572079.Fantine"
+    }
+  },
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1471287881i/31244256._SY75_.jpg",
+    "bookId": "31244256",
+    "workId": "51897497",
+    "bookUrl": "/book/show/31244256-the-novel-of-the-century",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 5,
+    "title": "The Novel of the Century: The Extraordinary Adventure of Les Misérables",
+    "bookTitleBare": "The Novel of the Century: The Extraordinary Adventure of Les Misérables",
+    "numPages": 336,
+    "avgRating": "4.05",
+    "ratingsCount": 521,
+    "author": {
+      "id": 15926,
+      "name": "David Bellos",
+      "isGoodreadsAuthor": false,
+      "profileUrl": "https://www.goodreads.com/author/show/15926.David_Bellos",
+      "worksListUrl": "https://www.goodreads.com/author/list/15926.David_Bellos"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "GUARDIAN AND ECONOMIST BOOKS OF THE YEAR 2017 Winner of the American Library in Paris Book Award, 2017 &apos;Never mind those self-help manuals urging that some classic novel may c…",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/31244256-the-novel-of-the-century"
+    }
+  }
+]

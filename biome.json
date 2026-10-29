@@ -12,6 +12,8 @@
       "!**/.wxt",
       "!**/node_modules",
       "!reference",
+      "!test/fixtures/audible",
+      "!test/fixtures/goodreads",
       "!src/public/icon",
       "!src/assets/icon.png",
       "!src/assets/brand",

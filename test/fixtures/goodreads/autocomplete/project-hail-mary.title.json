@@ -1,0 +1,114 @@
+[
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1764703833i/54493401._SY75_.jpg",
+    "bookId": "54493401",
+    "workId": "79106958",
+    "bookUrl": "/book/show/54493401-project-hail-mary",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 1,
+    "title": "Project Hail Mary",
+    "bookTitleBare": "Project Hail Mary",
+    "numPages": 476,
+    "avgRating": "4.51",
+    "ratingsCount": 1923227,
+    "author": {
+      "id": 6540057,
+      "name": "Andy Weir",
+      "isGoodreadsAuthor": true,
+      "profileUrl": "https://www.goodreads.com/author/show/6540057.Andy_Weir",
+      "worksListUrl": "https://www.goodreads.com/author/list/6540057.Andy_Weir"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "Ryland Grace is the sole survivor on a desperate, last-chance mission—and if he fails, humanity and the earth itself will perish.<br/><br/>Except that right now, he doesn’t know that. H…",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/54493401-project-hail-mary"
+    }
+  },
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1676421869i/119255205._SX50_.jpg",
+    "bookId": "119255205",
+    "workId": "91054370",
+    "bookUrl": "/book/show/119255205-project-hail-mary-artemis-the-martian",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 2,
+    "title": "Project Hail Mary / Artemis/ The Martian",
+    "bookTitleBare": "Project Hail Mary / Artemis/ The Martian",
+    "numPages": 1165,
+    "avgRating": "4.45",
+    "ratingsCount": 858,
+    "author": {
+      "id": 6540057,
+      "name": "Andy Weir",
+      "isGoodreadsAuthor": true,
+      "profileUrl": "https://www.goodreads.com/author/show/6540057.Andy_Weir",
+      "worksListUrl": "https://www.goodreads.com/author/list/6540057.Andy_Weir"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "Please Note That The Following Individual Books As Per Original ISBN and Cover Image In this Listing shall be Dispatched <br/><br/><br/>Project Hail Mary [Hardcover]<br/>Artemis<br/>The Martian<br/><br/>Andy We…",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/119255205-project-hail-mary-artemis-the-martian"
+    }
+  },
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1620667041i/58007522._SY75_.jpg",
+    "bookId": "58007522",
+    "workId": "90898733",
+    "bookUrl": "/book/show/58007522-summary-and-analysis-of-project-hail-mary-by-andy-weir",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 3,
+    "title": "SUMMARY AND ANALYSIS OF PROJECT HAIL MARY BY ANDY WEIR",
+    "bookTitleBare": "SUMMARY AND ANALYSIS OF PROJECT HAIL MARY BY ANDY WEIR",
+    "numPages": 79,
+    "avgRating": "4.04",
+    "ratingsCount": 25,
+    "author": {
+      "id": 21121760,
+      "name": "Good Reads Publishing",
+      "isGoodreadsAuthor": false,
+      "profileUrl": "https://www.goodreads.com/author/show/21121760.Good_Reads_Publishing",
+      "worksListUrl": "https://www.goodreads.com/author/list/21121760.Good_Reads_Publishing"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "Is it in your wish to read Project Hail Mary but you do not have much time to read through the large numbers of pages of the original book? then you are a lucky one. Good Read…",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/58007522-summary-and-analysis-of-project-hail-mary-by-andy-weir"
+    }
+  },
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1621158404i/58057170._SY75_.jpg",
+    "bookId": "58057170",
+    "workId": "90988498",
+    "bookUrl": "/book/show/58057170-summary-analysis-of-andy-weir-book",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 4,
+    "title": "Summary & Analysis of Andy Weir Book: Project Hail Mary (PressPrint)",
+    "bookTitleBare": "Summary & Analysis of Andy Weir Book: Project Hail Mary",
+    "numPages": 78,
+    "avgRating": "3.85",
+    "ratingsCount": 20,
+    "author": {
+      "id": 21253582,
+      "name": "PressPrint",
+      "isGoodreadsAuthor": false,
+      "profileUrl": "https://www.goodreads.com/author/show/21253582.PressPrint",
+      "worksListUrl": "https://www.goodreads.com/author/list/21253582.PressPrint"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "Rуlаnd Grace іѕ the ѕоlе survivor оf a suicide mіѕѕіоn tо ѕtор an аlіеn organism thаt fееdѕ on stars (&quot;Aѕtrорhаgе&quot;), whісh іѕ саuѕіng thе аросаlуріс ѕсеnаrіо of thе ѕun dimmin…",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/58057170-summary-analysis-of-andy-weir-book"
+    }
+  }
+]

@@ -1,0 +1,142 @@
+[
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1600241424i/6288._SY75_.jpg",
+    "bookId": "6288",
+    "workId": "3355573",
+    "bookUrl": "/book/show/6288.The_Road",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 1,
+    "title": "The Road",
+    "bookTitleBare": "The Road",
+    "numPages": 241,
+    "avgRating": "4.00",
+    "ratingsCount": 1097564,
+    "author": {
+      "id": 4178,
+      "name": "Cormac McCarthy",
+      "isGoodreadsAuthor": false,
+      "profileUrl": "https://www.goodreads.com/author/show/4178.Cormac_McCarthy",
+      "worksListUrl": "https://www.goodreads.com/author/list/4178.Cormac_McCarthy"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "A searing, postapocalyptic novel destined to become Cormac McCarthy’s masterpiece.<br/><br/>A father and his son walk alone through burned America. Nothing moves in the ravaged landscap…",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/6288.The_Road"
+    }
+  },
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1658929891i/70401._SY75_.jpg",
+    "bookId": "70401",
+    "workId": "1701188",
+    "bookUrl": "/book/show/70401.On_the_Road",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 2,
+    "title": "On the Road",
+    "bookTitleBare": "On the Road",
+    "numPages": 307,
+    "avgRating": "3.61",
+    "ratingsCount": 462232,
+    "author": {
+      "id": 1742,
+      "name": "Jack Kerouac",
+      "isGoodreadsAuthor": false,
+      "profileUrl": "https://www.goodreads.com/author/show/1742.Jack_Kerouac",
+      "worksListUrl": "https://www.goodreads.com/author/list/1742.Jack_Kerouac"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "A quintessential novel of America &amp; the Beat Generation On the Road chronicles Jack Kerouac&apos;s years traveling the N. American continent with his friend Neal Cassady, &quot;a sidebu…",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/70401.On_the_Road"
+    }
+  },
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1729826481i/218460347._SY75_.jpg",
+    "bookId": "218460347",
+    "workId": "225026080",
+    "bookUrl": "/book/show/218460347-the-road-to-tender-hearts",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 3,
+    "title": "The Road to Tender Hearts",
+    "bookTitleBare": "The Road to Tender Hearts",
+    "numPages": 384,
+    "avgRating": "4.31",
+    "ratingsCount": 173789,
+    "author": {
+      "id": 15565382,
+      "name": "Annie  Hartnett",
+      "isGoodreadsAuthor": true,
+      "profileUrl": "https://www.goodreads.com/author/show/15565382.Annie_Hartnett",
+      "worksListUrl": "https://www.goodreads.com/author/list/15565382.Annie_Hartnett"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "<b>A darkly comic and warm-hearted novel about an old man on a cross-country mission to reunite with his high school crush—bringing together his adult daughter, two orphaned kids…</b>",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/218460347-the-road-to-tender-hearts"
+    }
+  },
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1704736755i/205044632._SY75_.jpg",
+    "bookId": "205044632",
+    "workId": "162045709",
+    "bookUrl": "/book/show/205044632-the-road-of-bones",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 4,
+    "title": "The Road of Bones (The Ashen, #1)",
+    "bookTitleBare": "The Road of Bones",
+    "numPages": 500,
+    "avgRating": "4.21",
+    "ratingsCount": 86053,
+    "author": {
+      "id": 34950365,
+      "name": "Demi Winters",
+      "isGoodreadsAuthor": true,
+      "profileUrl": "https://www.goodreads.com/author/show/34950365.Demi_Winters",
+      "worksListUrl": "https://www.goodreads.com/author/list/34950365.Demi_Winters"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "<b>A woman on the run. A crew of Viking mercenaries. A forbidden romance. And the secret which threatens them all.</b><br/><br/>Silla Nordvig is running for her life.<br/><br/>The queen of Íseldur has s…",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/205044632-the-road-of-bones"
+    }
+  },
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1388453919i/3463._SY75_.jpg",
+    "bookId": "3463",
+    "workId": "1498124",
+    "bookUrl": "/book/show/3463.A_Bend_in_the_Road",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 5,
+    "title": "A Bend in the Road",
+    "bookTitleBare": "A Bend in the Road",
+    "numPages": 341,
+    "avgRating": "4.06",
+    "ratingsCount": 172969,
+    "author": {
+      "id": 2345,
+      "name": "Nicholas Sparks",
+      "isGoodreadsAuthor": true,
+      "profileUrl": "https://www.goodreads.com/author/show/2345.Nicholas_Sparks",
+      "worksListUrl": "https://www.goodreads.com/author/list/2345.Nicholas_Sparks"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "Miles Ryan&apos;s life seemed to end the day his wife was killed in a hit-and-run accident two years ago. Missy had been his first love, and Miles fervently believes she will be hi…",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/3463.A_Bend_in_the_Road"
+    }
+  }
+]

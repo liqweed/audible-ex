@@ -1,0 +1,142 @@
+[
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1528206996i/38746485._SY75_.jpg",
+    "bookId": "38746485",
+    "workId": "60334006",
+    "bookUrl": "/book/show/38746485-becoming",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 1,
+    "title": "Becoming",
+    "bookTitleBare": "Becoming",
+    "numPages": 448,
+    "avgRating": "4.43",
+    "ratingsCount": 1253288,
+    "author": {
+      "id": 2338628,
+      "name": "Michelle Obama",
+      "isGoodreadsAuthor": true,
+      "profileUrl": "https://www.goodreads.com/author/show/2338628.Michelle_Obama",
+      "worksListUrl": "https://www.goodreads.com/author/list/2338628.Michelle_Obama"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "In a life filled with meaning and accomplishment, Michelle Obama has emerged as one of the most iconic and compelling women of our era. As First Lady of the United States of A…",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/38746485-becoming"
+    }
+  },
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1501378073i/35852435._SY75_.jpg",
+    "bookId": "35852435",
+    "workId": "57368515",
+    "bookUrl": "/book/show/35852435-becoming-supernatural",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 2,
+    "title": "Becoming Supernatural: How Common People are Doing the Uncommon",
+    "bookTitleBare": "Becoming Supernatural: How Common People are Doing the Uncommon",
+    "numPages": 375,
+    "avgRating": "4.23",
+    "ratingsCount": 29202,
+    "author": {
+      "id": 345332,
+      "name": "Joe Dispenza",
+      "isGoodreadsAuthor": false,
+      "profileUrl": "https://www.goodreads.com/author/show/345332.Joe_Dispenza",
+      "worksListUrl": "https://www.goodreads.com/author/list/345332.Joe_Dispenza"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "<b>WALL STREET JOURNAL BESTSELLER</b><br/><br/>The author of the New York Times bestseller <i>You Are the Placebo</i>, as well as <i>Breaking the Habit of Being Yourself</i> and <i>Evolve Your Brain</i>, draws on …",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/35852435-becoming-supernatural"
+    }
+  },
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1651574826i/59627738._SY75_.jpg",
+    "bookId": "59627738",
+    "workId": "93719359",
+    "bookUrl": "/book/show/59627738-good-inside",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 3,
+    "title": "Good Inside: A Guide to Becoming the Parent You Want to Be",
+    "bookTitleBare": "Good Inside: A Guide to Becoming the Parent You Want to Be",
+    "numPages": 336,
+    "avgRating": "4.49",
+    "ratingsCount": 49646,
+    "author": {
+      "id": 22711590,
+      "name": "Becky   Kennedy",
+      "isGoodreadsAuthor": false,
+      "profileUrl": "https://www.goodreads.com/author/show/22711590.Becky_Kennedy",
+      "worksListUrl": "https://www.goodreads.com/author/list/22711590.Becky_Kennedy"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "<strong>&quot;This book is for any parent who has ever struggled under the substantial weight of caregiving--which is to say, all of us. </strong><strong>\n  <em>Good Inside</em>\n</strong><strong> is not only a wise and practical gu…</strong>",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/59627738-good-inside"
+    }
+  },
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1348329148i/174879._SY75_.jpg",
+    "bookId": "174879",
+    "workId": "168933",
+    "bookUrl": "/book/show/174879.On_Becoming_a_Person",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 4,
+    "title": "On Becoming a Person: A Therapist's View of Psychotherapy",
+    "bookTitleBare": "On Becoming a Person: A Therapist's View of Psychotherapy",
+    "numPages": 420,
+    "avgRating": "4.16",
+    "ratingsCount": 19663,
+    "author": {
+      "id": 102062,
+      "name": "Carl R. Rogers",
+      "isGoodreadsAuthor": false,
+      "profileUrl": "https://www.goodreads.com/author/show/102062.Carl_R_Rogers",
+      "worksListUrl": "https://www.goodreads.com/author/list/102062.Carl_R_Rogers"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "The late Carl Rogers, founder of the humanistic psychology movement, revolutionized psychotherapy with his concept of &quot;client-centered therapy.&quot; His influence has spanned deca…",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/174879.On_Becoming_a_Person"
+    }
+  },
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1520907629i/39189837._SY75_.jpg",
+    "bookId": "39189837",
+    "workId": "60213322",
+    "bookUrl": "/book/show/39189837-becoming-mrs-lewis",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 5,
+    "title": "Becoming Mrs. Lewis",
+    "bookTitleBare": "Becoming Mrs. Lewis",
+    "numPages": 435,
+    "avgRating": "4.04",
+    "ratingsCount": 52956,
+    "author": {
+      "id": 21936835,
+      "name": "Patti Callahan Henry",
+      "isGoodreadsAuthor": true,
+      "profileUrl": "https://www.goodreads.com/author/show/21936835.Patti_Callahan_Henry",
+      "worksListUrl": "https://www.goodreads.com/author/list/21936835.Patti_Callahan_Henry"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "<strong>In a most improbable friendship, she found love. In a world where women were silenced, she found her voice.</strong><br/><br/>From New York Times bestselling author Patti Callahan comes an exqui…",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/39189837-becoming-mrs-lewis"
+    }
+  }
+]

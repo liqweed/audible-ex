@@ -1,0 +1,142 @@
+[
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1413706054i/18007564._SY75_.jpg",
+    "bookId": "18007564",
+    "workId": "21825181",
+    "bookUrl": "/book/show/18007564-the-martian",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 1,
+    "title": "The Martian",
+    "bookTitleBare": "The Martian",
+    "numPages": 369,
+    "avgRating": "4.42",
+    "ratingsCount": 1392522,
+    "author": {
+      "id": 6540057,
+      "name": "Andy Weir",
+      "isGoodreadsAuthor": true,
+      "profileUrl": "https://www.goodreads.com/author/show/6540057.Andy_Weir",
+      "worksListUrl": "https://www.goodreads.com/author/list/6540057.Andy_Weir"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "Six days ago, astronaut Mark Watney became one of the first people to walk on Mars. <br/><br/>Now, he’s sure he’ll be the first person to die there.<br/><br/>After a dust storm nearly kills him a…",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/18007564-the-martian"
+    }
+  },
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1661016554i/76778._SY75_.jpg",
+    "bookId": "76778",
+    "workId": "4636013",
+    "bookUrl": "/book/show/76778.The_Martian_Chronicles",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 2,
+    "title": "The Martian Chronicles",
+    "bookTitleBare": "The Martian Chronicles",
+    "numPages": 182,
+    "avgRating": "4.16",
+    "ratingsCount": 295253,
+    "author": {
+      "id": 1630,
+      "name": "Ray Bradbury",
+      "isGoodreadsAuthor": false,
+      "profileUrl": "https://www.goodreads.com/author/show/1630.Ray_Bradbury",
+      "worksListUrl": "https://www.goodreads.com/author/list/1630.Ray_Bradbury"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "The strange and wonderful tale of man’s experiences on Mars, filled with intense images and astonishing visions. Now part of the Voyager Classics collection.<br/><br/>The Martian Chroni…",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/76778.The_Martian_Chronicles"
+    }
+  },
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1439492249i/26094525._SY75_.jpg",
+    "bookId": "26094525",
+    "workId": "45900347",
+    "bookUrl": "/book/show/26094525-summary-of-the-martian",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 3,
+    "title": "Summary of The Martian: A Novel by Andy Weir | Summary & Analysis",
+    "bookTitleBare": "Summary of The Martian: A Novel by Andy Weir | Summary & Analysis",
+    "numPages": 46,
+    "avgRating": "4.70",
+    "ratingsCount": 12782,
+    "author": {
+      "id": 13809869,
+      "name": "aBookaDay",
+      "isGoodreadsAuthor": false,
+      "profileUrl": "https://www.goodreads.com/author/show/13809869.aBookaDay",
+      "worksListUrl": "https://www.goodreads.com/author/list/13809869.aBookaDay"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "Warning : This is an independent addition to The Martian , meant to enhance your experience of the original book. If you have not yet bought the original copy, make sure to pu…",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/26094525-summary-of-the-martian"
+    }
+  },
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1526997647i/26852117._SY75_.jpg",
+    "bookId": "26852117",
+    "workId": "46889293",
+    "bookUrl": "/book/show/26852117-diary-of-an-asscan",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 4,
+    "title": "Diary of an AssCan (The Martian #0.5)",
+    "bookTitleBare": "Diary of an AssCan",
+    "numPages": 4,
+    "avgRating": "3.90",
+    "ratingsCount": 5563,
+    "author": {
+      "id": 6540057,
+      "name": "Andy Weir",
+      "isGoodreadsAuthor": true,
+      "profileUrl": "https://www.goodreads.com/author/show/6540057.Andy_Weir",
+      "worksListUrl": "https://www.goodreads.com/author/list/6540057.Andy_Weir"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "This short story gives us a glimpse into Mark Watney’s world just before taking off on his mission for Mars. Read on for more from this exceptional character.",
+      "truncated": false,
+      "fullContentUrl": "https://www.goodreads.com/book/show/26852117-diary-of-an-asscan"
+    }
+  },
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1348224711i/416672._SX50_.jpg",
+    "bookId": "416672",
+    "workId": "405839",
+    "bookUrl": "/book/show/416672.The_Martian_Way_and_Other_Stories",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 5,
+    "title": "The Martian Way and Other Stories",
+    "bookTitleBare": "The Martian Way and Other Stories",
+    "numPages": 222,
+    "avgRating": "4.00",
+    "ratingsCount": 4892,
+    "author": {
+      "id": 16667,
+      "name": "Isaac Asimov",
+      "isGoodreadsAuthor": false,
+      "profileUrl": "https://www.goodreads.com/author/show/16667.Isaac_Asimov",
+      "worksListUrl": "https://www.goodreads.com/author/list/16667.Isaac_Asimov"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "This collection of four famous science fiction tales masterfully exemplifies author Isaac Asimov&apos;s ability to create quickly a believable human milieu in the midst of alien ci…",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/416672.The_Martian_Way_and_Other_Stories"
+    }
+  }
+]

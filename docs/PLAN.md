@@ -82,10 +82,14 @@ settled choices are in DECISIONS.md D13 and D14)
 
 Fixtures and docs
 
-- [ ] `scripts/capture-fixtures.ts` and the first fixtures: one page each of
-      search, category, deals, home, library, wish list on `.co.uk` and `.com`;
-      Goodreads autocomplete and book page responses for ~20 books, including
-      known tricky matches (series titles, "summary" books, common titles).
+- [x] `scripts/capture-fixtures.ts` and the first fixtures: search, category,
+      deals and home on `.co.uk` and `.com`; Goodreads autocomplete and book
+      page responses for 20 books, including known tricky matches (series
+      titles, "summary" books, common titles). See `test/fixtures/README.md`.
+- [ ] Library and wish list fixtures on `.co.uk` and `.com`: saved by hand from
+      a signed-in browser and cleaned with `capture-fixtures.ts import`
+      (steps in `test/fixtures/README.md`). Needed before phase 1's card tests
+      for those two pages.
 - [ ] `AGENTS.md`: drop the "phase 0 has not started" status, make the gate and
       command sections current.
 

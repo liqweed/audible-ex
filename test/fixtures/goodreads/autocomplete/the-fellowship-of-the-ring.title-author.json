@@ -1,0 +1,114 @@
+[
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1697808075i/134486144._SY75_.jpg",
+    "bookId": "134486144",
+    "workId": "3204327",
+    "bookUrl": "/book/show/134486144-the-fellowship-of-the-ring-by-j-r-r-tolkien",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 1,
+    "title": "The Fellowship of the Ring by J. R. R. Tolkien (October 27,2011)",
+    "bookTitleBare": "The Fellowship of the Ring by J. R. R. Tolkien",
+    "numPages": 0,
+    "avgRating": "4.41",
+    "ratingsCount": 3251457,
+    "author": {
+      "id": 656983,
+      "name": "J.R.R. Tolkien",
+      "isGoodreadsAuthor": false,
+      "profileUrl": "https://www.goodreads.com/author/show/656983.J_R_R_Tolkien",
+      "worksListUrl": "https://www.goodreads.com/author/list/656983.J_R_R_Tolkien"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "One Ring to rule them all, One Ring to find them, One Ring to bring them all and in the darkness bind them.In ancient times the Rings of Power were crafted by the Elven-smiths…",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/134486144-the-fellowship-of-the-ring-by-j-r-r-tolkien"
+    }
+  },
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1390452286i/20620956._SX50_.jpg",
+    "bookId": "20620956",
+    "workId": "39905142",
+    "bookUrl": "/book/show/20620956-summary-study-guide-the-fellowship-of-the-ring-by-j-r-r-tolkien",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 2,
+    "title": "Summary & Study Guide The Fellowship of the Ring by J.R.R. Tolkien",
+    "bookTitleBare": "Summary & Study Guide The Fellowship of the Ring by J.R.R. Tolkien",
+    "numPages": 37,
+    "avgRating": "4.71",
+    "ratingsCount": 7,
+    "author": {
+      "id": 4819027,
+      "name": "BookRags",
+      "isGoodreadsAuthor": false,
+      "profileUrl": "https://www.goodreads.com/author/show/4819027.BookRags",
+      "worksListUrl": "https://www.goodreads.com/author/list/4819027.BookRags"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "Fellowship of the Ring Study Guide consists of approx. 40 pages of summaries and analysis on The Fellowship of the Ring by J.R.R. Tolkien.<br/><br/>This study guide includes the followi…",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/20620956-summary-study-guide-the-fellowship-of-the-ring-by-j-r-r-tolkien"
+    }
+  },
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1579213869i/50518652._SY75_.jpg",
+    "bookId": "50518652",
+    "workId": "75494908",
+    "bookUrl": "/book/show/50518652-study-guide-to-the-fellowship-of-the-ring-by-jrr-tolkien",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 3,
+    "title": "Study Guide to The Fellowship of the Ring by JRR Tolkien (Bright Notes)",
+    "bookTitleBare": "Study Guide to The Fellowship of the Ring by JRR Tolkien",
+    "numPages": 136,
+    "avgRating": "3.00",
+    "ratingsCount": 1,
+    "author": {
+      "id": 16979124,
+      "name": "Intelligent Education",
+      "isGoodreadsAuthor": false,
+      "profileUrl": "https://www.goodreads.com/author/show/16979124.Intelligent_Education",
+      "worksListUrl": "https://www.goodreads.com/author/list/16979124.Intelligent_Education"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "A comprehensive study guide offering in-depth explanation, essay, and test prep for JRR Tolkien&apos;s The Fellowship of the Ring, the first of one of the most well-known series in…",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/50518652-study-guide-to-the-fellowship-of-the-ring-by-jrr-tolkien"
+    }
+  },
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/nophoto/book/111x148._SX50_.png",
+    "bookId": "261085601",
+    "workId": "307923426",
+    "bookUrl": "/book/show/261085601-the-fellowship-of-the-ring-by-j-r-r-tolkien-custom-canvas-hardcover-r",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 4,
+    "title": "The Fellowship of the Ring by J.R.R. Tolkien – Custom Canvas Hardcover Rebind",
+    "bookTitleBare": "The Fellowship of the Ring by J.R.R. Tolkien – Custom Canvas Hardcover Rebind",
+    "numPages": null,
+    "avgRating": 0,
+    "ratingsCount": 0,
+    "author": {
+      "id": 18069383,
+      "name": "Alan Lee",
+      "isGoodreadsAuthor": false,
+      "profileUrl": "https://www.goodreads.com/author/show/18069383.Alan_Lee",
+      "worksListUrl": "https://www.goodreads.com/author/list/18069383.Alan_Lee"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "✨ The journey begins. This custom rebound edition of The Fellowship of the Ring features a printed canvas hardcover, lovingly crafted to honor the start of Tolkien’s legendary…",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/261085601-the-fellowship-of-the-ring-by-j-r-r-tolkien-custom-canvas-hardcover-r"
+    }
+  }
+]

@@ -300,7 +300,12 @@ only `wxt/browser` isn't enough; the global is what works (verified).
 
 Fixtures live in `test/fixtures/{audible,goodreads}/` and are refreshed with
 `bun scripts/capture-fixtures.ts` when a site changes. A failing fixture test after refreshing is
-how we detect that Audible or Goodreads changed their pages.
+how we detect that Audible or Goodreads changed their pages. The script goes through the same
+courtesy rules as the extension (one request at a time, a pause, no cookies, back off on 429/503 and then stop) and
+never runs in CI. Pages are stored cleaned: no scripts, tokens, request ids, session values or
+reviewer data. Library and wish list need a signed-in browser, so they are saved by hand and cleaned
+by `capture-fixtures.ts import`. What each fixture is, and the steps, are in
+`test/fixtures/README.md`.
 
 ## 11. Manifest, permissions, privacy
 

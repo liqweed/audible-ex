@@ -1,0 +1,142 @@
+[
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1654215925i/61215351._SY75_.jpg",
+    "bookId": "61215351",
+    "workId": "3204327",
+    "bookUrl": "/book/show/61215351-the-fellowship-of-the-ring",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 1,
+    "title": "The Fellowship of the Ring (The Lord of the Rings, #1)",
+    "bookTitleBare": "The Fellowship of the Ring",
+    "numPages": 432,
+    "avgRating": "4.41",
+    "ratingsCount": 3251457,
+    "author": {
+      "id": 656983,
+      "name": "J.R.R. Tolkien",
+      "isGoodreadsAuthor": false,
+      "profileUrl": "https://www.goodreads.com/author/show/656983.J_R_R_Tolkien",
+      "worksListUrl": "https://www.goodreads.com/author/list/656983.J_R_R_Tolkien"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "Sauron, the Dark Lord, has gathered to him all the Rings of Power – the means by which he intends to rule Middle-earth. All he lacks in his plans for dominion is the One Ring …",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/61215351-the-fellowship-of-the-ring"
+    }
+  },
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1347803870i/119._SX50_.jpg",
+    "bookId": "119",
+    "workId": "4479",
+    "bookUrl": "/book/show/119.The_Art_of_The_Fellowship_of_the_Ring",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 2,
+    "title": "The Art of The Fellowship of the Ring (The Lord of the Rings)",
+    "bookTitleBare": "The Art of The Fellowship of the Ring",
+    "numPages": 192,
+    "avgRating": "4.61",
+    "ratingsCount": 219757,
+    "author": {
+      "id": 60,
+      "name": "Gary Russell",
+      "isGoodreadsAuthor": false,
+      "profileUrl": "https://www.goodreads.com/author/show/60.Gary_Russell",
+      "worksListUrl": "https://www.goodreads.com/author/list/60.Gary_Russell"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "With complete and unrestricted access to artwork created over a five-year period, this authoritative and insightful book illustrates the creative development of <i>The Fellowship…</i>",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/119.The_Art_of_The_Fellowship_of_the_Ring"
+    }
+  },
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1630657083i/15222._SX50_.jpg",
+    "bookId": "15222",
+    "workId": "808427",
+    "bookUrl": "/book/show/15222.The_Lord_of_the_Rings",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 3,
+    "title": "The Lord of the Rings: The Fellowship of the Ring: Visual Companion",
+    "bookTitleBare": "The Lord of the Rings: The Fellowship of the Ring: Visual Companion",
+    "numPages": 72,
+    "avgRating": "4.66",
+    "ratingsCount": 44232,
+    "author": {
+      "id": 3842,
+      "name": "Jane Johnson",
+      "isGoodreadsAuthor": false,
+      "profileUrl": "https://www.goodreads.com/author/show/3842.Jane_Johnson",
+      "worksListUrl": "https://www.goodreads.com/author/list/3842.Jane_Johnson"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "Houghton Mifflin is proud to present a full-color, large-format, guide to the characters, cultures, and locations of J.R.R. Tolkien&apos;s extraordinary creation Middle-earth, as d…",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/15222.The_Lord_of_the_Rings"
+    }
+  },
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1735395776i/201084._SX50_.jpg",
+    "bookId": "201084",
+    "workId": "84496051",
+    "bookUrl": "/book/show/201084.The_Fellowship_of_the_Ring",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 4,
+    "title": "The Fellowship of the Ring (BBC Dramatization of The Lord of the Rings, #1)",
+    "bookTitleBare": "The Fellowship of the Ring",
+    "numPages": 200,
+    "avgRating": "4.70",
+    "ratingsCount": 34336,
+    "author": {
+      "id": 4941,
+      "name": "Brian Sibley",
+      "isGoodreadsAuthor": false,
+      "profileUrl": "https://www.goodreads.com/author/show/4941.Brian_Sibley",
+      "worksListUrl": "https://www.goodreads.com/author/list/4941.Brian_Sibley"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "A BBC radio full-cast dramatization of the first book in JRR Tolkien&apos;s Lord of the Rings trilogy. Brian Sibley&apos;s famous 1981 adaptation, starring Ian Holm and Michael Hordern.…",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/201084.The_Fellowship_of_the_Ring"
+    }
+  },
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1518819840i/38601034._SX50_.jpg",
+    "bookId": "38601034",
+    "workId": "3462456",
+    "bookUrl": "/book/show/38601034-the-lord-of-the-rings-trilogy",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 5,
+    "title": "The Lord of the Rings trilogy: The Fellowship of the Ring, The Two Towers, The Return of the King - (RUSSIAN EDITION)",
+    "bookTitleBare": "The Lord of the Rings trilogy: The Fellowship of the Ring, The Two Towers, The Return of the King -",
+    "numPages": 0,
+    "avgRating": "4.55",
+    "ratingsCount": 752510,
+    "author": {
+      "id": 656983,
+      "name": "J.R.R. Tolkien",
+      "isGoodreadsAuthor": false,
+      "profileUrl": "https://www.goodreads.com/author/show/656983.J_R_R_Tolkien",
+      "worksListUrl": "https://www.goodreads.com/author/list/656983.J_R_R_Tolkien"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "Sauron, the Dark Lord, has gathered to him all the Rings of Power – the means by which he intends to rule Middle-earth. All he lacks in his plans for dominion is the One Ring …",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/38601034-the-lord-of-the-rings-trilogy"
+    }
+  }
+]

@@ -1,0 +1,114 @@
+[
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1567994780l/52886230._SX50_SY75_.jpg",
+    "bookId": "52886230",
+    "workId": "73294142",
+    "bookUrl": "/book/show/52886230-study-guide",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 1,
+    "title": "Study Guide: Circe by Madeline Miller (SuperSummary)",
+    "bookTitleBare": "Study Guide: Circe by Madeline Miller",
+    "numPages": 55,
+    "avgRating": "2.80",
+    "ratingsCount": 5,
+    "author": {
+      "id": 14144674,
+      "name": "SuperSummary",
+      "isGoodreadsAuthor": false,
+      "profileUrl": "https://www.goodreads.com/author/show/14144674.SuperSummary",
+      "worksListUrl": "https://www.goodreads.com/author/list/14144674.SuperSummary"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "SuperSummary, a modern alternative to SparkNotes and CliffsNotes, offers high-quality study guides for challenging works of literature. This 45-page guide for “Circe” by Madel…",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/52886230-study-guide"
+    }
+  },
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/nophoto/book/111x148._SX50_.png",
+    "bookId": "51865264",
+    "workId": "72926213",
+    "bookUrl": "/book/show/51865264-summary-of-circe-by-madeline-miller",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 2,
+    "title": "Summary of CIRCE by Madeline Miller (Discussion Prompts)",
+    "bookTitleBare": "Summary of CIRCE by Madeline Miller",
+    "numPages": null,
+    "avgRating": "2.00",
+    "ratingsCount": 4,
+    "author": {
+      "id": 5254337,
+      "name": "Sarah Fields",
+      "isGoodreadsAuthor": false,
+      "profileUrl": "https://www.goodreads.com/author/show/5254337.Sarah_Fields",
+      "worksListUrl": "https://www.goodreads.com/author/list/5254337.Sarah_Fields"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "CIRCE by Madeline Miller<br/><br/><br/>Madeline Miller, the author of the international bestseller The Song of Achilles, comes to another powerful tale Circe. Circe ranks high in the bestsel…",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/51865264-summary-of-circe-by-madeline-miller"
+    }
+  },
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1565909496i/35959740._SY75_.jpg",
+    "bookId": "35959740",
+    "workId": "53043399",
+    "bookUrl": "/book/show/35959740-circe",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 3,
+    "title": "Circe",
+    "bookTitleBare": "Circe",
+    "numPages": 393,
+    "avgRating": "4.22",
+    "ratingsCount": 1501102,
+    "author": {
+      "id": 176372,
+      "name": "Madeline Miller",
+      "isGoodreadsAuthor": true,
+      "profileUrl": "https://www.goodreads.com/author/show/176372.Madeline_Miller",
+      "worksListUrl": "https://www.goodreads.com/author/list/176372.Madeline_Miller"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "In the house of Helios, god of the sun and mightiest of the Titans, a daughter is born. But Circe is a strange child--neither powerful like her father nor viciously alluring l…",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/35959740-circe"
+    }
+  },
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1560177161i/46250509._SY75_.jpg",
+    "bookId": "46250509",
+    "workId": "62905634",
+    "bookUrl": "/book/show/46250509-summary-of-circe-by-madeline-miller",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 4,
+    "title": "Summary of Circe by Madeline Miller: Conversation Starters",
+    "bookTitleBare": "Summary of Circe by Madeline Miller: Conversation Starters",
+    "numPages": 68,
+    "avgRating": "1.00",
+    "ratingsCount": 3,
+    "author": {
+      "id": 17073819,
+      "name": "BookHabits",
+      "isGoodreadsAuthor": false,
+      "profileUrl": "https://www.goodreads.com/author/show/17073819.BookHabits",
+      "worksListUrl": "https://www.goodreads.com/author/list/17073819.BookHabits"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": " Circe by Madeline Miller: Conversation Starters  <br/><br/> <br/>Madeline Miller, author of the international bestseller The Song of Achilles, comes another powerful tale Circe. Inspired by…",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/46250509-summary-of-circe-by-madeline-miller"
+    }
+  }
+]

@@ -1,0 +1,142 @@
+[
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1703329310i/23692271._SY75_.jpg",
+    "bookId": "23692271",
+    "workId": "18962767",
+    "bookUrl": "/book/show/23692271-sapiens",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 1,
+    "title": "Sapiens: A Brief History of Humankind",
+    "bookTitleBare": "Sapiens: A Brief History of Humankind",
+    "numPages": 512,
+    "avgRating": "4.32",
+    "ratingsCount": 1339420,
+    "author": {
+      "id": 395812,
+      "name": "Yuval Noah Harari",
+      "isGoodreadsAuthor": false,
+      "profileUrl": "https://www.goodreads.com/author/show/395812.Yuval_Noah_Harari",
+      "worksListUrl": "https://www.goodreads.com/author/list/395812.Yuval_Noah_Harari"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "From a renowned historian comes a groundbreaking narrative of humanity’s creation and evolution—a #1 international bestseller—that explores the ways in which biology and histo…",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/23692271-sapiens"
+    }
+  },
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1402915678i/19547856._SY75_.jpg",
+    "bookId": "19547856",
+    "workId": "27679579",
+    "bookUrl": "/book/show/19547856-simon-vs-the-homo-sapiens-agenda",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 2,
+    "title": "Simon vs. the Homo Sapiens Agenda (Simonverse, #1)",
+    "bookTitleBare": "Simon vs. the Homo Sapiens Agenda",
+    "numPages": 320,
+    "avgRating": "4.12",
+    "ratingsCount": 475027,
+    "author": {
+      "id": 7579036,
+      "name": "Becky Albertalli",
+      "isGoodreadsAuthor": true,
+      "profileUrl": "https://www.goodreads.com/author/show/7579036.Becky_Albertalli",
+      "worksListUrl": "https://www.goodreads.com/author/list/7579036.Becky_Albertalli"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "Sixteen-year-old and not-so-openly gay Simon Spier prefers to save his drama for the school musical. But when an email falls into the wrong hands, his secret is at risk of bei…",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/19547856-simon-vs-the-homo-sapiens-agenda"
+    }
+  },
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1594616346i/54110137._SX50_.jpg",
+    "bookId": "54110137",
+    "workId": "84457524",
+    "bookUrl": "/book/show/54110137-sapiens",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 3,
+    "title": "Sapiens: A Graphic History, Volume 1 - The Birth of Humankind",
+    "bookTitleBare": "Sapiens: A Graphic History, Volume 1 - The Birth of Humankind",
+    "numPages": 248,
+    "avgRating": "4.31",
+    "ratingsCount": 23126,
+    "author": {
+      "id": 1212347,
+      "name": "David Vandermeulen",
+      "isGoodreadsAuthor": false,
+      "profileUrl": "https://www.goodreads.com/author/show/1212347.David_Vandermeulen",
+      "worksListUrl": "https://www.goodreads.com/author/list/1212347.David_Vandermeulen"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "<strong>A hardcover edition of the first volume of the graphic adaptation of Yuval Noah Harari&apos;s smash #1 <em>New York Times </em>and international bestseller recommended by President Barack O…</strong>",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/54110137-sapiens"
+    }
+  },
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1316132345i/9647532._SX50_.jpg",
+    "bookId": "9647532",
+    "workId": "18280046",
+    "bookUrl": "/book/show/9647532-fuzzy-nation",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 4,
+    "title": "Fuzzy Nation (Fuzzy Sapiens, #7)",
+    "bookTitleBare": "Fuzzy Nation",
+    "numPages": 303,
+    "avgRating": "4.15",
+    "ratingsCount": 32864,
+    "author": {
+      "id": 4763,
+      "name": "John Scalzi",
+      "isGoodreadsAuthor": true,
+      "profileUrl": "https://www.goodreads.com/author/show/4763.John_Scalzi",
+      "worksListUrl": "https://www.goodreads.com/author/list/4763.John_Scalzi"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "Jack Holloway works alone, for reasons he doesn&apos;t care to talk about. Hundreds of miles from ZaraCorp&apos;s headquarters on planet, 178 light-years from the corporation&apos;s headquar…",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/9647532-fuzzy-nation"
+    }
+  },
+  {
+    "imageUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1348972417i/1440148._SY75_.jpg",
+    "bookId": "1440148",
+    "workId": "1876891",
+    "bookUrl": "/book/show/1440148.Little_Fuzzy",
+    "from_search": true,
+    "from_srp": true,
+    "qid": "fixture",
+    "rank": 5,
+    "title": "Little Fuzzy (Fuzzy Sapiens, #1)",
+    "bookTitleBare": "Little Fuzzy",
+    "numPages": 252,
+    "avgRating": "4.04",
+    "ratingsCount": 11074,
+    "author": {
+      "id": 128647,
+      "name": "H. Beam Piper",
+      "isGoodreadsAuthor": false,
+      "profileUrl": "https://www.goodreads.com/author/show/128647.H_Beam_Piper",
+      "worksListUrl": "https://www.goodreads.com/author/list/128647.H_Beam_Piper"
+    },
+    "kcrPreviewUrl": null,
+    "description": {
+      "html": "The chartered Zarathustra Company had it all their way. Their charter was for a Class III uninhabited planet, which Zarathustra was, and it meant they owned the planet lock st…",
+      "truncated": true,
+      "fullContentUrl": "https://www.goodreads.com/book/show/1440148.Little_Fuzzy"
+    }
+  }
+]
