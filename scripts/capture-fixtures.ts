@@ -3,9 +3,10 @@
  * Refreshes the fixtures under test/fixtures/ (see test/fixtures/README.md for what each one is).
  * Run it by hand when Audible or Goodreads change their pages; it never runs in CI and refuses to.
  *
- *   bun scripts/capture-fixtures.ts                 audible pages + goodreads responses
+ *   bun scripts/capture-fixtures.ts                 everything: audible, catalog and goodreads
  *   bun scripts/capture-fixtures.ts audible         the public Audible pages only
  *   bun scripts/capture-fixtures.ts goodreads       autocomplete responses and book pages only
+ *   bun scripts/capture-fixtures.ts catalog         the two Audible catalogue API responses only
  *   bun scripts/capture-fixtures.ts --list          print every request it would make; send none
  *   bun scripts/capture-fixtures.ts import <library|wishlist> <uk|com> <saved.html> [--redact <text>]...
  *
@@ -60,6 +61,23 @@ const audiblePath = (type: PublicPage) =>
   })[type]
 type PublicPage = 'home' | 'search' | 'category' | 'deals'
 const PUBLIC_PAGES: PublicPage[] = ['home', 'search', 'category', 'deals']
+
+// The catalogue API response the background reads (`catalog/products`), one per marketplace. The
+// ASINs are books that already appear in the saved pages of that marketplace. The `uk` request
+// also carries a US ASIN that .co.uk does not list: the API answers a bare `{ "asin": … }` for
+// it, which `AudibleCatalog` maps to `NoMetadata` (ARCHITECTURE.md §4).
+const CATALOG = {
+  uk: {
+    host: 'api.audible.co.uk',
+    asins: ['B0721NKM4B', 'B0HDF95QBD', 'B08G9PRS1K'],
+  },
+  com: {
+    host: 'api.audible.com',
+    asins: ['B08G9PRS1K', 'B01FN88BHC', '197865085X'],
+  },
+} as const
+// The same `response_groups` the userscript asks for.
+const CATALOG_RESPONSE_GROUPS = 'contributors,product_desc'
 
 type Book = { slug: string; title: string; author: string; id: string }
 // Titles and authors are written the way Audible lists them, because the queries are built from
@@ -219,6 +237,33 @@ function audibleJobs(): Job[] {
   )
 }
 
+function catalogJobs(): Job[] {
+  return (Object.keys(CATALOG) as Region[]).map(region => {
+    const { host, asins } = CATALOG[region]
+    const url = `https://${host}/1.0/catalog/products?asins=${asins.join(',')}&response_groups=${CATALOG_RESPONSE_GROUPS}`
+    return {
+      site: 'audible-api',
+      file: `audible/${region}/catalog.json`,
+      request: url,
+      run: async () => {
+        const body = await get(url, 'application/json')
+        const { products } = JSON.parse(body) as {
+          products?: { asin?: string; title?: string }[]
+        }
+        if (!products?.some(p => p.title)) {
+          throw new Error(`${url} answered no product with a title`)
+        }
+        const json = `${JSON.stringify(JSON.parse(body), null, 2)}\n`
+        const personal = findPersonalData(json, { greeting: false })
+        if (personal.length) {
+          throw new Error(`response has personal data: ${personal[0]}`)
+        }
+        return json
+      },
+    }
+  })
+}
+
 function goodreadsJobs(): Job[] {
   return BOOKS.flatMap(book => [
     ...queriesFor(book).map(({ kind, q }) => {
@@ -354,9 +399,10 @@ if (command === 'import') {
   process.exit(importPage(rest) ? 0 : 1)
 }
 
-// Anything unrecognised stops here: a mistyped `--lst` must not start 68 live requests.
+// Anything unrecognised stops here: a mistyped `--lst` must not start a run of live requests.
 const targets = {
   audible: audibleJobs,
+  catalog: catalogJobs,
   goodreads: goodreadsJobs,
 } as const
 const list = process.argv.slice(2).includes('--list')

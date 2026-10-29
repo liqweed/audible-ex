@@ -1,0 +1,78 @@
+{
+  "products": [
+    {
+      "asin": "B0721NKM4B",
+      "authors": [
+        {
+          "asin": "B00G0WYW92",
+          "name": "Andy Weir"
+        }
+      ],
+      "narrators": [
+        {
+          "asin": "B0C9M888W1",
+          "name": "Rosario Dawson"
+        }
+      ],
+      "publisher_name": "Audible Studios",
+      "sku": "BK_ADBL_027881UK",
+      "sku_lite": "BK_ADBL_027881",
+      "title": "Artemis"
+    },
+    {
+      "asin": "B0HDF95QBD",
+      "authors": [
+        {
+          "asin": "B001JS311C",
+          "name": "Benjamin Percy"
+        },
+        {
+          "asin": "B00G0WYW92",
+          "name": "Andy Weir"
+        }
+      ],
+      "narrators": [
+        {
+          "name": "Anthony Mackie"
+        },
+        {
+          "name": "Ariana DeBose"
+        },
+        {
+          "name": "John Leguizamo"
+        },
+        {
+          "name": "Ray Porter"
+        },
+        {
+          "name": "Cherry Jones"
+        },
+        {
+          "name": "Aida Osman"
+        },
+        {
+          "name": "Charlie Plummer"
+        },
+        {
+          "name": "Sufe Bradshaw"
+        },
+        {
+          "name": "Full cast"
+        }
+      ],
+      "publisher_name": "Audible Originals",
+      "sku": "OR_ORIG_002347UK",
+      "sku_lite": "OR_ORIG_002347",
+      "title": "Exoplanet"
+    },
+    {
+      "asin": "B08G9PRS1K"
+    }
+  ],
+  "response_groups": [
+    "product_desc",
+    "always-returned",
+    "contributors"
+  ],
+  "total_results": 3
+}

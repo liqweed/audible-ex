@@ -103,7 +103,7 @@ The extension does everything userscript v2.4.0 does, on all 10 marketplaces.
 - [x] `src/core`: `text.ts` (`norm`, `shortTitle`, `lastName`), `matching.ts`
       (scoring and candidate choice), `asin.ts`, `regions.ts`. Tests from
       fixtures.
-- [ ] `src/schema`: Goodreads autocomplete, `__NEXT_DATA__` book extraction,
+- [x] `src/schema`: Goodreads autocomplete, `__NEXT_DATA__` book extraction,
       Audible catalog response, cache records, port messages.
 - [ ] Background services: `AudibleCatalog` (batched with `RequestResolver`),
       `Goodreads`, `BookCache` (time limits, pins, daily purge), `LookupQueue`

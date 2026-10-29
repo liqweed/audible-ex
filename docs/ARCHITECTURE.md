@@ -135,23 +135,27 @@ through CDP keeps the worker alive), so check it in a normal browser in phase 1.
 
 ## 5. Messaging
 
-One long-lived `runtime.Port` per tab, named `agx`. Every message is an Effect Schema tagged union,
-decoded on receipt in both directions.
+One long-lived `runtime.Port` per tab, named `agx`. Every message is an Effect Schema tagged union
+(`_tag`), decoded on receipt in both directions. The schemas are in `src/schema/messages.ts`; they
+share identifiers and the rating and details shapes with the cache records
+(`src/schema/common.ts`, `cache.ts`).
 
 Content → background
 
-| Message  | Fields                                                           |
-| -------- | ---------------------------------------------------------------- |
-| `Hello`  | `region`, `page` (search, library, wishlist, …)                  |
-| `Lookup` | `items: { asin, pinned }[]` — `pinned` on library/wish list rows |
-| `Retry`  | `asins`                                                          |
+| Message  | Fields                                                                                                    |
+| -------- | --------------------------------------------------------------------------------------------------------- |
+| `Hello`  | `region` (a `RegionCode`), `page` (`home`, `search`, `category`, `deals`, `library`, `wishlist`, `other`) |
+| `Lookup` | `items: { asin, pinned }[]` — `pinned` on library/wish list rows                                          |
+| `Retry`  | `asins`                                                                                                   |
 
 Background → content
 
-| Message      | Fields                                                                                       |
-| ------------ | -------------------------------------------------------------------------------------------- |
-| `BookUpdate` | `asin`, `status` (`loading`, `ready`, `notFound`, `failed`), `rating?`, `details?`, `error?` |
-| `Progress`   | per-tab counters and `pausedUntil?`                                                          |
+| Message      | Fields                                                                                                                                                                                                                                              |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `BookUpdate` | `asin`, `status` (`loading`, `ready`, `notFound`, `failed`), `rating?` (`{ r, n, url, loose }`), `details?` (`{ genres, year, desc }`), `error?` (`{ reason, message }`, `reason` one of `httpError`, `rateLimited`, `formatChanged`, `noMetadata`) |
+| `Progress`   | `queued`, `active`, `done`, `cached`, `notFound`, `failed` (counters of this tab) and `pausedUntil?` (epoch milliseconds)                                                                                                                           |
+
+`BookUpdate` carries what its `status` implies: `ready` has `rating` (and `details` once the book page has been read), `failed` has `error`, `loading` and `notFound` have neither. The `queued` status of §6's `BookView` exists in the content script's store only; the background never sends it.
 
 Popup / options → background (one-off `sendMessage`): `CacheStats`, `ClearCache { scope: 'unpinned' | 'all' }`.
 These replace the userscript's `GM_registerMenuCommand` entries.

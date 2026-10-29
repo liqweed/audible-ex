@@ -1,0 +1,65 @@
+{
+  "products": [
+    {
+      "asin": "B08G9PRS1K",
+      "authors": [
+        {
+          "asin": "B00G0WYW92",
+          "name": "Andy Weir"
+        }
+      ],
+      "narrators": [
+        {
+          "name": "Ray Porter"
+        }
+      ],
+      "publisher_name": "Audible Studios",
+      "sku": "BK_ADBL_051843",
+      "sku_lite": "BK_ADBL_051843",
+      "title": "Project Hail Mary"
+    },
+    {
+      "asin": "B01FN88BHC",
+      "authors": [
+        {
+          "asin": "B000APWJOK",
+          "name": "Leo Tolstoy"
+        }
+      ],
+      "narrators": [
+        {
+          "name": "Maggie Gyllenhaal"
+        }
+      ],
+      "publisher_name": "Audible Studios",
+      "sku": "BK_ADBL_023146",
+      "sku_lite": "BK_ADBL_023146",
+      "title": "Anna Karenina"
+    },
+    {
+      "asin": "197865085X",
+      "authors": [
+        {
+          "asin": "B004FX672S",
+          "name": "Veronica Roth"
+        }
+      ],
+      "narrators": [
+        {
+          "name": "Evan Rachel Wood"
+        }
+      ],
+      "publisher_name": "Amazon Original Stories",
+      "sku": "BK_BRLL_012222",
+      "sku_lite": "BK_BRLL_012222",
+      "subtitle": "Forward collection",
+      "title": "Ark"
+    }
+  ],
+  "response_groups": [
+    "product_desc",
+    "always-returned",
+    "contributors"
+  ],
+  "total_results": 3
+}

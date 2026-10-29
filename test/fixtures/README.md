@@ -8,8 +8,9 @@ test after a refresh is how we notice that Audible or Goodreads changed.
 ## Refreshing
 
 ```sh
-bun scripts/capture-fixtures.ts            # everything: 68 requests, about 3 minutes
+bun scripts/capture-fixtures.ts            # everything: 70 requests, about 3 minutes
 bun scripts/capture-fixtures.ts audible    # the 8 public Audible pages
+bun scripts/capture-fixtures.ts catalog    # the 2 Audible catalogue API responses
 bun scripts/capture-fixtures.ts goodreads  # autocomplete and book pages for the 20 books
 bun scripts/capture-fixtures.ts --list     # print the requests; send none
 ```
@@ -73,11 +74,23 @@ out.
 | `audible/{uk,com}/deals.html`         | `/ep/audiobook-deals`                                   | script      |
 | `audible/{uk,com}/library.html`       | `/library/titles`, first page                           | by hand     |
 | `audible/{uk,com}/wishlist.html`      | `/wl`, first page                                       | by hand     |
+| `audible/{uk,com}/catalog.json`       | `api.audible.<tld>/1.0/catalog/products`, see below     | script      |
 
 Library and wish list need a signed-in browser, so they are saved by hand and
 cleaned by the script's `import` command. They do not exist until someone
 captures them; until then phase 1's library and wish-list card tests have
 nothing to run on.
+
+### Catalogue API responses
+
+`audible/{uk,com}/catalog.json` is what the background reads for the ASINs of
+books in the saved pages: one `catalog/products` request per marketplace, with
+the userscript's `response_groups=contributors,product_desc`, answered as
+served. Three ASINs each. The `uk` request also carries `B08G9PRS1K`, the
+`.com` edition of Project Hail Mary, which `.co.uk` does not list: the API
+answers a bare `{ "asin": … }` for it, the "not carried" case that
+`AudibleCatalog` maps to `NoMetadata`. The response names only publicly listed
+authors and narrators.
 
 ### Capturing library and wish list by hand
 
