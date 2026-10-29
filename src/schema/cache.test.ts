@@ -1,6 +1,12 @@
 import { describe, expect, test } from 'bun:test'
 import * as Schema from 'effect/Schema'
-import { DetailsRecord, MetaRecord, PinRecord, RatingRecord } from './cache'
+import {
+  DetailsRecord,
+  HousekeepingRecord,
+  MetaRecord,
+  PinRecord,
+  RatingRecord,
+} from './cache'
 import { DESCRIPTION_MAX } from './common'
 
 const savedAt = 1_761_700_000_000
@@ -46,6 +52,7 @@ const records = {
     { bookId: '54493401', savedAt, genres: [], year: 0, desc: '' },
   ],
   pin: [PinRecord, { asin: 'B08G9PRS1K', lastSeen: savedAt }],
+  'the last purge': [HousekeepingRecord, { name: 'lastPurge', at: savedAt }],
 } as const
 
 describe('cache records', () => {

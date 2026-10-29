@@ -104,7 +104,7 @@ on it. Each service is a `Context` service with a live layer and a test layer.
 | `Http`           | `FetchHttpClient` layer. Requests to Goodreads use `credentials: 'omit'` so lookups aren't tied to the user's Goodreads account.                                                                                                                                                                                                  | `get()`                                                    |
 | `AudibleCatalog` | `title`, first `author` (and later price) for an ASIN. Uses `Request`/`RequestResolver` so concurrent lookups batch into one `catalog/products?asins=…` call of up to 40.                                                                                                                                                         | `getMeta`, `flushMeta`                                     |
 | `Goodreads`      | `search(meta)` via `book/auto_complete` and the scoring rules; `details(bookId)` from the book page's `__NEXT_DATA__` (genres, overview, first-published year). Responses are decoded with Schemas; a decode failure is a `FormatChanged` error, not a miss.                                                                      | `searchGoodreads`, `fetchDetails`                          |
-| `BookCache`      | IndexedDB stores `ratings` (by ASIN), `meta` (by ASIN), `details` (by Goodreads id), `pins` (ASIN → last seen). Time limits: hit 30 days, miss 7 days. Daily purge of unpinned entries older than 32 days; pins expire 180 days after last seen in Library/Wish List.                                                             | `cacheGet/Set`, `pin`, `purge`                             |
+| `BookCache`      | IndexedDB stores `ratings` (by ASIN), `meta` (by ASIN), `details` (by Goodreads id), `pins` (ASIN → last seen) and `housekeeping` (last purge); layout in §8. Time limits: found 30 days, miss 7 days; failures are never stored. A fibre purges unpinned entries older than 32 days daily; pins expire 180 days after last seen in Library/Wish List. | `cacheGet/Set`, `pin`, `purge`                             |
 | `LookupQueue`    | Dedupes in-flight work per ASIN and Goodreads id, runs jobs with a 3-permit `Semaphore` and a 250 ms gap per worker, two priorities (visible > background upgrades). On 429/503 the whole queue pauses with exponential backoff (5 s → 2 min, honouring `Retry-After`); a `CircuitBreaker` stops traffic after repeated failures. | `grQueued`, `pumpGr`, `ratingFor`, `detailsFor`, `addYear` |
 | `ProgressHub`    | Per-tab counters (queued, active, done, cached, not found, failed, paused-until), published with `PubSub` to the tab's port.                                                                                                                                                                                                      | — (new)                                                    |
 | `PortServer`     | Accepts `runtime.connect` from content scripts, decodes messages, routes to the queue, encodes updates back. Handles one-off popup messages.                                                                                                                                                                                      | — (new)                                                    |
@@ -112,7 +112,7 @@ on it. Each service is a `Context` service with a live layer and a test layer.
 Pure logic stays outside Effect, in `src/core/` (title normalisation, author/title scoring, filter
 verdicts, region table). The services call it; tests hit it directly with fixtures.
 
-Errors are tagged: `HttpError(status)`, `RateLimited(retryAfter)`, `FormatChanged(source)`,
+Errors are tagged: `CacheError(operation)` (IndexedDB failed), `HttpError(status)`, `RateLimited(retryAfter)`, `FormatChanged(source)`,
 `NoMetadata(asin)`. "Not found on Goodreads" is a normal result (`{ miss: true }`), cached for 7
 days. Failures are not cached; the content script can retry them. `FormatChanged` is reported
 separately in the panel ("Goodreads changed its page format — the extension needs an update") so it
@@ -247,7 +247,7 @@ filter can't apply to it and the card stays visible.
 | ------------------------------------------------------ | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | Preferences: enabled, filters, display options         | `storage.sync` via WXT `storage.defineItem('sync:prefs', { version, migrations })` | Personal preference; follows the user across devices and Audible regions. Well within sync quotas. |
 | Panel placement, collapsed state, hidden-on-site flags | `storage.local`                                                                    | Specific to this screen and device.                                                                |
-| Cache: ratings, meta, details, pins                    | IndexedDB in the background, through `idb` (DECISIONS.md D13)                      | Thousands of records; needs an index on timestamp for purging. `unlimitedStorage` permission.      |
+| Cache: ratings, meta, details, pins, housekeeping      | IndexedDB in the background, through `idb` (DECISIONS.md D13)                      | Thousands of records; needs an index on timestamp for purging. `unlimitedStorage` permission.      |
 | Peek, progress, book views                             | Memory (TanStack Store)                                                            | Per page.                                                                                          |
 
 Every reader (content scripts, popup, options) watches `sync:prefs`, so a change in one tab applies
@@ -277,6 +277,18 @@ same title can have a different ASIN on each marketplace (Project Hail Mary is `
 `.com` and `B08GBHW6J1` on `.ca`), so a book seen on two marketplaces is two `ratings` entries
 that share one `details` entry.
 
+Cache database `audible-ex-cache`, version 1. Object stores and keys: `ratings` and `meta` by
+`asin`, `details` by `bookId`, `pins` by `asin`, each with an index on `savedAt` (`pins`:
+`lastSeen`) that the purge walks oldest first; `housekeeping` by `name`, holding one record,
+`lastPurge`, so the once-a-day gate survives a worker restart. Every record read is decoded with
+its Schema (`src/schema/cache.ts`); one that fails to decode is deleted and read as absent. The
+service opens the database from the `IDBFactory` it is given (`self.indexedDB` in the worker).
+Pinned means: for `ratings` and `meta`, the ASIN has a live pin; for `details`, the book id is the
+`bookId` of a found rating of a pinned ASIN. The purge, and `clear`, run in one readwrite
+transaction over all stores. `clear('all')` deletes every entry and every pin (the userscript's
+"everything" left its pin list); it leaves `housekeeping`. `stats` counts entries (ratings, meta,
+details) and pins separately and sizes everything as the JSON of its records.
+
 ## 9. Regions
 
 `src/core/regions.ts` maps hostname → region code, Audible API host (`www.` → `api.`), currency and
@@ -298,7 +310,9 @@ is the first task of phase 3b, with page-text parsing as the fallback.
 | Storage             | `bun test` + `wxt/testing/fake-browser`        | Prefs defaults, migrations, watch.                                                                                                     |
 | End to end          | Playwright, built extension loaded in Chromium | Smoke test on live Audible pages; run manually and before releases, not on every push (live sites change).                             |
 
-`test/preload.ts` (set in `bunfig.toml`) registers happy-dom and sets `globalThis.browser` and
+`test/preload.ts` (set in `bunfig.toml`) registers happy-dom and `fake-indexeddb` (DECISIONS.md
+D15; each `BookCache` test still gets its own `IDBFactory`, so a restart test reopens the
+same database) and sets `globalThis.browser` and
 `chrome` to WXT's fake browser. `@wxt-dev/storage` reads `browser` from `@wxt-dev/browser`, so mocking
 only `wxt/browser` isn't enough; the global is what works (verified).
 
@@ -344,10 +358,11 @@ src/
     content/index.ts         # scanner, store, badges, filter applier, mounts the panel
     popup/                   # enable toggle, show panel, cache stats/clear
     options/                 # settings (TanStack Form), cache inspector (Table + Virtual)
-  core/                      # pure TS, no DOM, no Effect: text.ts, matching.ts, filter.ts, regions.ts, asin.ts
+  core/                      # pure TS, no DOM, no Effect: text.ts, matching.ts, filter.ts, regions.ts, asin.ts,
+                             #   expiry.ts (cache time limits and pin rules)
   schema/                    # Effect Schemas: messages.ts, prefs.ts, goodreads.ts, audible.ts, cache.ts
   background/                # Effect services: Goodreads.ts, AudibleCatalog.ts, BookCache.ts,
-                             #   LookupQueue.ts, ProgressHub.ts, PortServer.ts, layers.ts
+                             #   BookCacheTest.ts (test layer over fake-indexeddb), LookupQueue.ts, ProgressHub.ts, PortServer.ts, layers.ts
   content/                   # scanner.ts, cards.ts, badges.ts, store.ts, filter-applier.ts,
                              #   port-client.ts, badges.css
   ui/                        # React: panel/, components/ (Radix-based), hooks/

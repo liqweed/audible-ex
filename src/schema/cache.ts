@@ -41,3 +41,12 @@ export const PinRecord = Schema.Struct({
   asin: Asin,
   lastSeen: EpochMs,
 })
+
+/**
+ * Store `housekeeping`, keyed by `name`: state the cache keeps for itself. `lastPurge` is when the
+ * daily purge last ran, so a restarted worker doesn't purge again the same day.
+ */
+export const HousekeepingRecord = Schema.Struct({
+  name: Schema.Literal('lastPurge'),
+  at: EpochMs,
+})

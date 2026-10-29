@@ -165,3 +165,19 @@ repository: a clean tree passes and an unyielded `Effect.log` fails with
 `TS377001`. It runs on Bun without patching `node_modules`. Rejected:
 skipping the language service (Effect mistakes such as a forgotten `yield*` are
 silent at runtime), and `@effect/language-service` (does not run on TypeScript 7).
+
+## D15 — `fake-indexeddb` for the `BookCache` tests (2026-10-29)
+
+`fake-indexeddb` 6.2.6 is added as a dev dependency, pinned. The cache tests
+need a real IndexedDB: the index on a timestamp, the cursor walk and the
+single-transaction purge are the code that can go wrong, and the acceptance
+criterion "the cache survives a worker restart" can only be proven by closing
+the database and opening it again over the same data. `fake-indexeddb` is a
+complete in-memory implementation of the IndexedDB API. `idb` checks its
+arguments against the `IDBDatabase` family of globals, so the test preload
+imports `fake-indexeddb/auto`, which registers them (and a global `indexedDB`
+that no `BookCache` code reads). Every test still gets a fresh `IDBFactory` and
+passes it to the live layer, so tests share no state. Rejected: an in-memory test layer only (fast, but it
+proves neither persistence nor the transaction and index code, which is what
+the live layer is made of), and running a browser for these tests (slow, manual,
+and not something CI does on every push).
