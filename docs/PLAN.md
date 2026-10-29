@@ -222,20 +222,19 @@ Store
 
 ## CI
 
-**Today there is none**: no `.github/` directory, so nothing checks a pull
-request. Phase 0 adds it with the toolchain, because a workflow for the current
-npm/Vitest scaffold would be thrown away within days.
-
-`ci.yml`, on `pull_request` and `push` to `main` (phase 0):
+`.github/workflows/ci.yml` (added in phase 0, after the toolchain move, because
+a workflow for the old npm/Vitest scaffold would have been thrown away within
+days) runs on `pull_request` and `push` to `main`:
 
 - One job, **`Extension — check, build`**, on `ubuntu-latest`:
   `actions/checkout` → `jdx/mise-action` (installs the pinned Bun and Node,
   cached) → `bun install --frozen-lockfile` → `bun check` → `bun run build` →
   upload `.output/chrome-mv3` as an artifact.
-- `permissions: contents: read`; `concurrency` per ref with
-  `cancel-in-progress: true`; `timeout-minutes: 15` on the job.
+- `permissions: contents: read`; `concurrency` per ref, cancelling superseded
+  pull request runs but never a run on `main`; `timeout-minutes: 15` on the
+  job; the artifact is kept for 7 days.
 - Actions pinned by commit SHA with the version in a comment; Renovate updates
-  them. `/jig:github-actions` reviews every workflow change.
+  them (the setup is #20). `/jig:github-actions` reviews every workflow change.
 - No path filters: the job is required, and a filtered required check never
   reports.
 - Required check: GitHub doesn't offer rulesets for a private repository on the

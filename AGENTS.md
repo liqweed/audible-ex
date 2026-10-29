@@ -16,9 +16,11 @@ userscript in [reference/](reference/audible-goodreads-ratings.user.js).
 
 Design and plan are agreed. Phase 0's toolchain is in place: Bun, WXT with
 `srcDir: 'src'`, `bun test`, Biome and TypeScript 7; `bun check` and
-`bun run build` work. CI is still to come (#19), so run the gates yourself
-before pushing. The entrypoints are empty shells; extension behaviour starts in
-phase 1.
+`bun run build` work. CI runs both on every pull request and on pushes to
+`main` (`.github/workflows/ci.yml`, one job, `Extension — check, build`); Jig
+reads the gate from `gates.command` and the required check from
+`ci.required_checks` in `.config/jig.yaml`. The entrypoints are empty shells;
+extension behaviour starts in phase 1.
 
 ## Non-negotiables
 
@@ -51,8 +53,9 @@ bun check   # biome ci → tsc --noEmit → bun test
 bun run build   # wxt build; also run it when you touch wxt.config.ts or entrypoints
 ```
 
-Until CI lands (#19), run both yourself before pushing. Biome doesn't check
-Markdown (DECISIONS.md D4): keep docs tidy by review.
+Run both yourself before pushing; CI repeats them and uploads the unpacked
+extension (`.output/chrome-mv3`) as an artifact for loading in Chrome. Biome
+doesn't check Markdown (DECISIONS.md D4): keep docs tidy by review.
 
 ## Guardrails
 

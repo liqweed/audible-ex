@@ -1,14 +1,26 @@
 # Jig configuration for this repository: the values the Jig skills read.
 # Every field and its default: plugin/CONFIGURATION.md in the jig plugin.
 #
-# gates.command and ci.required_checks arrive in phase 0 (docs/PLAN.md), in the
-# same pull request as .github/workflows/ci.yml: until then there is no gate to
-# run. Then: gates.command: bun check; ci.required_checks: the CI job's name
-# (the repository is private on the free plan, so GitHub can't expose its
-# required checks to the skills).
+gates:
+  # The complete local checks (biome ci, tsc, bun test); CI runs the same command.
+  command: bun check
+ci:
+  # The job name in .github/workflows/ci.yml; keep the two in step. Listed here
+  # because the repository is private on the free plan, so GitHub can't expose
+  # its required checks to the skills.
+  required_checks:
+    - Extension — check, build
 issue_tracker:
   adapter: github
   file_command: /jig:file-issue
+  # The workflow states are labels of the same names (label-taxonomy.yaml), not
+  # Jig's title-cased defaults.
+  states:
+    triage: triage
+    backlog: backlog
+    in_progress: in-progress
+    in_review: in-review
+    ops_pending: ops-pending
   # Set here so a taxonomy in the user's ~/.jig/jig.yaml never applies to this
   # repository.
   taxonomy: label-taxonomy.yaml

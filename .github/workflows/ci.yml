@@ -1,0 +1,45 @@
+# The gate for every pull request (docs/PLAN.md § CI). The job name is the
+# required check: keep it in step with ci.required_checks in .config/jig.yaml.
+# No path filters: a required check that is filtered out never reports.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# A newer push cancels the superseded pull request run; a run on main is never
+# cancelled, so every commit that lands there gets its own result.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  check:
+    name: 'Extension — check, build'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Installs the Bun and Node versions pinned in mise.toml, cached.
+      - uses: jdx/mise-action@6be3c7ed4c21d4f76b208d351d95aac273ebb76d # v5.2.4
+
+      - run: bun install --frozen-lockfile
+
+      # biome ci → tsc --noEmit → bun test
+      - run: bun check
+
+      - run: bun run build
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: extension-chrome-mv3
+          path: .output/chrome-mv3
+          if-no-files-found: error
+          retention-days: 7
