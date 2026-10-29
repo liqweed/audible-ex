@@ -100,7 +100,7 @@ Audible and the background answers a `Hello` over the port.
 
 The extension does everything userscript v2.4.0 does, on all 10 marketplaces.
 
-- [ ] `src/core`: `text.ts` (`norm`, `shortTitle`, `lastName`), `matching.ts`
+- [x] `src/core`: `text.ts` (`norm`, `shortTitle`, `lastName`), `matching.ts`
       (scoring and candidate choice), `asin.ts`, `regions.ts`. Tests from
       fixtures.
 - [ ] `src/schema`: Goodreads autocomplete, `__NEXT_DATA__` book extraction,
