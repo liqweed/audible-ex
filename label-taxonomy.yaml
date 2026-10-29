@@ -1,0 +1,130 @@
+# Label taxonomy for audible-ex: every label an issue may carry, and what each
+# flag sets off. /jig:file-issue checks an issue's labels against this file
+# before filing it (issue_tracker.taxonomy in .config/jig.yaml). Pruned from
+# Jig's M9 template; grow it deliberately.
+
+version: 1
+
+types:
+  - id: feature
+    notes: net-new user-facing capability
+  - id: bug
+    notes: a defect against expected behaviour
+  - id: chore
+    notes: toolchain, refactor or maintenance with no user-visible change
+  - id: docs
+    notes: documentation only
+  - id: spike
+    notes: time-boxed investigation whose output is knowledge, not shipped code
+
+# One-to-one with do-item's canonical states. On GitHub Issues an open state is
+# a label of the same name (todo carries none); done, canceled and duplicate
+# are the issue's close reason.
+statuses:
+  - id: triage
+    notes: filed, not yet accepted
+  - id: backlog
+    notes: accepted, not planned for now
+  - id: todo
+    notes: accepted and ready to start
+  - id: in-progress
+    notes: actively being worked
+  - id: in-review
+    notes: pull request open
+  - id: ops-pending
+    notes: merged, waiting on a step a person performs (a store upload)
+  - id: done
+    notes: terminal — shipped and verified
+  - id: canceled
+    notes: terminal — closed without completing
+  - id: duplicate
+    notes: terminal — closed as a copy of another issue
+
+groups:
+  - id: size
+    required: true
+    notes: effort estimate; split anything larger than large
+    labels:
+      - id: small
+        notes: under a day
+      - id: medium
+        notes: two to four days
+      - id: large
+        notes: about a week
+
+categories:
+  - id: area
+    prefix: 'area:'
+    recommended: true
+    max: 3
+    notes: which part of the extension the work is in (docs/ARCHITECTURE.md §12)
+    labels:
+      - id: background
+        notes: src/background — Effect services, queue, cache, port server
+      - id: content
+        notes: src/content — scanner, cards, badges, filter applier
+      - id: ui
+        notes: src/ui and the popup/options entrypoints
+      - id: core
+        notes: src/core and src/schema — pure logic and schemas
+      - id: build
+        notes: toolchain, CI, wxt.config.ts, scripts
+      - id: docs
+        notes: docs/, AGENTS.md, GLOSSARY.md, README.md
+  - id: phase
+    prefix: 'phase:'
+    max: 1
+    notes: the docs/PLAN.md phase the work belongs to
+    labels:
+      - id: '0'
+      - id: '1'
+      - id: '2'
+      - id: '3'
+      - id: '4'
+      - id: '5'
+      - id: later
+
+flags:
+  - id: epic
+    scope: container
+    fires: [status-roll-up, acceptance-review]
+    apply_when:
+      - the issue is a plan phase, or another outcome that needs more than one pull request
+    do_not_apply_when:
+      - the issue is one deliverable split into parts for convenience
+    notes: closes on a review that its scope is delivered, not on a count of closed children
+
+  - id: hitl
+    scope: shipping-item
+    fires: revoke-autonomy
+    apply_when:
+      - a person must decide or act before the change can merge (a default to confirm, a check in a real browser)
+    notes: an agent may prepare the change but not merge it
+
+  - id: source-traffic
+    scope: shipping-item
+    fires: request-rate-review
+    apply_when:
+      - the change adds a request to Goodreads or Audible, or changes the queue, rate, retries or cache lifetimes
+    do_not_apply_when:
+      - the change only parses responses already fetched
+    notes: >-
+      review against AGENTS.md "Respect the sources": requests per page view,
+      backoff, and that every request goes through LookupQueue and BookCache
+
+  - id: permissions-change
+    scope: shipping-item
+    fires: privacy-and-listing-review
+    apply_when:
+      - the change adds or widens a manifest permission, host permission or content-script match
+      - the change sends new data off the device
+    notes: >-
+      update docs/ARCHITECTURE.md §11, the privacy statement and the store
+      listing's permission justifications in the same pull request
+
+  - id: manual-ops
+    scope: shipping-item
+    fires: blocks-done-until-operator-checklist
+    apply_when:
+      - shipping needs a step a person performs outside the code (a store upload, a listing edit)
+    notes: while the step is pending after merge the issue is ops-pending

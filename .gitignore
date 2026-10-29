@@ -17,10 +17,16 @@ web-ext.config.ts
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
-.idea
+# IntelliJ: ignore the folder except its project icon (scripts/gen-icons.ts)
+.idea/*
+!.idea/icon.svg
+!.idea/icon_dark.svg
 .DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
+# Working files of agent tools (Jig skills)
+.context/

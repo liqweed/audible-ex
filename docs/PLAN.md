@@ -1,595 +1,279 @@
-# Development Plan - audible-ex Chrome Extension
-
-## Executive Summary
-
-audible-ex is a Chrome extension that transforms the Audible browsing experience by integrating Goodreads ratings, advanced filtering capabilities, and multi-region support. The extension enhances user decision-making by surfacing community feedback and metadata directly within Audible's interface across multiple domains (UK, US, Canada, Australia, India).
-
-**Vision**: Transform Audible from a simple catalog into an intelligent, data-rich discovery platform that helps users find their next great listen based on community feedback and personal preferences.
-
-**Core Value Propositions**:
-
-- Reduce purchase regret through comprehensive rating information
-- Save time by filtering out low-rated or unsuitable content
-- Improve discovery through tag-based filtering and series detection
-- Maintain performance with intelligent caching and rate limiting
-
-## Current State Analysis
-
-### What Exists
-
-- **Basic WXT Framework Setup**: Scaffold with React 18, TypeScript, and Manifest V3
-- **Entry Points**: Background script, content script, and popup (all with placeholder code)
-- **Documentation**: Comprehensive PRD and technical architecture specifications
-- **Build Configuration**: WXT config with development and production builds
-
-### What Needs to be Built
-
-- **Core Infrastructure**: Rate limiting, caching, queue management (100% to implement)
-- **Goodreads Integration**: Data scraping, parsing, error handling (100% to implement)
-- **UI Components**: Rating displays, filters, settings panel (100% to implement)
-- **Multi-Domain Support**: Region detection, domain-specific configurations (100% to implement)
-- **Content Script Logic**: Book detection, DOM injection, page routing (100% to implement)
-- **Storage System**: Local caching with LRU eviction and TTL (100% to implement)
-
-### Technical Debt Assessment
-
-- **Low**: Clean slate with modern tech stack
-- **Dependencies**: Need to add state management (Zustand), UI components (Shadcn/ui), and utility libraries
-- **Architecture**: Well-defined structure exists in documentation, needs implementation
-
-## Feature Prioritization Matrix
-
-### Critical Priority (P0) - MVP Foundation
-
-**Business Impact**: High | **Technical Complexity**: Medium | **User Value**: High
-
-1. **Rate Limiting System** - Essential for respecting external services
-2. **Basic Goodreads Integration** - Core value proposition
-3. **Content Script Infrastructure** - Foundation for all features
-4. **Local Caching System** - Performance requirement
-5. **Visual Rating Display** - Primary user interface
-
-### High Priority (P1) - Core Features
-
-**Business Impact**: High | **Technical Complexity**: Low-Medium | **User Value**: High
-
-6. **Filter by Minimum Rating** - Key filtering capability
-7. **Multi-Domain Detection** - Supports international users
-8. **Batch Processing Queue** - Performance optimization
-9. **Error Handling & Recovery** - Reliability requirement
-10. **Basic Settings UI** - User configuration
-
-### Medium Priority (P2) - Enhanced Experience
-
-**Business Impact**: Medium | **Technical Complexity**: Medium | **User Value**: Medium
-
-11. **Tag-based Filtering** - Advanced discovery
-12. **Rating Statistics & Tooltips** - Detailed information
-13. **Series Detection** - Series enthusiast support
-14. **Alternative Rating Sources** - Data redundancy
-15. **Filter Persistence** - User experience enhancement
-
-### Low Priority (P3) - Advanced Features
-
-**Business Impact**: Medium | **Technical Complexity**: High | **User Value**: Low-Medium
-
-16. **AI-powered Recommendations** - Future enhancement
-17. **Cross-region Price Comparison** - Nice-to-have
-18. **Profile Import/Export** - Power user feature
-19. **Performance Analytics** - Internal optimization
-20. **Narrator Quality Scores** - Specialized feature
-
-## Detailed Feature Roadmap
-
-### Phase 1: Foundation (Weeks 1-3)
-
-**Goal**: Establish core infrastructure and basic Goodreads integration
-
-#### Milestone 1.1: Project Setup (Week 1)
-
-- **Dependencies Installation**
-  - Add Zustand for state management
-  - Add Shadcn/ui and Radix UI for components
-  - Add Tailwind CSS for styling
-  - Add TanStack Query for data fetching
-  - Set up ESLint and Prettier configurations
-
-- **Core Architecture**
-  - Implement domain detection service
-  - Create storage abstraction layer
-  - Set up error handling framework
-  - Configure TypeScript strict mode
-
-#### Milestone 1.2: Content Script Foundation (Week 2)
-
-- **Book Detection System**
-  - Implement book element identification
-  - Create ASIN/ISBN extraction logic
-  - Add page type detection (search, category, detail)
-  - Build DOM observation for dynamic content
-
-- **Domain Abstraction Layer**
-  - Create domain configuration system
-  - Implement region-specific selectors
-  - Add currency and locale handling
-  - Build feature flag system per domain
-
-#### Milestone 1.3: Basic Goodreads Integration (Week 3)
-
-- **Scraping Infrastructure**
-  - Implement HTTP client with user agent rotation
-  - Create Goodreads URL construction logic
-  - Build HTML parsing with fallback selectors
-  - Add basic error handling and retries
-
-- **Data Models**
-  - Define TypeScript interfaces for book data
-  - Create rating and review count parsers
-  - Implement data validation and sanitization
-  - Build cache key generation system
-
-### Phase 2: Core Features (Weeks 4-6)
-
-**Goal**: Implement rating display, caching, and basic filtering
-
-#### Milestone 2.1: Caching System (Week 4)
-
-- **Storage Implementation**
-  - Build LRU cache with configurable size limits
-  - Implement TTL-based expiration (7 days)
-  - Create per-domain cache separation
-  - Add cache statistics and monitoring
-
-- **Data Persistence**
-  - Integrate Chrome Storage API
-  - Implement cache serialization/deserialization
-  - Build cache cleanup and optimization
-  - Add storage quota management
-
-#### Milestone 2.2: Rating Display (Week 5)
-
-- **UI Components**
-  - Create rating badge component with color coding
-  - Implement tooltip with detailed statistics
-  - Build responsive design for different layouts
-  - Add loading states and error indicators
-
-- **DOM Injection**
-  - Implement non-intrusive UI injection
-  - Create position calculation algorithms
-  - Build collision detection and avoidance
-  - Add animation and transition effects
-
-#### Milestone 2.3: Basic Filtering (Week 6)
-
-- **Filter Infrastructure**
-  - Create filter state management
-  - Implement real-time DOM filtering
-  - Build filter persistence across sessions
-  - Add filter reset and clear functionality
-
-- **Minimum Rating Filter**
-  - Implement slider component (1.0-5.0 stars)
-  - Create visual dimming for filtered items
-  - Build threshold configuration UI
-  - Add filter count indicators
-
-### Phase 3: Enhanced Experience (Weeks 7-9)
-
-**Goal**: Add advanced filtering, multi-domain support, and queue management
-
-#### Milestone 3.1: Multi-Domain Support (Week 7)
-
-- **Domain Configuration**
-  - Implement configuration system for all supported domains
-  - Create domain-specific selector mappings
-  - Build currency and date format handling
-  - Add feature availability per region
-
-- **Testing Framework**
-  - Set up cross-domain testing environment
-  - Create automated selector validation
-  - Build region-specific test suites
-  - Implement performance benchmarking
-
-#### Milestone 3.2: Advanced Filtering (Week 8)
-
-- **Tag-based Filtering**
-  - Implement Goodreads tag extraction
-  - Create multi-select tag interface
-  - Build include/exclude filter modes
-  - Add popular tags quick access
-
-- **Enhanced Statistics**
-  - Create detailed rating breakdown tooltips
-  - Implement 5-star distribution histograms
-  - Build review count filtering
-  - Add statistical significance indicators
-
-#### Milestone 3.3: Queue Management (Week 9)
-
-- **Background Processing**
-  - Implement service worker queue system
-  - Create priority-based request scheduling
-  - Build progress indicators for batch operations
-  - Add queue persistence across browser sessions
-
-- **Rate Limiting**
-  - Implement configurable delay system (1 req/sec default)
-  - Create exponential backoff on errors
-  - Build rate limit indicator UI
-  - Add user-configurable timing settings
-
-### Phase 4: Polish & Optimization (Weeks 10-12)
-
-**Goal**: Performance optimization, comprehensive testing, and user experience refinement
-
-#### Milestone 4.1: Performance Optimization (Week 10)
-
-- **Lazy Loading**
-  - Implement on-demand component loading
-  - Create progressive enhancement system
-  - Build intersection observer optimizations
-  - Add memory leak prevention
-
-- **Caching Optimization**
-  - Implement intelligent prefetching
-  - Create cache warming strategies
-  - Build cache hit rate optimization
-  - Add performance monitoring
-
-#### Milestone 4.2: User Experience (Week 11)
-
-- **Settings Panel**
-  - Create comprehensive settings UI
-  - Implement per-domain configuration
-  - Build import/export functionality
-  - Add reset to defaults options
-
-- **Visual Polish**
-  - Refine UI animations and transitions
-  - Implement accessibility improvements
-  - Create responsive design optimizations
-  - Add dark mode support
-
-#### Milestone 4.3: Testing & Documentation (Week 12)
-
-- **Comprehensive Testing**
-  - Unit tests for all service layer logic
-  - Integration tests for content script injection
-  - E2E tests for complete user workflows
-  - Cross-domain functionality validation
-
-- **Documentation**
-  - User guide for extension features
-  - Developer documentation for contributors
-  - Troubleshooting guide for common issues
-  - Performance optimization guide
-
-## Technical Implementation Strategy
-
-### Architecture Pattern: Layered Service Architecture
-
-```
-Presentation Layer (React Components)
-  ↓
-Business Logic Layer (Services)
-  ↓
-Data Access Layer (Storage/Cache)
-  ↓
-External Integration Layer (Goodreads API)
-```
-
-### Technology Stack Implementation
-
-#### Core Dependencies
-
-```json
-{
-  "dependencies": {
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1",
-    "zustand": "^4.5.0",
-    "@tanstack/react-query": "^5.28.0",
-    "@radix-ui/react-slider": "^1.1.2",
-    "@radix-ui/react-tooltip": "^1.0.7",
-    "tailwindcss": "^3.4.0",
-    "lucide-react": "^0.363.0"
-  },
-  "devDependencies": {
-    "@types/chrome": "^0.0.269",
-    "vitest": "^1.4.0",
-    "@testing-library/react": "^14.2.0",
-    "playwright": "^1.42.0"
-  }
-}
-```
-
-#### Service Layer Architecture
-
-```typescript
-// Core service interfaces
-interface IRatingService {
-  getRating(book: BookIdentifier): Promise<RatingData>
-  batchGetRatings(books: BookIdentifier[]): Promise<Map<string, RatingData>>
-}
-
-interface ICacheService {
-  get<T>(key: string): Promise<T | null>
-  set<T>(key: string, value: T, ttl?: number): Promise<void>
-  clear(pattern?: string): Promise<void>
-}
-
-interface IQueueService {
-  enqueue(task: Task): Promise<string>
-  process(): Promise<void>
-  getProgress(): QueueProgress
-}
-```
-
-### Performance Strategy
-
-#### Caching Implementation
-
-- **Cache Size**: 1000 books per domain (configurable)
-- **Storage**: Chrome Local Storage (10MB limit)
-- **Eviction**: LRU with intelligent scoring
-- **Compression**: JSON compression for large datasets
-
-#### Rate Limiting Strategy
-
-- **Base Rate**: 1 request per second (configurable)
-- **Burst Allowance**: 5 requests in 10 seconds
-- **Backoff**: Exponential (2x on error, max 30s)
-- **User Override**: Configurable delays (500ms - 30s)
-
-#### Memory Management
-
-- **Component Unmounting**: Cleanup observers and listeners
-- **Cache Limits**: Hard limits with warning thresholds
-- **Garbage Collection**: Periodic cleanup of stale data
-- **Memory Monitoring**: Track and report memory usage
-
-## Dependencies and Blockers
-
-### Critical Path Dependencies
-
-#### Phase 1 Dependencies
-
-1. **WXT Framework Setup** → **All subsequent development**
-2. **Domain Detection** → **Content Script Logic**
-3. **Storage Abstraction** → **Caching System**
-4. **HTTP Client** → **Goodreads Integration**
-
-#### Phase 2 Dependencies
-
-1. **Goodreads Integration** → **Rating Display**
-2. **Caching System** → **Performance Optimization**
-3. **Rating Display** → **Filtering Features**
-4. **DOM Injection** → **UI Components**
-
-#### Phase 3 Dependencies
-
-1. **Basic Filtering** → **Advanced Filtering**
-2. **Domain Detection** → **Multi-Domain Support**
-3. **Queue System** → **Batch Processing**
-4. **Rate Limiting** → **Production Readiness**
-
-### External Blockers & Mitigations
-
-#### Goodreads Scraping Risks
-
-- **Risk**: Goodreads blocks automated requests
-- **Mitigation**: User agent rotation, exponential backoff, alternative sources
-- **Contingency**: StoryGraph and Hardcover integration
-
-#### Audible Layout Changes
-
-- **Risk**: UI changes break selectors
-- **Mitigation**: Flexible selector system, quick update process
-- **Contingency**: Community-driven selector updates
-
-#### Performance Requirements
-
-- **Risk**: Extension slows down page loading
-- **Mitigation**: Lazy loading, progressive enhancement, worker threads
-- **Contingency**: Feature degradation modes
-
-## Risk Assessment
-
-### High Impact Risks
-
-#### Technical Risks
-
-| Risk                      | Probability | Impact | Mitigation                               |
-| ------------------------- | ----------- | ------ | ---------------------------------------- |
-| Goodreads blocks scraping | Medium      | High   | Alternative sources, respectful scraping |
-| Audible layout changes    | High        | Medium | Flexible selectors, rapid updates        |
-| Performance degradation   | Low         | High   | Aggressive optimization, monitoring      |
-| Storage quota exceeded    | Medium      | Medium | Intelligent cleanup, user controls       |
-
-#### Business Risks
-
-| Risk                                | Probability | Impact | Mitigation                                 |
-| ----------------------------------- | ----------- | ------ | ------------------------------------------ |
-| User adoption low                   | Medium      | High   | Focus on core value, user feedback         |
-| Competition from similar extensions | Low         | Medium | Unique features, superior UX               |
-| Audible blocks extension            | Low         | High   | Respectful integration, ToS compliance     |
-| Maintenance burden                  | Medium      | Medium | Automated testing, community contributions |
-
-### Risk Mitigation Strategies
-
-#### Technical Mitigation
-
-1. **Graceful Degradation**: Extension functions with partial data
-2. **Error Recovery**: Automatic retry with exponential backoff
-3. **Alternative Sources**: Multiple rating data providers
-4. **Monitoring**: Real-time error tracking and alerting
-
-#### Business Mitigation
-
-1. **User Feedback Loop**: Early beta testing and iteration
-2. **Community Building**: Open source contribution model
-3. **Documentation**: Comprehensive user and developer guides
-4. **Support Channels**: Clear issue reporting and resolution process
-
-## Success Metrics
-
-### Technical Metrics
-
-#### Performance KPIs
-
-- **Page Enhancement Time**: < 500ms (Target: 250ms)
-- **Cache Hit Rate**: > 80% (Target: 90%)
-- **Memory Usage**: < 50MB (Target: 30MB)
-- **Error Rate**: < 2% (Target: 0.5%)
-
-#### Reliability KPIs
-
-- **Successful Scraping Rate**: > 95% (Target: 98%)
-- **Extension Crash Rate**: < 1% (Target: 0.1%)
-- **Data Accuracy**: > 99% (Target: 99.9%)
-- **Cross-domain Compatibility**: 100% (All 5 domains)
-
-### User Experience Metrics
-
-#### Engagement KPIs
-
-- **Active Filter Usage**: > 60% of users
-- **Daily Active Users**: Growth rate tracking
-- **Session Duration**: Increased time on Audible
-- **Cache Utilization**: > 70% of lookups from cache
-
-#### Quality KPIs
-
-- **User Satisfaction**: > 4.5/5 stars
-- **Feature Discovery**: > 80% use core features
-- **Support Requests**: < 5% of users
-- **Retention Rate**: > 80% after 30 days
-
-### Business Impact Metrics
-
-#### Value Delivery
-
-- **Purchase Decision Improvement**: User survey data
-- **Time Saved**: Estimated filtering efficiency
-- **Regret Reduction**: Fewer low-rated purchases
-- **Discovery Enhancement**: Users finding new content
-
-## Timeline Estimates
-
-### Detailed Phase Breakdown
-
-#### Phase 1: Foundation (3 weeks)
-
-- **Week 1**: Setup & Dependencies (40 hours)
-  - Project configuration: 8 hours
-  - Dependency installation: 8 hours
-  - Core architecture: 16 hours
-  - Documentation setup: 8 hours
-
-- **Week 2**: Content Script (40 hours)
-  - Book detection: 16 hours
-  - DOM observation: 12 hours
-  - Page routing: 8 hours
-  - Testing framework: 4 hours
-
-- **Week 3**: Goodreads Integration (40 hours)
-  - HTTP client: 12 hours
-  - HTML parsing: 16 hours
-  - Error handling: 8 hours
-  - Data validation: 4 hours
-
-#### Phase 2: Core Features (3 weeks)
-
-- **Week 4**: Caching System (40 hours)
-  - Storage implementation: 20 hours
-  - LRU algorithm: 12 hours
-  - Chrome API integration: 8 hours
-
-- **Week 5**: Rating Display (40 hours)
-  - UI components: 24 hours
-  - DOM injection: 12 hours
-  - Responsive design: 4 hours
-
-- **Week 6**: Basic Filtering (40 hours)
-  - Filter infrastructure: 20 hours
-  - Rating filter: 12 hours
-  - State management: 8 hours
-
-#### Phase 3: Enhanced Experience (3 weeks)
-
-- **Week 7**: Multi-Domain Support (40 hours)
-  - Domain configurations: 24 hours
-  - Testing framework: 12 hours
-  - Regional features: 4 hours
-
-- **Week 8**: Advanced Filtering (40 hours)
-  - Tag extraction: 20 hours
-  - Tag filtering UI: 16 hours
-  - Statistics display: 4 hours
-
-- **Week 9**: Queue Management (40 hours)
-  - Background queue: 24 hours
-  - Rate limiting: 12 hours
-  - Progress indicators: 4 hours
-
-#### Phase 4: Polish & Optimization (3 weeks)
-
-- **Week 10**: Performance (40 hours)
-  - Lazy loading: 16 hours
-  - Cache optimization: 16 hours
-  - Memory management: 8 hours
-
-- **Week 11**: User Experience (40 hours)
-  - Settings panel: 24 hours
-  - Visual polish: 12 hours
-  - Accessibility: 4 hours
-
-- **Week 12**: Testing & Documentation (40 hours)
-  - Comprehensive testing: 24 hours
-  - Documentation: 12 hours
-  - Bug fixes: 4 hours
-
-### Total Effort Estimate
-
-- **Total Development Time**: 480 hours (12 weeks × 40 hours)
-- **Testing & QA**: 80 hours (included in phases)
-- **Documentation**: 40 hours (included in phases)
-- **Buffer Time**: 120 hours (25% contingency)
-- **Grand Total**: 600 hours over 15 weeks
-
-### Resource Requirements
-
-- **Primary Developer**: Full-time (40 hours/week)
-- **QA Tester**: Part-time (8 hours/week, weeks 4-12)
-- **Technical Writer**: Part-time (4 hours/week, weeks 10-12)
-- **Code Reviewer**: Part-time (2 hours/week, ongoing)
-
-## Implementation Notes
-
-### Development Approach
-
-1. **Test-Driven Development**: Write tests before implementation
-2. **Incremental Delivery**: Each milestone delivers working functionality
-3. **User Feedback Integration**: Early beta testing and iteration
-4. **Performance First**: Optimize for speed and memory usage
-5. **Accessibility Focus**: WCAG 2.1 AA compliance
-
-### Quality Assurance
-
-1. **Automated Testing**: Unit, integration, and E2E test suites
-2. **Cross-Browser Testing**: Chrome, Edge, Firefox compatibility
-3. **Performance Testing**: Memory usage and speed benchmarks
-4. **Security Review**: Extension permission audit and code review
-5. **User Acceptance Testing**: Beta user feedback and validation
-
-### Deployment Strategy
-
-1. **Development Environment**: Local development with hot reload
-2. **Staging Environment**: Chrome Web Store Developer Dashboard testing
-3. **Beta Release**: Limited user group for feedback
-4. **Production Release**: Full Chrome Web Store publication
-5. **Post-Release**: Monitoring, support, and iterative improvements
-
-This comprehensive plan provides a roadmap for developing the audible-ex Chrome extension from its current scaffold state to a fully-featured, production-ready application that enhances the Audible browsing experience across multiple regions while maintaining high performance and user satisfaction standards.
+# Plan — audible-ex
+
+Status: 2026-10-29. Replaces the earlier 12-week plan. What and why:
+[PRD.md](PRD.md). How: [ARCHITECTURE.md](ARCHITECTURE.md). Decisions already
+made: [DECISIONS.md](DECISIONS.md).
+
+## Approach
+
+The userscript in [`reference/`](../reference/audible-goodreads-ratings.user.js)
+already does the core job and is in daily use. The plan is to **port it first,
+then add features**: reach parity in the extension, then add the floating panel,
+progress and filters on top (DECISIONS.md D1). Most of the earlier plan's
+infrastructure milestones (HTTP client, Goodreads search, parsing, cache keys,
+DOM observation) are covered by the port.
+
+Each phase ends with something usable in Chrome, `bun check` green in CI and a
+tagged build.
+
+Sizes are rough: S ≈ a day, M ≈ 2–4 days, L ≈ a week.
+
+## Phase 0 — Toolchain, CI and skeleton (M)
+
+Move the repo to the new stack and prove every piece works together before
+porting logic.
+
+Toolchain
+
+- [ ] `mise.toml` pins Bun (1.4.x) and Node (24, fallback runtime for WXT/Vite);
+      `packageManager` in `package.json` names the same Bun.
+- [ ] Bun: delete `package-lock.json`, `bun install`, commit `bun.lock`.
+- [ ] Dependencies. Add `effect`, `@tanstack/react-store`, `@tanstack/pacer` (or
+      `@tanstack/react-pacer`), `@happy-dom/global-registrator`, `@biomejs/biome`.
+      Remove `vitest`, `@vitest/*`, `jsdom`, `zustand`, `@tanstack/react-query`,
+      ESLint and Prettier with their plugins and configs. Upgrade `typescript` to
+      7 and `vite` to 8. Pin exact versions.
+- [ ] WXT config: `srcDir: 'src'`, `imports: false`, explicit manifest (name,
+      version from `package.json`, permissions, host permissions generated from
+      the region table). Rename the package from `wxt-react-starter`. Move
+      `assets/` and `public/` under `src/` with the entrypoints, and update
+      `scripts/gen-icons.ts` and AGENTS.md "Derived files" to match
+      (`src/assets/icon.png` stays on Conductor's icon list).
+- [ ] Delete the scaffold the design replaces: `src/stores/`,
+      `src/lib/{api,hooks,query-client}.ts`, `vitest.config.ts`,
+      `src/test/setup.ts`, `DomainDetector`. Port the domain detector's test
+      cases to `src/core/regions.test.ts` against `regionFromHost()`.
+- [ ] Tests: `bunfig.toml` with `preload = ["./test/preload.ts"]` (happy-dom,
+      fake browser as `globalThis.browser`/`chrome`). Confirm the `@/` alias
+      resolves under `bun test`.
+- [ ] Biome: `biome.json` with `noRestrictedImports` banning the `effect` barrel
+      in `src/content` and `src/ui`.
+- [ ] Scripts: `dev`, `build`, `zip`, `test`, `lint`, `format`, `check`,
+      `e2e` (ARCHITECTURE.md §13), and `typecheck`, which runs
+      `wxt prepare && tsc --noEmit`.
+
+CI and Jig (see [CI](#ci) below)
+
+- [ ] `.github/workflows/ci.yml` as described under [CI](#ci).
+- [ ] `.config/jig.yaml`: `gates.command: bun check` and `ci.required_checks`
+      naming the CI job, in the same pull request as the workflow.
+- [ ] Create the GitHub labels `label-taxonomy.yaml` defines, then file the plan
+      as issues with `/jig:file-issue`: one `epic` per phase, one issue per task.
+      Close #3–#13 as superseded by D1, each pointing at its replacement.
+- [ ] Renovate (or Dependabot) for dependency and action updates, grouped
+      weekly, pinned versions only.
+
+Spikes, each a short note in the pull request
+
+- [ ] Effect `ManagedRuntime` in the MV3 service worker: survives a worker
+      restart; the port reconnects.
+- [ ] Goodreads `auto_complete` and book page work from the background with
+      `credentials: 'omit'`.
+- [ ] `api.audible.*/1.0/catalog/products` works from the background without
+      cookies.
+- [ ] IndexedDB: `@effect/platform-browser`'s `IndexedDb` modules vs a thin
+      wrapper over `idb`.
+- [ ] `bun --bun wxt` for the dev server too (the build is verified); if it
+      misbehaves, run WXT on Node and keep Bun for everything else.
+- [ ] Effect language service with TypeScript 7; skip it if incompatible.
+
+Fixtures and docs
+
+- [ ] `scripts/capture-fixtures.ts` and the first fixtures: one page each of
+      search, category, deals, home, library, wish list on `.co.uk` and `.com`;
+      Goodreads autocomplete and book page responses for ~20 books, including
+      known tricky matches (series titles, "summary" books, common titles).
+- [ ] `AGENTS.md`: drop the "phase 0 has not started" status, make the gate and
+      command sections current.
+
+Exit: `bun check` and `bun run build` pass in CI; an empty extension loads on
+Audible and the background answers a `Hello` over the port.
+
+## Phase 1 — Parity with the userscript (L)
+
+The extension does everything userscript v2.4.0 does, on all 10 marketplaces.
+
+- [ ] `src/core`: `text.ts` (`norm`, `shortTitle`, `lastName`), `matching.ts`
+      (scoring and candidate choice), `asin.ts`, `regions.ts`. Tests from
+      fixtures.
+- [ ] `src/schema`: Goodreads autocomplete, `__NEXT_DATA__` book extraction,
+      Audible catalog response, cache records, port messages.
+- [ ] Background services: `AudibleCatalog` (batched with `RequestResolver`),
+      `Goodreads`, `BookCache` (time limits, pins, daily purge), `LookupQueue`
+      (dedupe, 3 workers, 250 ms gap, two priorities, 429/503 backoff, circuit
+      breaker), `PortServer`. Test layers and `TestClock` tests for expiry,
+      backoff and dedupe.
+- [ ] Content script: scanner, card detection, IntersectionObserver, badge
+      placement and rendering, labels and year, retry on failure. DOM tests per
+      page type from fixtures.
+- [ ] Hover overview rendered in a shadow root (prepares the panel's mount
+      point), capped at 600 characters.
+- [ ] Popup: enable/disable, cache stats, clear unpinned / clear all (replaces
+      the userscript's menu commands).
+- [ ] CI: content-script size budget (see [CI](#ci)).
+- [ ] One-time migration is **not** planned: userscript data lives in the
+      userscript manager and the extension can't read it. Users switching over
+      refetch once.
+
+Exit: side by side with the userscript on the six fixture page types, the
+extension shows the same ratings, labels and years; two open Audible tabs share
+one queue. Release 0.1.
+
+## Phase 2 — Floating panel and progress (M)
+
+- [ ] `ProgressHub` in the background; `Progress` messages per tab.
+- [ ] TanStack Store for `books` and `progress` in the content script.
+- [ ] Panel in a shadow root (`createShadowRootUi`), React + Tailwind + Radix:
+      drag to a corner, collapse to a pill, hide on this site; placement saved in
+      `storage.local`; show again from the popup.
+- [ ] Progress: bar and counters, rate-limit pause with countdown, "Retry
+      failed", and a distinct "page format changed" error.
+- [ ] Component tests for each panel state.
+
+Exit: on a deals page with 60+ books the panel shows progress to completion;
+collapsing, moving and hiding survive a reload. Release 0.2.
+
+## Phase 3 — Filters (M, then S)
+
+3a. Rating, count and labels
+
+- [ ] `sync:prefs` storage item with version and migrations; Schema defaults
+      (ARCHITECTURE.md §8).
+- [ ] `src/core/filter.ts` verdicts (ARCHITECTURE.md §7), fully unit-tested.
+- [ ] Filter applier: derived verdict store → `data-agx-filter` attributes;
+      CSS hide/dim.
+- [ ] Carousel detection from fixtures; carousels dim instead of hide.
+- [ ] Panel controls: master switch, rating slider (default 4.0,
+      Pacer-debounced), minimum ratings, hidden-labels picker with autocomplete
+      from cached genres, not-found policy, hide/dim mode.
+- [ ] `12 hidden · Show` counter and peek.
+- [ ] Changes in one tab apply in all open Audible tabs (storage watch).
+
+Release 0.3.
+
+3b. Price and year
+
+- [ ] Find out whether `catalog/products` returns price without signing in. If
+      yes, extend `AudibleCatalog`; if not, parse price from the card text per
+      region.
+- [ ] `maxPrice` per region; first-published year range.
+
+Exit: preferences survive browser restart and sync to a second Chrome profile
+signed into the same account; filtering never hides a card whose data hasn't
+loaded.
+
+## Phase 4 — Options page (M)
+
+- [ ] Settings with TanStack Form: all prefs, display options (label count,
+      year, overview), reset to defaults, export/import prefs as JSON.
+- [ ] Cache inspector with TanStack Table + Virtual: search, sort by
+      rating/age, delete entries, open on Goodreads, correct a wrong match by
+      pasting a Goodreads URL (stored as a manual override that the cache purge
+      keeps).
+- [ ] About: privacy statement, "not affiliated" notice, source link.
+
+Release 0.4 (with 3b).
+
+## Phase 5 — Publish (M)
+
+Repository and releases
+
+- [ ] Make the repository public. Before that, decide whether history is fine
+      as it is: a quick scan on 2026-10-29 found no secrets, but the removed
+      `.claude/` agent prompts, which name another project, are still in history.
+- [ ] Finish the changelog setup (`/jig:changelog setup`, steps 2–4): the
+      release App, the `changelog-release` environment, the rulesets and
+      `.github/workflows/changelog.yml`. Change notes are already on
+      (DECISIONS.md D10); until this lands, releases are cut by hand as
+      `changes/README.md` describes.
+- [ ] Release workflow (see [CI](#ci)): on a version tag, build both zips and
+      attach them to a GitHub release.
+- [ ] Add an AI reviewer (CodeRabbit is free for public repositories) and set
+      `review.*` in `.config/jig.yaml`, so `/jig:drive-pr` can run review
+      rounds unattended.
+
+Store
+
+- [ ] Name and icon that use neither Audible/Amazon/Goodreads logos nor their
+      trade dress; a descriptive "… for Audible" style name. Check the name
+      against existing listings.
+- [ ] Privacy policy page (GitHub Pages is enough): what is read, what is sent
+      to Goodreads, nothing else collected.
+- [ ] Store listing: single purpose statement, permission justifications per
+      host, privacy disclosures (website content), screenshots, "not
+      affiliated" line.
+- [ ] Playwright smoke run on live `.co.uk` and `.com` before upload.
+- [ ] Upload as unlisted first; switch to public after a week of use. Release
+      1.0.
+- [ ] Firefox: `bun zip:firefox`, source archive for AMO review. Optional for
+      the first release.
+
+## Later
+
+- Hardcover as a second rating source (official API). Shown alongside, and used
+  when Goodreads fails or blocks requests.
+- Series detection and order.
+- Duration and narrator filters.
+- Rating distribution on hover (needs the book page's histogram; check it's in
+  `__NEXT_DATA__`).
+- Automated store upload from the release workflow (`wxt submit`), once manual
+  releases are routine.
+
+## CI
+
+**Today there is none**: no `.github/` directory, so nothing checks a pull
+request. Phase 0 adds it with the toolchain, because a workflow for the current
+npm/Vitest scaffold would be thrown away within days.
+
+`ci.yml`, on `pull_request` and `push` to `main` (phase 0):
+
+- One job, **`Extension — check, build`**, on `ubuntu-latest`:
+  `actions/checkout` → `jdx/mise-action` (installs the pinned Bun and Node,
+  cached) → `bun install --frozen-lockfile` → `bun check` → `bun run build` →
+  upload `.output/chrome-mv3` as an artifact.
+- `permissions: contents: read`; `concurrency` per ref with
+  `cancel-in-progress: true`; `timeout-minutes: 15` on the job.
+- Actions pinned by commit SHA with the version in a comment; Renovate updates
+  them. `/jig:github-actions` reviews every workflow change.
+- No path filters: the job is required, and a filtered required check never
+  reports.
+- Required check: GitHub doesn't offer rulesets for a private repository on the
+  free plan, so the job name goes into `ci.required_checks` in
+  `.config/jig.yaml` (as in pointsman). Once the repository is public (phase 5),
+  add a ruleset on `main` requiring the job.
+
+Added later:
+
+| Phase | Addition                                                                                                             |
+| ----- | -------------------------------------------------------------------------------------------------------------------- |
+| 1     | Content-script size budget: fail when `content-scripts/content.js` grows past a set gzipped size (start ≈ 60 KB).    |
+| 1     | `bun run build` for Firefox as a second step, so a Chrome-only API is caught early.                                  |
+| 5     | `release.yml` on `v*` tags: build Chrome and Firefox zips, attach to a GitHub release; Jig's changelog check on PRs. |
+| Later | Nightly (not per-PR) Playwright smoke run against live Audible, reporting to an issue on failure.                    |
+
+End-to-end tests against live sites never gate a pull request: the sites change
+on their own schedule.
+
+## Defaults to confirm
+
+Chosen so work can proceed; each is a one-line change.
+
+| Setting                      | Default                        | Alternative                                                  |
+| ---------------------------- | ------------------------------ | ------------------------------------------------------------ |
+| Minimum rating               | 4.0, slider 3.0–5.0            | Wider 1.0–5.0 range                                          |
+| Minimum number of ratings    | 50                             | 0 (off), or 100                                              |
+| Filtered cards               | Hidden (dimmed in carousels)   | Dimmed everywhere                                            |
+| Books not found on Goodreads | Shown                          | Dimmed                                                       |
+| Genre details                | Fetched for every visible book | Only on hover or when a label filter is set (fewer requests) |
+| Overview on hover            | On, 600 characters             | Off                                                          |
+
+## Risks
+
+| Risk                                                        | Likelihood | Impact | Response                                                                                                                               |
+| ----------------------------------------------------------- | ---------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Amazon/Goodreads object to the extension (terms of service) | Low–medium | High   | Free, no server, link back, conservative rate, no data export. If asked to remove it, comply; the userscript remains for personal use. |
+| Goodreads changes its page format or autocomplete           | Medium     | Medium | Schemas turn changes into a visible "format changed" error; fixtures make the fix quick; Hardcover as fallback.                        |
+| Goodreads adds bot protection                               | Low–medium | High   | Backoff and circuit breaker avoid hammering; Hardcover fallback.                                                                       |
+| Audible changes its markup                                  | High       | Medium | Card detection is structural (links to one ASIN), not selector-based; fixture tests per page type.                                     |
+| Bun runtime incompatibility in WXT's dev server             | Low        | Low    | Phase 0 spike; fall back to Node for WXT only.                                                                                         |
+| Store review rejects or delays the listing                  | Medium     | Low    | Narrow permissions, clear privacy disclosure, unlisted first.                                                                          |

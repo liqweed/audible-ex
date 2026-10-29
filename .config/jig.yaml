@@ -1,0 +1,29 @@
+# Jig configuration for this repository: the values the Jig skills read.
+# Every field and its default: plugin/CONFIGURATION.md in the jig plugin.
+#
+# gates.command and ci.required_checks arrive in phase 0 (docs/PLAN.md), in the
+# same pull request as .github/workflows/ci.yml: until then there is no gate to
+# run. Then: gates.command: bun check; ci.required_checks: the CI job's name
+# (the repository is private on the free plan, so GitHub can't expose its
+# required checks to the skills).
+issue_tracker:
+  adapter: github
+  file_command: /jig:file-issue
+  # Set here so a taxonomy in the user's ~/.jig/jig.yaml never applies to this
+  # repository.
+  taxonomy: label-taxonomy.yaml
+changelog:
+  # Change notes per pull request (changes/README.md); the release step writes
+  # them into CHANGELOG.md. The version is package.json's, which WXT copies into
+  # the manifest. Release automation (the release App and workflow) waits until
+  # the repository is public: GitHub Free has no rulesets or environments for a
+  # private repository to fence the App's key (DECISIONS.md D10).
+  file: CHANGELOG.md
+  format: keep-a-changelog
+  # What ships in the extension: a change here needs a note that asks for a
+  # release. src/ alone once phase 0 moves entrypoints and assets under it.
+  release_paths: [src/, entrypoints/, public/, assets/, wxt.config.ts]
+pull_requests:
+  # One pull request per change against main; a person merges.
+  stacking: none
+  title_format: conventional

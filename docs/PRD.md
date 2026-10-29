@@ -1,269 +1,168 @@
-# Product Requirements Document - audible-ex
+# Product requirements — audible-ex
 
-## Executive Summary
+Status: 2026-10-29. How it is built: [ARCHITECTURE.md](ARCHITECTURE.md). When:
+[PLAN.md](PLAN.md). Terms: [GLOSSARY.md](../GLOSSARY.md).
 
-audible-ex is a Chrome extension that enhances the Audible browsing experience by integrating book ratings from external sources (primarily Goodreads) and providing advanced filtering capabilities. The extension supports multiple Audible domains including UK, US, and other regions, helping users make better book selection decisions by surfacing community ratings, reviews, and metadata directly within the Audible interface.
+## Summary
 
-## Vision
+audible-ex is a browser extension for Audible. On every book card it shows the
+book's Goodreads rating, number of ratings, first-published year and top genres,
+with the Goodreads overview on hover. A floating panel shows how far the lookups
+have got and holds personal filters (minimum rating, minimum number of ratings,
+hidden genres, later price and year) that hide or dim the books that don't
+qualify. Filters persist and follow the user across devices and Audible
+regions.
 
-Transform the Audible browsing experience from a simple catalog into an intelligent, data-rich discovery platform that helps users find their next great listen based on community feedback and personal preferences.
+It grows out of a userscript (`reference/audible-goodreads-ratings.user.js`)
+that already does the rating part and is in daily use.
 
-## Goals
+## Problem
 
-1. **Reduce purchase regret** by providing comprehensive rating information before purchase
-2. **Save time** by filtering out low-rated or unsuitable content
-3. **Improve discovery** through tag-based filtering and series detection
-4. **Maintain performance** with intelligent caching and rate limiting
+Audible's own star ratings are inflated and say little about the book itself
+(narration, production and the book are mixed together). Goodreads has larger,
+book-focused rating counts, but checking it means leaving Audible for every
+title. On a deals page with 60 books, that's an evening's work, so most of the
+catalogue goes unchecked.
 
-## User Personas
+## Users
 
-### Primary: The Discerning Listener
+- **The discerning listener** (primary). Has a subscription, listens to 2–4
+  books a month, wants to skip the weak ones quickly. Browses deals, search
+  results and the wish list.
+- **The library curator.** Has hundreds of books in Library and Wish List and
+  wants to see which to listen to next.
+- **The international user.** Uses more than one Audible marketplace, or one
+  outside the US, and wants the same experience everywhere.
 
-- Heavy Audible user with active subscription
-- Reads 2-4 books per month
-- Values highly-rated, well-reviewed content
-- Frustrated by lack of rating information on Audible
+## Requirements
 
-### Secondary: The Series Enthusiast
+### R1 — Ratings on cards (phase 1)
 
-- Focuses on reading complete series
-- Wants to know book order and series information
-- Avoids starting incomplete series
+- Every book card on search, category, deals, home (daily deal), library,
+  collections and wish list pages gets a badge: `★ 4.21 (12k)`.
+- The badge links to the matched Goodreads book. An approximate match (author
+  matched, title only roughly) is marked `?`.
+- Colour: high (≥ 4.2), neutral, low (< 3.7), matching the userscript.
+- After the badge: first-published year and up to 3 genres (labels).
+- Hover shows the Goodreads overview (up to 600 characters) with genres, year
+  and rating count.
+- A book Goodreads doesn't have shows "GR: not found", linking to a Goodreads
+  search. A lookup that failed shows "GR: retry".
+- Cards load as they scroll near the viewport; nothing is looked up for cards
+  the user never sees.
+- All 10 marketplaces: `.com .co.uk .ca .com.au .in .de .fr .it .es .co.jp`.
+  Matching is best for English titles; other languages are best effort.
 
-### Tertiary: The International User
+### R2 — Floating panel and progress (phase 2)
 
-- Uses multiple Audible marketplaces
-- Travels frequently or has moved countries
-- Wants consistent experience across regions
+- A panel on Audible pages, isolated from the page's styles.
+- Progress for the current tab: a bar and counts (looked up / total, from
+  cache, not found, failed), a "paused — Goodreads is rate limiting (12 s)"
+  state, "Retry failed", and a distinct "Goodreads changed its page format"
+  error.
+- The panel can be dragged to a corner, collapsed to a small pill (`34/60`) or
+  hidden on a site; its placement survives reloads. A hidden panel comes back
+  from the toolbar popup.
 
-## MVP Features (Priority Order)
+### R3 — Filters (phase 3)
 
-### P0 - Core Infrastructure
+- Minimum rating slider, default **4.0**, 3.0–5.0 in steps of 0.1.
+- Minimum number of ratings, default **50** (0 turns it off).
+- Hidden labels: hide books carrying any of the chosen Goodreads genres, picked
+  with autocomplete from genres already seen.
+- What happens to a book that fails a filter: hidden (default) or dimmed.
+  Books in carousels are always dimmed, never removed.
+- Books not found on Goodreads: shown (default), dimmed or hidden.
+- A book whose data hasn't loaded is never hidden.
+- A counter, `12 hidden · Show`, reveals hidden books (dimmed) without changing
+  the filters.
+- A master switch turns filtering off.
+- Filters are saved in browser sync storage: they persist across restarts,
+  follow the user's Chrome profile to other devices, apply on every
+  marketplace, and update open tabs at once.
+- Later in phase 3: maximum price per marketplace; first-published year range.
 
-1. **Rate Limiting System** (#26)
-   - Configurable delay between requests (default: 1 request/second)
-   - Exponential backoff on errors
-   - Visual indicator when rate limited
+### R4 — Popup and options (phases 1 and 4)
 
-2. **Batch Processing Queue** (#27)
-   - Sequential processing of visible books
-   - Priority queue for user-initiated lookups
-   - Progress indicator for batch operations
+- Popup: turn the extension on or off, show the panel, cache size, clear the
+  cache (keeping or including Library/Wish List books).
+- Options page: every setting; reset to defaults; export and import settings;
+  a cache browser to search cached books, delete entries and correct a wrong
+  Goodreads match.
 
-### P0 - Rating Integration
+### R5 — Respectful data use (all phases)
 
-3. **Goodreads Data Scraping** (#1)
-   - Extract rating score (1-5 stars)
-   - Link to Goodreads book page
-   - Handle multiple editions/ISBN matching
-   - Graceful fallback on scraping failures
+- Lookups are cached: found books for 30 days, not-found for 7 days. Books
+  seen in Library or Wish List are kept for 180 days after last seen.
+- At most 3 Goodreads requests at a time with a pause between them, one queue
+  shared by every open Audible tab. When Goodreads answers "too many
+  requests", all lookups pause and back off.
+- Every rating links back to Goodreads.
+- No rating data is exported or shared.
 
-4. **Visual Rating Highlights** (#2)
-   - Badge overlay on book covers
-   - Color coding: Green (>4.2), Yellow (3.5-4.2), Red (<3.5)
-   - Configurable threshold values
+## Privacy
 
-5. **List View Enhancement** (#19)
-   - Inject rating column in list layouts
-   - Maintain Audible's responsive design
-   - Support for all list view pages
+- No server, no account, no analytics, no telemetry.
+- The extension reads Audible pages, including Library and Wish List, to find
+  the books on them. It sends each book's title and author to Goodreads to
+  look the book up, and book IDs to Audible's catalogue API to get the title
+  and author. Nothing else leaves the browser.
+- Settings sync through the browser's own sync storage; the cache stays on
+  the device.
 
-6. **Rating Statistics Display** (#3)
-   - Number of ratings
-   - Number of text reviews
-   - Compact display format
+## Out of scope for v1
 
-### P0 - Filtering System
-
-7. **Filter by Minimum Rating** (#8)
-   - Slider UI (1.0 - 5.0 stars)
-   - Real-time filtering
-   - Visual dimming of filtered books (50% opacity)
-
-8. **Filter by Rating Count** (#9)
-   - Minimum number of ratings threshold
-   - Helps ensure statistical significance
-   - Default: 100 ratings minimum
-
-9. **Tag-based Filtering** (#10)
-   - Multi-select tag interface
-   - Include/exclude modes
-   - Popular tags quick access
-
-### P0 - Data Management
-
-10. **Local Caching System** (#24)
-    - Cache last 1000 book lookups
-    - LRU (Least Recently Used) eviction
-    - 7-day cache expiration
-    - ~600KB storage footprint
-
-11. **Goodreads Tags Display** (#5)
-    - Show top 5 genre/shelf tags
-    - Clickable for quick filtering
-    - Tag popularity indicators
-
-12. **Rating Breakdown Tooltip** (#4)
-    - Hover to show 5-star distribution
-    - Histogram visualization
-    - Percentage breakdowns
-
-## Post-MVP Features
-
-### Version 1.1 - Enhanced Coverage
-
-- **Multi-region Support** - Support for Audible.com and other Audible domains
-- Alternative rating services (#6) - StoryGraph, Hardcover, Kaguya integration
-- Series detection and order (#15, #16)
-- Audiobook duration filtering (#11)
-- Filter persistence (#12)
-- Configuration profiles per domain
-
-### Version 1.2 - User Experience
-
-- Filter visibility indicators (#13)
-- Quick preview expansion (#22)
-- Visual dimming controls (#23)
-- Grid view support (#20)
-- Import user profiles (#32, #33)
-
-### Version 2.0 - Advanced Features
-
-- AI-powered filtering (#28, #29)
-- Taste-based recommendations (#34, #35)
-- Export functionality (#36)
-- Cross-region price comparison
-- Narrator quality scores
-
-## Enhanced Pages
-
-The extension will enhance the following Audible pages across all supported domains:
-
-- Book detail pages
-- Search results
-- Category browse pages
-- Daily deals / Sales pages
-- User library
-- Wishlist
-- Plus catalog (where applicable)
-
-## Supported Domains (Post-MVP)
-
-### MVP (Version 1.0)
-
-- audible.co.uk (Primary)
-
-### Version 1.1
-
-- audible.com (US)
-- audible.ca (Canada)
-- audible.com.au (Australia)
-- audible.in (India)
-
-### Future Consideration
-
-- audible.de (Germany)
-- audible.fr (France)
-- audible.it (Italy)
-- audible.es (Spain)
-- audible.co.jp (Japan)
-
-## Technical Requirements
-
-### Performance
-
-- Page enhancement < 500ms
-- Batch processing without blocking UI
-- Smooth scrolling during filtering
-
-### Browser Support
-
-- Chrome 100+ (primary)
-- Edge 100+ (should work, not tested)
-- Manifest V3 compliant
-
-### Data Privacy
-
-- No user data collection
-- All processing client-side
-- Optional API keys stored locally
-- No external analytics
-
-## Success Metrics
-
-1. **Performance**
-   - Time to enhance page < 500ms
-   - Cache hit rate > 80%
-   - Zero UI blocking
-
-2. **Reliability**
-   - Graceful degradation on failures
-   - <1% extension crash rate
-   - Successful scraping rate > 95%
-
-3. **User Satisfaction**
-   - Active filter usage
-   - Cache utilization
-   - Error rate < 2%
+- Other rating sources (Hardcover is next; see PLAN.md "Later").
+- Series detection and order.
+- Duration and narrator filters.
+- Rating distribution histograms.
+- Recommendations, AI features, cross-region price comparison.
 
 ## Constraints
 
-1. **No Backend Infrastructure** - All processing client-side
-2. **Respectful Scraping** - Adhere to rate limits
-3. **Audible ToS Compliance** - No purchase automation or price manipulation
-4. **Storage Limits** - Stay within Chrome extension quotas
+- **Terms of service.** Goodreads has no public API for new developers; the
+  extension reads its public search and book pages. Audible's catalogue API is
+  undocumented. Both belong to Amazon, which could object. The extension is
+  therefore free, has no server, rate-limits itself, links back, and stores
+  nothing beyond the cache. If asked to stop, we comply.
+- **Trademarks.** The name and icon don't use Audible, Amazon or Goodreads
+  logos or trade dress; the listing and the options page say the extension is
+  not affiliated with them.
+- **Store policy.** Chrome Web Store: one clear purpose, narrow permissions
+  with a justification for each, a privacy policy, no remote code.
 
-## Future Vision
+## Success measures
 
-- Multi-service rating aggregation
-- Community features (shared filters, lists)
-- Personal reading analytics
-- Price tracking and alerts
-- Narrator quality scores
-- WhisperSync compatibility information
-- Author following and notifications
+There is no analytics, so these are checked by hand.
 
-## Release Plan
+- On the six fixture page types, every card gets a badge, and badges never
+  break Audible's layout.
+- On a sample of 100 books from deals and search, at least 95 match the right
+  Goodreads book and no more than 2 match a wrong one.
+- A 60-book deals page with an empty cache finishes its lookups in under a
+  minute; with a warm cache, badges appear as cards scroll into view.
+- Filtering never hides a book whose data hasn't loaded, and never breaks a
+  carousel.
+- Store rating of 4.5 or more once published; reported breakages fixed within
+  a week.
 
-### MVP - Version 1.0
+## Releases
 
-- Core features 1-12
-- Basic configuration UI
-- Error handling and recovery
-- Audible UK support only
+| Release | Contents                                         |
+| ------- | ------------------------------------------------ |
+| 0.1     | R1 and the popup (parity with the userscript)    |
+| 0.2     | R2 floating panel and progress                   |
+| 0.3     | R3 rating, count and label filters               |
+| 0.4     | R3 price and year; R4 options page               |
+| 1.0     | Public Chrome Web Store listing                  |
+| Later   | Hardcover, series, duration and narrator filters |
 
-### Version 1.1
+## Risks
 
-- Multi-region support (US, CA, AU, IN)
-- Alternative rating sources
-- Series detection
-- Enhanced filtering options
-- Per-domain configuration
-
-### Version 2.0
-
-- AI integration
-- Profile imports
-- Advanced analytics
-- Cross-region features
-
-## Localization Strategy
-
-### Version 1.1 Considerations
-
-- Auto-detect Audible domain
-- Adjust selectors per domain
-- Handle currency display
-- Respect regional content differences
-- Maintain separate caches per region
-
-## Risks and Mitigations
-
-| Risk                         | Impact | Mitigation                                               |
-| ---------------------------- | ------ | -------------------------------------------------------- |
-| Goodreads blocks scraping    | High   | Implement alternative sources, use different user agents |
-| Audible layout changes       | Medium | CSS selector abstraction layer, quick update process     |
-| Performance degradation      | Medium | Aggressive caching, lazy loading, worker threads         |
-| Rate limiting by source      | Low    | Exponential backoff, user-configurable delays            |
-| Multi-domain complexity      | Medium | Domain-specific configuration, thorough testing          |
-| Regional content differences | Low    | Flexible matching algorithms, fallback strategies        |
+| Risk                                               | Impact | Response                                                                                    |
+| -------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------- |
+| Amazon/Goodreads object to the extension           | High   | Constraints above; comply if asked; the userscript remains for personal use                 |
+| Goodreads changes or blocks its search or pages    | High   | Visible "format changed" error, fixture tests for a quick fix, Hardcover as a second source |
+| Audible changes its markup                         | Medium | Card detection by structure (links to one book), fixture tests per page type                |
+| Wrong matches (summaries, editions, common titles) | Medium | Matching rules from the userscript, approximate-match marker, manual correction in options  |
+| Non-English titles match poorly                    | Low    | Labelled best effort; improve with fixtures from those marketplaces                         |
