@@ -13,7 +13,7 @@
     "zip": "wxt zip",
     "zip:firefox": "wxt zip -b firefox",
     "test": "bun test",
-    "typecheck": "wxt prepare && tsc --noEmit",
+    "typecheck": "wxt prepare && effect-tsgo tsc --noEmit",
     "lint": "biome lint",
     "format": "biome check --write",
     "check": "biome ci && bun run typecheck && bun test",
@@ -38,6 +38,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.4",
+    "@effect/tsgo": "0.63.0",
     "@happy-dom/global-registrator": "21.0.4",
     "@tailwindcss/vite": "4.3.3",
     "@testing-library/react": "16.3.0",

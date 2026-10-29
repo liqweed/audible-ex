@@ -49,7 +49,7 @@ From phase 0 on, one command runs every gate, in this order, and CI runs the
 same command on every pull request:
 
 ```sh
-bun check   # biome ci → tsc --noEmit → bun test
+bun check   # biome ci → effect-tsgo tsc --noEmit → bun test
 bun run build   # wxt build; also run it when you touch wxt.config.ts or entrypoints
 ```
 
@@ -78,6 +78,10 @@ doesn't check Markdown (DECISIONS.md D4): keep docs tidy by review.
   Schema-only module via `effect/Schema` ≈ 23 KB; via the `effect` barrel ≈ 97 KB.
 - In Effect 4, join a fiber with `Fiber.join(fiber)`; `TestClock` is in
   `effect/testing`.
+- Branded Chrome 137+ ignores `--load-extension`, so Playwright must use its
+  bundled Chromium (or another Chromium build) to load the unpacked extension.
+- `@effect/tsgo` replaces `@effect/language-service` under TypeScript 7; the
+  `typecheck` script runs `effect-tsgo tsc --noEmit` (DECISIONS.md D14).
 - Goodreads has no API for new developers (closed 2020); the extension uses
   `book/auto_complete?format=json` and the book page's `__NEXT_DATA__` JSON.
 

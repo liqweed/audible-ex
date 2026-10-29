@@ -43,7 +43,7 @@ Non-goals (for now)
 | **TanStack Form**                          | Options page settings form                                                                                                                             | The floating panel's controls are live (no submit), so they don't use Form.                                                                                               |
 | **TanStack Table + Virtual**               | Options page cache inspector (phase 4)                                                                                                                 | Thousands of cached books, sortable.                                                                                                                                      |
 | **React 19**, **Tailwind 4**, **Radix UI** | Panel, popup, options UI                                                                                                                               | TanStack has no component library; Radix (Slider, Switch, Popover, Tooltip) provides accessible primitives, styled shadcn-style.                                          |
-| **TypeScript** 7                           | Type checking (`tsc --noEmit`)                                                                                                                         | Bun strips types but doesn't check them.                                                                                                                                  |
+| **TypeScript** 7                           | Type checking (`effect-tsgo tsc --noEmit`)                                                                                                             | Bun strips types but doesn't check them. `@effect/tsgo` adds Effect diagnostics to the same run (DECISIONS.md D14).                                                       |
 | **Biome**                                  | Lint and format (`biome ci`)                                                                                                                           | Replaces ESLint + Prettier (DECISIONS.md D4); its `noRestrictedImports` rule enforces the Effect import rule (§6).                                                        |
 | **Playwright**                             | End-to-end smoke tests with the built extension loaded                                                                                                 | Already a dependency.                                                                                                                                                     |
 
@@ -118,10 +118,20 @@ days. Failures are not cached; the content script can retry them. `FormatChanged
 separately in the panel ("Goodreads changed its page format — the extension needs an update") so it
 isn't confused with network trouble.
 
+Two behaviours found in the phase 0 spike (issue #21). Goodreads answered a book-page request
+once with `202` and an empty body, which looks like a bot or rate challenge; treat `202` and an
+empty body as a rate-limit signal that pauses the queue like `429`, not as `FormatChanged`.
+`catalog/products` answers `200` with a bare `{ "asin": … }` for an ASIN the marketplace doesn't
+carry (an ASIN from `.com` queried on `.ca` has no title), so `AudibleCatalog` queries the API host
+of the page's own marketplace and maps a product without a title to `NoMetadata`.
+
 **Service worker lifetime.** MV3 stops an idle worker after ~30 s. An open port with traffic keeps it
 alive while a page is loading. If the worker restarts anyway, in-flight work is lost; the content
 script reconnects (port `onDisconnect`) and re-sends every ASIN that hasn't resolved. The cache
-makes that cheap.
+makes that cheap. Verified in the spike: after the worker was stopped, the port disconnected, the
+content script's `onDisconnect` reconnect reached a new `ManagedRuntime` within 100 ms, and it
+answered the re-sent `Hello`. Not yet verified: the natural ~30 s idle stop (a debugger attached
+through CDP keeps the worker alive), so check it in a normal browser in phase 1.
 
 ## 5. Messaging
 
@@ -233,7 +243,7 @@ filter can't apply to it and the card stays visible.
 | ------------------------------------------------------ | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | Preferences: enabled, filters, display options         | `storage.sync` via WXT `storage.defineItem('sync:prefs', { version, migrations })` | Personal preference; follows the user across devices and Audible regions. Well within sync quotas. |
 | Panel placement, collapsed state, hidden-on-site flags | `storage.local`                                                                    | Specific to this screen and device.                                                                |
-| Cache: ratings, meta, details, pins                    | IndexedDB in the background                                                        | Thousands of records; needs an index on timestamp for purging. `unlimitedStorage` permission.      |
+| Cache: ratings, meta, details, pins                    | IndexedDB in the background, through `idb` (DECISIONS.md D13)                      | Thousands of records; needs an index on timestamp for purging. `unlimitedStorage` permission.      |
 | Peek, progress, book views                             | Memory (TanStack Store)                                                            | Per page.                                                                                          |
 
 Every reader (content scripts, popup, options) watches `sync:prefs`, so a change in one tab applies
@@ -258,7 +268,10 @@ older field never crashes the UI.
 ```
 
 The cache is keyed by ASIN and by Goodreads book id, not by region: ASINs are unique across
-marketplaces, and the same Goodreads book seen from two regions shares one details entry.
+marketplaces, and the same Goodreads book seen from two regions shares one details entry. The
+same title can have a different ASIN on each marketplace (Project Hail Mary is `B08G9PRS1K` on
+`.com` and `B08GBHW6J1` on `.ca`), so a book seen on two marketplaces is two `ratings` entries
+that share one `details` entry.
 
 ## 9. Regions
 
@@ -350,8 +363,8 @@ reference/
 | `bun run build` | `wxt build` (`bun build` is Bun's own bundler, so this one needs `run`) |
 | `bun zip`       | `wxt zip`, the store upload                                             |
 | `bun test`      | Unit and component tests                                                |
-| `bun typecheck` | `wxt prepare && tsc --noEmit`                                          |
-| `bun check`     | `biome ci` → `tsc --noEmit` → `bun test`; what CI runs                  |
+| `bun typecheck` | `wxt prepare && effect-tsgo tsc --noEmit`                              |
+| `bun check`     | `biome ci` → `bun typecheck` → `bun test`; what CI runs                 |
 | `bun e2e`       | Playwright smoke test against a fresh build                             |
 
 Bun and Node versions are pinned in `mise.toml` (Node stays as a fallback runtime for WXT/Vite); CI

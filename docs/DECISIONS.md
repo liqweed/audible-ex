@@ -133,3 +133,35 @@ automerges, and a person merges as for any other change. It is a service, not a
 dependency of the repository, and does nothing until the Mend Renovate GitHub
 App is installed on the repository. Rejected: Dependabot, which
 has no `mise.toml` support and so would leave the toolchain pins unmanaged.
+
+## D13 — IndexedDB through `idb` behind `BookCache`, not `@effect/platform-browser` (2026-10-29)
+
+The cache (ARCHITECTURE.md §8) uses `idb` 8, a thin promise wrapper over
+IndexedDB, behind the `BookCache` service. The phase 0 spike (issue #21)
+prototyped both options on the hard case, an index on a timestamp and a
+range delete for the daily purge, and both worked. `@effect/platform-browser`'s
+`IndexedDb` modules give Schema-typed tables and typed errors, but every one of
+them is marked `@stability unstable`, and the cache is the one component that
+holds data users would lose if the API moved. The cost of `idb` is a few dozen
+lines that decode with Schema and map failures to tagged errors; bundle size
+(1.5 KB against about 9 KB gzip in the worker) was not a factor. Because
+`BookCache` is an interface, switching later touches one file. A worker has no
+`window`, so anyone trying `@effect/platform-browser` later must build its
+`IndexedDb` service from `self.indexedDB`, not use `layerWindow`. `idb` is added
+as a dependency in phase 1, with `BookCache`. Rejected: `@effect/platform-browser`
+for now (unstable API on user data), raw IndexedDB (verbose transaction and
+cursor code with no gain).
+
+## D14 — `@effect/tsgo` for Effect diagnostics under TypeScript 7 (2026-10-29)
+
+`@effect/tsgo` 0.63.0 is added as a dev dependency, pinned. The older
+`@effect/language-service` is a tsserver plugin that TypeScript 7's native
+compiler does not load; its README points TypeScript 7 users to `@effect/tsgo`,
+whose supported list includes the repository's 7.0.2. `tsconfig.json` enables
+the plugin, and the `typecheck` script runs `effect-tsgo tsc --noEmit`, which
+runs the same type check plus Effect's diagnostics (for example a floating
+Effect that is never yielded) and exits non-zero on an error. Verified on this
+repository: a clean tree passes and an unyielded `Effect.log` fails with
+`TS377001`. It runs on Bun without patching `node_modules`. Rejected:
+skipping the language service (Effect mistakes such as a forgotten `yield*` are
+silent at runtime), and `@effect/language-service` (does not run on TypeScript 7).

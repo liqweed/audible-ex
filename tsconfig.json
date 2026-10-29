@@ -3,7 +3,8 @@
   "compilerOptions": {
     "strict": true,
     "jsx": "react-jsx",
-    "types": ["bun"]
+    "types": ["bun"],
+    "plugins": [{ "name": "@effect/language-service" }]
   },
   "exclude": ["node_modules", ".output", "reference"]
 }

@@ -51,7 +51,7 @@ Toolchain
       `src/storage`).
 - [ ] Scripts: `dev`, `build`, `zip`, `test`, `lint`, `format`, `check`,
       `e2e` (ARCHITECTURE.md §13), and `typecheck`, which runs
-      `wxt prepare && tsc --noEmit`.
+      `wxt prepare && effect-tsgo tsc --noEmit` (D14).
 
 CI and Jig (see [CI](#ci) below)
 
@@ -64,19 +64,21 @@ CI and Jig (see [CI](#ci) below)
 - [ ] Renovate for dependency and action updates, grouped weekly, pinned
       versions only (D12).
 
-Spikes, each a short note in the pull request
+Spikes, each a short note in the pull request (issue #21; the notes are on the issue and the
+settled choices are in DECISIONS.md D13 and D14)
 
-- [ ] Effect `ManagedRuntime` in the MV3 service worker: survives a worker
-      restart; the port reconnects.
-- [ ] Goodreads `auto_complete` and book page work from the background with
-      `credentials: 'omit'`.
-- [ ] `api.audible.*/1.0/catalog/products` works from the background without
-      cookies.
-- [ ] IndexedDB: `@effect/platform-browser`'s `IndexedDb` modules vs a thin
-      wrapper over `idb`.
-- [ ] `bun --bun wxt` for the dev server too (the build is verified); if it
-      misbehaves, run WXT on Node and keep Bun for everything else.
-- [ ] Effect language service with TypeScript 7; skip it if incompatible.
+- [x] Effect `ManagedRuntime` in the MV3 service worker: survives a worker
+      restart; the port reconnects. Natural idle stop still to check without a
+      debugger attached (ARCHITECTURE.md §4).
+- [x] Goodreads `auto_complete` and book page work from the background with
+      `credentials: 'omit'`. One `202` empty response seen; to be handled as a
+      rate-limit signal (ARCHITECTURE.md §4).
+- [x] `api.audible.*/1.0/catalog/products` works from the background without
+      cookies, on all 10 hosts; ASINs are marketplace-specific.
+- [x] IndexedDB: `idb` behind `BookCache` (D13), not `@effect/platform-browser`.
+- [x] `bun --bun wxt` for the dev server too: starts and rebuilds on change;
+      hot reload in a real browser not checked.
+- [x] Effect language service with TypeScript 7: `@effect/tsgo` works (D14).
 
 Fixtures and docs
 
