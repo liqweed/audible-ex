@@ -59,6 +59,13 @@ export const REGIONS: readonly Region[] = [
   region('JP', 'co.jp', 'JPY', 'ja-JP'),
 ]
 
+const byCode = new Map<RegionCode, Region>(REGIONS.map(r => [r.code, r]))
+
+/** The marketplace with the given code; every `RegionCode` has one. */
+export function regionByCode(code: RegionCode): Region {
+  return byCode.get(code) as Region
+}
+
 const byHost = new Map<string, Region>(
   REGIONS.flatMap(r => [
     [r.siteHost, r],

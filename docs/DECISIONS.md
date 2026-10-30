@@ -181,3 +181,22 @@ passes it to the live layer, so tests share no state. Rejected: an in-memory tes
 proves neither persistence nor the transaction and index code, which is what
 the live layer is made of), and running a browser for these tests (slow, manual,
 and not something CI does on every push).
+
+## D16 — Effect's HTTP client for the network services, though it is marked unstable (2026-10-29)
+
+`AudibleCatalog` and `Goodreads` make their requests with `HttpClient` and
+`FetchHttpClient` from `effect/http` (ARCHITECTURE.md §4). Every module of
+`effect/http` is labelled `@stability unstable`, so `@effect/tsgo` warns on each
+use (`unstableApiUsage`) and the warning fails `bun check`; the three files that
+use it (`httpGet.ts`, `AudibleCatalog.ts`, `Goodreads.ts`, plus the test helper
+`HttpTest.ts`) turn that one diagnostic off with a file-level comment, so
+nothing else is silenced. Unlike D13's cache this holds no user data: a changed
+API breaks a request at compile time and is fixed in `httpGet.ts`, the only
+place that calls `execute`. Effect is pinned exactly and Renovate proposes its
+updates in a pull request of their own (D12), so a break shows up before a
+release. The same choice makes the tests honest: they fake `fetch` under the
+real client, so they see the URL, the `Accept` header and `credentials: 'omit'`
+as the browser would. Rejected: calling `fetch` directly (no typed errors or
+test seam for free, and the credentials rule would be easy to lose in one call
+site), and turning `unstableApiUsage` off for the whole repository (it would
+hide the next unstable import in code that holds data).

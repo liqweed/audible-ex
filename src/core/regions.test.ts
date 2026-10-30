@@ -3,6 +3,7 @@ import {
   apiHostPermissions,
   contentScriptMatches,
   REGIONS,
+  regionByCode,
   regionFromHost,
 } from '@/core/regions'
 
@@ -65,6 +66,14 @@ describe('regionFromHost', () => {
       '',
     ]) {
       expect(regionFromHost(host)).toBeUndefined()
+    }
+  })
+})
+
+describe('regionByCode', () => {
+  test('finds each marketplace by its code', () => {
+    for (const m of MARKETPLACES) {
+      expect(regionByCode(m.code).apiHost).toBe(`api.audible.${m.tld}`)
     }
   })
 })

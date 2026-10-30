@@ -101,9 +101,9 @@ on it. Each service is a `Context` service with a live layer and a test layer.
 
 | Service          | Responsibility                                                                                                                                                                                                                                                                                                                    | Ported from (userscript)                                   |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| `Http`           | `FetchHttpClient` layer. Requests to Goodreads use `credentials: 'omit'` so lookups aren't tied to the user's Goodreads account.                                                                                                                                                                                                  | `get()`                                                    |
-| `AudibleCatalog` | `title`, first `author` (and later price) for an ASIN. Uses `Request`/`RequestResolver` so concurrent lookups batch into one `catalog/products?asins=…` call of up to 40.                                                                                                                                                         | `getMeta`, `flushMeta`                                     |
-| `Goodreads`      | `search(meta)` via `book/auto_complete` and the scoring rules; `details(bookId)` from the book page's `__NEXT_DATA__` (genres, overview, first-published year). Responses are decoded with Schemas; a decode failure is a `FormatChanged` error, not a miss.                                                                      | `searchGoodreads`, `fetchDetails`                          |
+| `Http`           | `FetchHttpClient` layer. `httpGet.ts` makes every GET: `credentials: 'omit'` on each request (to Goodreads and Audible alike), so lookups aren't tied to the user's accounts; a 15 s limit; the status mapped to the errors below.                                                                                                                                                                                                  | `get()`                                                    |
+| `AudibleCatalog` | `lookup(region, asin)`: `title`, first `author` (and later price) for an ASIN, from the API host of the page's marketplace. Uses `Request`/`RequestResolver` (120 ms window, grouped by host, repeated ASINs merged) so concurrent lookups batch into one `catalog/products?asins=…` call of up to 40.                                                                                                                                                         | `getMeta`, `flushMeta`                                     |
+| `Goodreads`      | `search(meta)` via `book/auto_complete` (title only first, title and author when `needsAuthorSearch`) and the scoring rules, answering `Option<Match>`; `details(bookId)` from the book page's `__NEXT_DATA__` (genres, overview as text capped at 600 characters, first-published year). Responses are decoded with Schemas; a decode failure is a `FormatChanged` error, not a miss.                                                                      | `searchGoodreads`, `fetchDetails`                          |
 | `BookCache`      | IndexedDB stores `ratings` (by ASIN), `meta` (by ASIN), `details` (by Goodreads id), `pins` (ASIN → last seen) and `housekeeping` (last purge); layout in §8. Time limits: found 30 days, miss 7 days; failures are never stored. A fibre purges unpinned entries older than 32 days daily; pins expire 180 days after last seen in Library/Wish List. | `cacheGet/Set`, `pin`, `purge`                             |
 | `LookupQueue`    | Dedupes in-flight work per ASIN and Goodreads id, runs jobs with a 3-permit `Semaphore` and a 250 ms gap per worker, two priorities (visible > background upgrades). On 429/503 the whole queue pauses with exponential backoff (5 s → 2 min, honouring `Retry-After`); a `CircuitBreaker` stops traffic after repeated failures. | `grQueued`, `pumpGr`, `ratingFor`, `detailsFor`, `addYear` |
 | `ProgressHub`    | Per-tab counters (queued, active, done, cached, not found, failed, paused-until), published with `PubSub` to the tab's port.                                                                                                                                                                                                      | — (new)                                                    |
@@ -112,15 +112,19 @@ on it. Each service is a `Context` service with a live layer and a test layer.
 Pure logic stays outside Effect, in `src/core/` (title normalisation, author/title scoring, filter
 verdicts, region table). The services call it; tests hit it directly with fixtures.
 
-Errors are tagged: `CacheError(operation)` (IndexedDB failed), `HttpError(status)`, `RateLimited(retryAfter)`, `FormatChanged(source)`,
-`NoMetadata(asin)`. "Not found on Goodreads" is a normal result (`{ miss: true }`), cached for 7
+Errors are tagged (`src/background/errors.ts`, `CacheError` in `BookCache.ts`): `CacheError(operation)` (IndexedDB failed),
+`HttpError(status)` (`status` 0 when there was no response: network down or the 15 s limit), `RateLimited(retryAfter)`, `FormatChanged(source)`,
+`NoMetadata(asin)`. `RateLimited` is `429`, `503` and the `202`/empty book page below, with `Retry-After` when sent; every other
+non-`2xx` status is an `HttpError`. "Not found on Goodreads" is a normal result (`Option.none` from `Goodreads.search`, stored as a `Miss` record), cached for 7
 days. Failures are not cached; the content script can retry them. `FormatChanged` is reported
 separately in the panel ("Goodreads changed its page format — the extension needs an update") so it
 isn't confused with network trouble.
 
 Two behaviours found in the phase 0 spike (issue #21). Goodreads answered a book-page request
 once with `202` and an empty body, which looks like a bot or rate challenge; treat `202` and an
-empty body as a rate-limit signal that pauses the queue like `429`, not as `FormatChanged`.
+empty body as a rate-limit signal that pauses the queue like `429`, not as `FormatChanged`. `Goodreads` fails with
+`RateLimited` for both, on the autocomplete as on the book page; a page that has no `__NEXT_DATA__` script, or whose JSON does not decode, is `FormatChanged`.
+The overview's HTML is turned into text by `src/core/html.ts`, since a service worker has no `DOMParser`.
 `catalog/products` answers `200` with a bare `{ "asin": … }` for an ASIN the marketplace doesn't
 carry (an ASIN from `.com` queried on `.ca` has no title), so `AudibleCatalog` queries the API host
 of the page's own marketplace and maps a product without a title to `NoMetadata`.
@@ -335,8 +339,9 @@ by `capture-fixtures.ts import`. What each fixture is, and the steps, are in
 - No remote code; everything is bundled.
 
 Privacy. The extension reads Audible page content, including Library and Wish List, and sends book
-titles and authors to Goodreads to look up ratings. Nothing else leaves the browser: no analytics, no
-server, no account. The store listing's privacy disclosures and the privacy policy say exactly that.
+titles and authors to Goodreads to look up ratings. The ASINs of the books on the page go to Audible's own catalogue API
+(`api.audible.<tld>`, the marketplace being browsed) to get each book's title and author. Nothing else leaves the browser: no
+analytics, no server, no account. No request to Goodreads or Audible carries cookies. The store listing's privacy disclosures and the privacy policy say exactly that.
 
 Publishing constraints that shape the code:
 
@@ -359,10 +364,10 @@ src/
     popup/                   # enable toggle, show panel, cache stats/clear
     options/                 # settings (TanStack Form), cache inspector (Table + Virtual)
   core/                      # pure TS, no DOM, no Effect: text.ts, matching.ts, filter.ts, regions.ts, asin.ts,
-                             #   expiry.ts (cache time limits and pin rules)
+                             #   expiry.ts (cache time limits and pin rules), html.ts, retryAfter.ts
   schema/                    # Effect Schemas: messages.ts, prefs.ts, goodreads.ts, audible.ts, cache.ts
-  background/                # Effect services: Goodreads.ts, AudibleCatalog.ts, BookCache.ts,
-                             #   BookCacheTest.ts (test layer over fake-indexeddb), LookupQueue.ts, ProgressHub.ts, PortServer.ts, layers.ts
+  background/                # Effect services: Goodreads.ts, AudibleCatalog.ts (with errors.ts, httpGet.ts), BookCache.ts,
+                             #   BookCacheTest.ts (test layer over fake-indexeddb), HttpTest.ts (fake fetch for the network services' tests), LookupQueue.ts, ProgressHub.ts, PortServer.ts, layers.ts
   content/                   # scanner.ts, cards.ts, badges.ts, store.ts, filter-applier.ts,
                              #   port-client.ts, badges.css
   ui/                        # React: panel/, components/ (Radix-based), hooks/
