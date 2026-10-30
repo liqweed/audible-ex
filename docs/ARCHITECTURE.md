@@ -39,7 +39,7 @@ Non-goals (for now)
 | **Vite** 8                                 | Bundler, through WXT                                                                                                                                   | No separate Vite config; plugins (React, Tailwind) go through `wxt.config.ts`.                                                                                            |
 | **Effect** 4.1                             | Background worker: services and layers, HTTP client, schemas, concurrency, retries/backoff, request batching, typed errors. Schemas shared everywhere. | The content script uses only `effect/Schema` (see §6 on bundle size).                                                                                                     |
 | **TanStack Store**                         | UI-facing state in the content script (books, progress, filter verdicts), read from React with `@tanstack/react-store`                                 | Framework-agnostic, so the non-React parts (badges, filter applier) subscribe to it too.                                                                                  |
-| **TanStack Pacer**                         | UI-side timing: debounce the rating slider, batch MutationObserver rescans                                                                             | Background rate limiting stays in Effect so it shares the retry/backoff model.                                                                                            |
+| **TanStack Pacer**                         | UI-side timing: debounce the rating slider                                                                                                             | Background rate limiting stays in Effect so it shares the retry/backoff model. The MutationObserver batching is a plain 300 ms timer (§6), so Pacer stays out of the badge code every Audible page loads. |
 | **TanStack Form**                          | Options page settings form                                                                                                                             | The floating panel's controls are live (no submit), so they don't use Form.                                                                                               |
 | **TanStack Table + Virtual**               | Options page cache inspector (phase 4)                                                                                                                 | Thousands of cached books, sortable.                                                                                                                                      |
 | **React 19**, **Tailwind 4**, **Radix UI** | Panel, popup, options UI                                                                                                                               | TanStack has no component library; Radix (Slider, Switch, Popover, Tooltip) provides accessible primitives, styled shadcn-style.                                          |
@@ -137,8 +137,14 @@ of the page's own marketplace and maps a product without a title to `NoMetadata`
 
 **Service worker lifetime.** MV3 stops an idle worker after ~30 s. An open port with traffic keeps it
 alive while a page is loading. If the worker restarts anyway, in-flight work is lost; the content
-script reconnects (port `onDisconnect`) and re-sends every ASIN that hasn't resolved. The cache
-makes that cheap. Verified in the spike: after the worker was stopped, the port disconnected, the
+script reconnects (port `onDisconnect`) and re-sends every ASIN that has had no answer yet (`queued` or
+`loading`). A book that has its rating is answered even if its details never came: a failed details
+read is not cached, so asking again on each reconnect would fetch the book page in a loop; the details
+come with the next page load. The cache
+makes that cheap. The wait before a reconnect starts at 100 ms and doubles to 30 s, starting
+again after a connection that held, so a worker that never comes back is not asked in a loop. With
+nothing unresolved the content script does not reconnect until the next lookup: reconnecting only
+to be stopped again would keep the worker running for as long as a tab is open. Verified in the spike: after the worker was stopped, the port disconnected, the
 content script's `onDisconnect` reconnect reached a new `ManagedRuntime` within 100 ms, and it
 answered the re-sent `Hello`. Not yet verified: the natural ~30 s idle stop (a debugger attached
 through CDP keeps the worker alive), so check it in a normal browser in phase 1.
@@ -165,7 +171,7 @@ Background → content
 | `BookUpdate` | `asin`, `status` (`loading`, `ready`, `notFound`, `failed`), `rating?` (`{ r, n, url, loose }`), `details?` (`{ genres, year, desc }`), `error?` (`{ reason, message }`, `reason` one of `httpError`, `rateLimited`, `formatChanged`, `noMetadata`) |
 | `Progress`   | `queued`, `active`, `done`, `cached`, `notFound`, `failed` (counters of this tab) and `pausedUntil?` (epoch milliseconds)                                                                                                                           |
 
-`PortServer` serves each port in its own session. `Hello` records the tab's region, which `Lookup` and `Retry` need; a `Lookup` before `Hello` is dropped and logged. A message that does not decode is dropped and logged as a warning; the port stays open. For each ASIN the server sends `loading` when the cache did not have it, then `ready` with the rating, then `ready` again with the details; a cached book with its details is one `ready` and no `loading`. A book that is not on Goodreads is `notFound`; any lookup failure is `failed` with its reason. If only the details fail, the `ready` with the rating stands. An ASIN already being looked up for the same port is not started twice, so a repeated `Hello` or `Lookup` (the content script re-sending what is unresolved after a reconnect) is harmless; `Retry` is a lookup again, since failures are not cached. When the port disconnects, only the session's waiting fibres end; lookups other tabs share carry on. The worker buffers a port's early messages (`buffered` in `src/background/port.ts`) because the runtime opens IndexedDB after `onConnect` fires. The server sees the port through the small `PortLike` interface, so tests use a fake. `Progress` is not sent yet (issue #34).
+`PortServer` serves each port in its own session. `Hello` records the tab's region, which `Lookup` and `Retry` need; a `Lookup` before `Hello` is dropped and logged. A message that does not decode is dropped and logged as a warning; the port stays open. For each ASIN the server sends `loading` when the cache did not have it, then `ready` with the rating, then `ready` again with the details; a cached book with its details is one `ready` and no `loading`. A book that is not on Goodreads is `notFound`; any lookup failure is `failed` with its reason. If only the details fail, the `ready` with the rating stands. An ASIN already being looked up for the same port is not started twice, so a repeated `Hello` or `Lookup` (the content script re-sending the ASINs that had no answer after a reconnect) is harmless; `Retry` is a lookup again, since failures are not cached. When the port disconnects, only the session's waiting fibres end; lookups other tabs share carry on. The worker buffers a port's early messages (`buffered` in `src/background/port.ts`) because the runtime opens IndexedDB after `onConnect` fires. The server sees the port through the small `PortLike` interface, so tests use a fake. `Progress` is not sent yet (issue #34).
 
 `BookUpdate` carries what its `status` implies: `ready` has `rating` (and `details` once the book page has been read), `failed` has `error`, `loading` and `notFound` have neither. The `queued` status of §6's `BookView` exists in the content script's store only; the background never sends it.
 
@@ -175,18 +181,26 @@ These replace the userscript's `GM_registerMenuCommand` entries.
 ## 6. Content script
 
 ```
-scan (MutationObserver, batched with Pacer)
+scan (MutationObserver, batched in 300 ms)
   → card + ASIN (ported cardFor / asinOf / findTitleEl)
   → IntersectionObserver (400 px margin)
   → Lookup over the port
-BookUpdate → TanStack Store (books) → badges + filter applier + panel
+BookUpdate → book store (books) → badges + filter applier + panel
 ```
 
 **Scanner and cards.** Ported as-is: card detection by "largest ancestor linking only to this
 ASIN", known row selectors for library and list pages, observer cleanup. Cards are DOM elements, so
-they stay out of the reactive store: a `WeakMap<Element, asin>` and a `Map<asin, Set<Element>>`.
+they stay out of the reactive store: a `WeakMap<Element, asin>` (the scanner's) and a
+`Map<asin, Set<Element>>` (redraws every card of a book; pruned of removed cards after each scan).
 
-**Book store (TanStack Store).**
+The port does not carry a book's title, which the userscript used to pick the title element, so the
+title comes from the card: the text of a link to the ASIN inside a heading, else the first text link,
+else (cards linked from the cover only) the cover's `alt` text. The element search itself is the
+userscript's. On the saved pages this places every badge where the userscript did
+(`src/content/fixtures.test.ts` compares each card with a copy of the userscript's code).
+
+**Book store (TanStack Store in phase 2).** Until then `src/content/books.ts` is a `Map` with
+`get`, `set` and `subscribe`, holding the same `BookView`s, so the swap touches that module only.
 
 ```ts
 type BookView = {
@@ -371,13 +385,14 @@ src/
     content/index.ts         # scanner, store, badges, filter applier, mounts the panel
     popup/                   # enable toggle, show panel, cache stats/clear
     options/                 # settings (TanStack Form), cache inspector (Table + Virtual)
-  core/                      # pure TS, no DOM, no Effect: text.ts, matching.ts, filter.ts, regions.ts, asin.ts,
+  core/                      # pure TS, no DOM, no Effect: text.ts, matching.ts, filter.ts, regions.ts, asin.ts, page.ts,
                              #   expiry.ts (cache time limits and pin rules), html.ts, retryAfter.ts
   schema/                    # Effect Schemas: messages.ts, prefs.ts, goodreads.ts, audible.ts, cache.ts
   background/                # Effect services: Goodreads.ts, AudibleCatalog.ts (with errors.ts, httpGet.ts), BookCache.ts,
                              #   BookCacheTest.ts (test layer over fake-indexeddb), HttpTest.ts (fake fetch for the network services' tests), LookupQueue.ts, ProgressHub.ts, PortServer.ts, layers.ts
-  content/                   # scanner.ts, cards.ts, badges.ts, store.ts, filter-applier.ts,
-                             #   port-client.ts, badges.css
+  content/                   # main.ts (wires the parts below), scanner.ts, cards.ts, badges.ts, badges.css,
+                             #   books.ts (the book store, TanStack Store from phase 2), port-client.ts,
+                             #   schedule.ts; filter-applier.ts arrives with the filters
   ui/                        # React: panel/, components/ (Radix-based), hooks/
   storage/                   # WXT storage item definitions
   assets/                    # brand/ logo sources; icon.png (Conductor's repository icon)

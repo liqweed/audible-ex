@@ -110,9 +110,10 @@ The extension does everything userscript v2.4.0 does, on all 10 marketplaces.
       (dedupe, 3 workers, 250 ms gap, two priorities, 429/503 backoff, circuit
       breaker), `PortServer`. Test layers and `TestClock` tests for expiry,
       backoff and dedupe.
-- [ ] Content script: scanner, card detection, IntersectionObserver, badge
+- [x] Content script: scanner, card detection, IntersectionObserver, badge
       placement and rendering, labels and year, retry on failure. DOM tests per
-      page type from fixtures.
+      page type from fixtures. (Library and wish list rows are tested on
+      hand-written HTML until their fixtures are captured.)
 - [ ] Hover overview rendered in a shadow root (prepares the panel's mount
       point), capped at 600 characters.
 - [ ] Popup: enable/disable, cache stats, clear unpinned / clear all (replaces

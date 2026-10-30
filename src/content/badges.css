@@ -1,0 +1,70 @@
+/* Badge styles, ported from the userscript with the `agx-` prefix. Imported as a string (`?inline`)
+   and injected once by `injectStyles` in badges.ts. */
+.agx-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 4px 0 2px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  font:
+    600 12px / 18px system-ui,
+    sans-serif;
+  /* biome-ignore lint/complexity/noImportantStyles: Audible's own link styles must not underline or recolour the badge */
+  text-decoration: none !important;
+  background: #f4f1ea;
+  /* biome-ignore lint/complexity/noImportantStyles: as above */
+  color: #382110 !important;
+  border: 1px solid #d8d0c0;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.agx-badge:hover {
+  background: #e9e3d6;
+}
+.agx-badge .agx-n {
+  font-weight: 400;
+  opacity: 0.75;
+}
+.agx-badge.agx-hi {
+  background: #e3f2e1;
+  border-color: #a9d3a2;
+}
+.agx-badge.agx-lo {
+  background: #f8e5e1;
+  border-color: #e0b0a6;
+}
+.agx-badge.agx-wait,
+.agx-badge.agx-none {
+  opacity: 0.6;
+  font-weight: 400;
+}
+.agx-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin: 2px 0;
+}
+.agx-wrap .agx-badge {
+  margin: 0;
+}
+.agx-year {
+  font:
+    600 11px / 17px system-ui,
+    sans-serif;
+  color: #7a6a58;
+  padding: 0 2px;
+}
+.agx-label {
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: 9px;
+  font:
+    400 11px / 17px system-ui,
+    sans-serif;
+  background: #fff;
+  color: #5c4a3a;
+  border: 1px solid #e2dacb;
+  white-space: nowrap;
+}
