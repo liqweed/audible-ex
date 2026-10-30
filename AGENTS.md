@@ -19,8 +19,9 @@ Design and plan are agreed. Phase 0's toolchain is in place: Bun, WXT with
 `bun run build` work. CI runs both on every pull request and on pushes to
 `main` (`.github/workflows/ci.yml`, one job, `Extension — check, build`); Jig
 reads the gate from `gates.command` and the required check from
-`ci.required_checks` in `.config/jig.yaml`. The entrypoints are empty shells;
-extension behaviour starts in phase 1.
+`ci.required_checks` in `.config/jig.yaml`. The content script and popup are empty
+shells; the background worker serves the `agx` port (`LookupQueue`, `PortServer`),
+and the rest of the extension's behaviour is phase 1 work.
 
 ## Non-negotiables
 

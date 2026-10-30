@@ -105,7 +105,7 @@ The extension does everything userscript v2.4.0 does, on all 10 marketplaces.
       fixtures.
 - [x] `src/schema`: Goodreads autocomplete, `__NEXT_DATA__` book extraction,
       Audible catalog response, cache records, port messages.
-- [ ] Background services: `AudibleCatalog` (batched with `RequestResolver`),
+- [x] Background services: `AudibleCatalog` (batched with `RequestResolver`),
       `Goodreads`, `BookCache` (time limits, pins, daily purge), `LookupQueue`
       (dedupe, 3 workers, 250 ms gap, two priorities, 429/503 backoff, circuit
       breaker), `PortServer`. Test layers and `TestClock` tests for expiry,

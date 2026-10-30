@@ -63,3 +63,18 @@ export class NoMetadata extends Data.TaggedError('NoMetadata')<{
     return `Audible has no metadata for ${this.asin}`
   }
 }
+
+/**
+ * The queue's circuit breaker is open: repeated Goodreads failures stopped all traffic, and this
+ * lookup was failed at once instead of waiting (ARCHITECTURE.md §4). `lastFailure` is the failure
+ * that tripped it, so the panel can say why; `reopensAt` is when the breaker allows a probe request
+ * (epoch milliseconds). Like any failure it is not cached; a retry after `reopensAt` goes through.
+ */
+export class CircuitOpen extends Data.TaggedError('CircuitOpen')<{
+  readonly lastFailure: HttpError | RateLimited | FormatChanged
+  readonly reopensAt: number
+}> {
+  override get message() {
+    return `Goodreads lookups are stopped after repeated failures (${this.lastFailure.message})`
+  }
+}
