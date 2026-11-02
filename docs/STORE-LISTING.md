@@ -109,17 +109,47 @@ browser window: Goodreads answers 403 to headless Chromium. Outside the US,
 check uses the home page and the screenshots come from `.co.uk`. Look at every
 image before uploading: the pages show whatever Audible lists that day.
 
+## Verified CRX uploads
+
+Every package is signed with the project's own key, so the store rejects an
+update from anyone who takes over the developer account without the key
+(DECISIONS.md D18).
+
+- **Private key:** 1Password, Private vault, document "Book Ratings for Audible
+  — Chrome Web Store signing key". Never on disk outside a `bun crx` run, never
+  in the repository. If it is lost, Web Store support replaces it, which can
+  take up to a week; no update can ship meanwhile.
+- **Public key:** `.config/cws-signing-key.pub.pem`; `bun crx` refuses a key
+  that doesn't match it. SHA-256 of its DER form: `074fa5ca29271270bde909744381e3e55218fbfdd17da3df5209309cb574c1d3`.
+- **Opt-in:** the item → **Package** → **Verified CRX Uploads** → **Opt In**,
+  then paste the public key below. Status: not yet opted in; do it once 0.1.0
+  is approved, before the listing goes public.
+
+```text
+-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvrebgKeWZ6WzfKD64gFV
+dmRdgBBgcClSCdGXcFkpvkPr1yecYjTTsrtlwbzujyGBo19UeHvVVROLWHZ/3N4L
+Zz0apiT7h4uIYHc6J6DJr8kG4+83UJZEhzXhzrvKxHpG+ShN2pSxAuWzmLchuai+
++n15TCxGd08ioX2LQYgVYf1oYCOGTYoKRCw478iIgJad9Y2yPj4muWCrWkBi2kUz
+B09seJB1hpz4npX6X1PH6kfW5jfs8bJ4PoUw1RXGZezmlBXSVVbCVH0djug0gTW1
+VJHtnU5tT9vuEBkuLakUTq73hpOuZ/lWWP/7yCe8Ys0aPMHqbuu5VZxGYiRl1Xzv
+NQIDAQAB
+-----END PUBLIC KEY-----
+```
+
 ## Submitting a release
 
 1. On an up-to-date `main` with the release commit tagged (`changes/README.md`),
-   run `bun run build`, `bun e2e`, then `bun zip`; the upload is
-   `.output/audible-ex-<version>-chrome.zip`.
+   run `bun run build`, `bun e2e`, then `bun crx`, which signs the build with
+   the key from 1Password; the upload is
+   `.output/audible-ex-<version>-chrome.crx`. (Before the opt-in, `bun zip`'s
+   `.output/audible-ex-<version>-chrome.zip` is accepted too.)
 2. First release only: register at
    https://chrome.google.com/webstore/devconsole with a Google account that has
    2-step verification, pay the one-time US$5 fee, verify the contact email,
    and declare non-trader status (a free, non-commercial extension).
 3. Dashboard → **Items** → **New item** (later releases: the item → **Package**
-   → **Upload new package**), upload the zip.
+   → **Upload new package**), upload the package.
 4. Fill the three tabs from this file; upload the assets.
 5. **Submit for review.** After approval, install from the store link and check
    badges on two marketplaces.

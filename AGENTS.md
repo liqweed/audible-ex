@@ -99,6 +99,7 @@ mise install && bun install   # toolchain, then dependencies
 bun dev                       # WXT dev server, Chrome, hot reload
 bun run build                 # production build (.output/chrome-mv3)
 bun zip                       # store upload zip
+bun crx                       # signed store upload (key from 1Password; docs/STORE-LISTING.md)
 bun test src/core/matching.test.ts   # one test file
 bun e2e                       # Playwright smoke test on live Audible (manual)
 bun scripts/capture-fixtures.ts      # refresh Audible/Goodreads fixtures
