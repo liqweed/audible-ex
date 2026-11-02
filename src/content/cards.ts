@@ -17,8 +17,10 @@ export const KNOWN_ROW = 'li.productListItem, [id^="adbl-library-content-row-"]'
 export const NAVIGATION = 'header, nav, footer, [role="navigation"]'
 /** The hover popover Audible renders inside each card; it gets its own badge. */
 export const POPOVER = '.bc-popover'
+/** The element that holds the hover overview's shadow root (overview.ts). */
+export const OVERVIEW_HOST = 'agx-overview-host'
 /** What the extension adds to the page, so its own changes are never scanned. */
-export const OUR_NODES = '.agx-wrap, .agx-li'
+export const OUR_NODES = `.agx-wrap, .agx-li, .${OVERVIEW_HOST}`
 
 const PRODUCT_LINKS = 'a[href*="/pd/"]'
 const HEADINGS = 'h1,h2,h3,h4'

@@ -37,6 +37,12 @@ jobs:
 
       - run: bun run build
 
+      # The content script runs on every Audible page: fail when it outgrows its budget.
+      - run: bun scripts/check-content-size.ts
+
+      # A Chrome-only API would otherwise go unnoticed until the Firefox release.
+      - run: bun run build:firefox
+
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: extension-chrome-mv3

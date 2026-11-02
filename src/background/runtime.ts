@@ -16,9 +16,11 @@ import { LookupQueue } from './LookupQueue'
 import { PortServer } from './PortServer'
 
 /**
- * Everything the worker runs on. `indexedDB` is `self.indexedDB` in the worker; `http` is `fetch`
- * there, and a fake network in the tests. The layer fails with `CacheError` when the database
- * cannot be opened.
+ * Everything the worker runs on: the port server, and the cache the popup's requests read. They
+ * share one cache (one database connection, one daily sweeper), because both layers are built from
+ * the same `cache` value. `indexedDB` is `self.indexedDB` in the worker; `http` is `fetch` there,
+ * and a fake network in the tests. The layer fails with `CacheError` when the database cannot be
+ * opened.
  */
 export const liveLayer = (
   indexedDB: IDBFactory,
@@ -27,10 +29,12 @@ export const liveLayer = (
   const network = Layer.mergeAll(AudibleCatalog.layer, Goodreads.layer).pipe(
     Layer.provide(http)
   )
-  return PortServer.layer.pipe(
+  const cache = BookCache.layer(indexedDB)
+  const server = PortServer.layer.pipe(
     Layer.provide(LookupQueue.layer),
-    Layer.provide(Layer.mergeAll(network, BookCache.layer(indexedDB)))
+    Layer.provide(Layer.mergeAll(network, cache))
   )
+  return Layer.mergeAll(server, cache)
 }
 
 /** The runtime the worker serves ports on. It builds the layer on first use, not here. */

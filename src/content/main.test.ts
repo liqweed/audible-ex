@@ -174,6 +174,64 @@ describe('looking up what comes into view', () => {
   })
 })
 
+describe('the hover overview', () => {
+  const hover = (badge: Element) =>
+    badge.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }))
+  const tip = () =>
+    document
+      .querySelector('.agx-overview-host')
+      ?.shadowRoot?.querySelector('.tip') ?? null
+
+  test('shows the overview of the book under a badge, and a year that came later', () => {
+    loadBody(`<main>${card(A)}</main>`)
+    const world = startWorld()
+    world.io.intersect()
+    const rating = { r: 4.21, n: 12_345 }
+    world.port.receive(
+      ready(A, rating, { genres: ['Fantasy'], year: 0, desc: 'The story.' })
+    )
+    const badge = mainBadges()[0] as Element
+    // The overview replaces the plain tooltip.
+    expect(badge.getAttribute('title')).toBeNull()
+    hover(badge)
+    expect(tip()?.textContent).toContain('The story.')
+    expect(tip()?.textContent).not.toContain('first published')
+
+    badge.dispatchEvent(new MouseEvent('mouseout', { bubbles: true }))
+    world.port.receive(
+      ready(A, rating, { genres: ['Fantasy'], year: 1996, desc: 'The story.' })
+    )
+    hover(mainBadges()[0] as Element)
+    expect(tip()?.textContent).toContain('first published 1996')
+  })
+
+  test('a book without an overview keeps the plain tooltip and shows no box', () => {
+    loadBody(`<main>${card(A)}</main>`)
+    const world = startWorld()
+    world.io.intersect()
+    world.port.receive(ready(A, { r: 4, n: 10 }))
+    const badge = mainBadges()[0] as Element
+    expect(badge.getAttribute('title')).toContain('Goodreads: 4.00')
+    hover(badge)
+    expect(tip()).toBeNull()
+  })
+
+  test('the host is not mistaken for a card, and stop takes it away', async () => {
+    loadBody(`<main>${card(A)}</main>`)
+    const world = startWorld()
+    world.io.intersect()
+    world.port.receive(
+      ready(A, { r: 4, n: 10 }, { genres: [], year: 0, desc: 'Text' })
+    )
+    hover(mainBadges()[0] as Element)
+    await settle()
+    world.timers.runAll()
+    expect(world.io.observed.size).toBe(0)
+    world.content?.stop()
+    expect(document.querySelector('.agx-overview-host')).toBeNull()
+  })
+})
+
 describe('one book on several cards', () => {
   test('asks once and updates every card', () => {
     loadBody(

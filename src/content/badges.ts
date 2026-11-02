@@ -2,9 +2,9 @@
  * Badges: plain DOM, no React (ARCHITECTURE.md §6). Building them on a card, drawing the `BookView`
  * on them (`★ 4.21 (12k)`, `GR: not found`, `GR: retry`), and the year and labels after the rating.
  * Ported from the userscript's `newBadge`, `makeWrap`, `render`, `decorate` and `visibleGenres`.
- * The hover overview (`showTip`) is not here; it arrives with #30.
+ * The hover overview (`showTip`) is in overview.ts; a badge only carries its ASIN for it.
  */
-import type { BookView } from './books'
+import { type BookView, hasOverview } from './books'
 import { POPOVER, placeAfterTitle } from './cards'
 
 /** Genre labels shown after the badge, and the Goodreads shelves that say nothing about a book. */
@@ -47,7 +47,11 @@ export function injectStyles(doc: Document, css: string): void {
   ;(doc.head ?? doc.documentElement).appendChild(style)
 }
 
-function newBadge(doc: Document, title: string): HTMLAnchorElement {
+function newBadge(
+  doc: Document,
+  asin: string,
+  title: string
+): HTMLAnchorElement {
   const badge = doc.createElement('a')
   badge.target = '_blank'
   badge.rel = 'noopener'
@@ -55,6 +59,8 @@ function newBadge(doc: Document, title: string): HTMLAnchorElement {
   badge.textContent = 'GR …'
   // The title is what a "not found" badge searches Goodreads for.
   badge.dataset.q = title
+  // The overview reads the book from the store by this ASIN when the pointer arrives.
+  badge.dataset.asin = asin
   // Cards are often links or open a popover themselves; the badge is its own target.
   badge.addEventListener('click', ev => ev.stopPropagation())
   return badge
@@ -114,6 +120,8 @@ export function renderBadge(
     badge.removeAttribute('href')
     badge.removeAttribute('title')
   }
+  // The overview replaces the plain tooltip, so the two do not show together.
+  if (hasOverview(view)) badge.removeAttribute('title')
   decorate(badge, view.details)
 }
 
@@ -151,7 +159,7 @@ export function decorate(
  */
 export function attachBadges(card: Element, asin: string, title: string): void {
   const doc = card.ownerDocument
-  const mainWrap = makeWrap(doc, newBadge(doc, title))
+  const mainWrap = makeWrap(doc, newBadge(doc, asin, title))
   if (!placeAfterTitle(card, mainWrap, asin, title, false)) {
     const popover = card.querySelector(POPOVER)
     if (popover) popover.insertAdjacentElement('beforebegin', mainWrap)
@@ -160,7 +168,7 @@ export function attachBadges(card: Element, asin: string, title: string): void {
   for (const popover of card.querySelectorAll(POPOVER)) {
     placeAfterTitle(
       popover,
-      makeWrap(doc, newBadge(doc, title)),
+      makeWrap(doc, newBadge(doc, asin, title)),
       asin,
       title,
       true
@@ -175,6 +183,16 @@ export const hasBadge = (card: Element): boolean =>
 export function removeBadges(card: Element): void {
   for (const wrap of card.querySelectorAll('.agx-wrap'))
     (wrap.closest('.agx-li') ?? wrap).remove()
+}
+
+/**
+ * Takes everything the badges added off the page: every badge, the list items made for them, and
+ * the stylesheet (so starting again injects it again). What the user turned off leaves no trace.
+ */
+export function removeAllBadges(doc: Document): void {
+  for (const wrap of doc.querySelectorAll('.agx-wrap'))
+    (wrap.closest('.agx-li') ?? wrap).remove()
+  doc.getElementById(STYLE_ID)?.remove()
 }
 
 /** Draws the book on every badge of the card. */

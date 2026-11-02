@@ -114,11 +114,11 @@ The extension does everything userscript v2.4.0 does, on all 10 marketplaces.
       placement and rendering, labels and year, retry on failure. DOM tests per
       page type from fixtures. (Library and wish list rows are tested on
       hand-written HTML until their fixtures are captured.)
-- [ ] Hover overview rendered in a shadow root (prepares the panel's mount
+- [x] Hover overview rendered in a shadow root (prepares the panel's mount
       point), capped at 600 characters.
-- [ ] Popup: enable/disable, cache stats, clear unpinned / clear all (replaces
+- [x] Popup: enable/disable, cache stats, clear unpinned / clear all (replaces
       the userscript's menu commands).
-- [ ] CI: content-script size budget (see [CI](#ci)).
+- [x] CI: content-script size budget (see [CI](#ci)).
 - [ ] One-time migration is **not** planned: userscript data lives in the
       userscript manager and the extension can't read it. Users switching over
       refetch once.
@@ -253,7 +253,7 @@ Added later:
 
 | Phase | Addition                                                                                                             |
 | ----- | -------------------------------------------------------------------------------------------------------------------- |
-| 1     | Content-script size budget: fail when `content-scripts/content.js` grows past a set gzipped size (start ≈ 60 KB).    |
+| 1     | Content-script size budget: `scripts/check-content-size.ts` fails when `content-scripts/content.js` passes 50 KB gzipped (set from a 36 KB build). |
 | 1     | `bun run build` for Firefox as a second step, so a Chrome-only API is caught early.                                  |
 | 5     | `release.yml` on `v*` tags: build Chrome and Firefox zips, attach to a GitHub release; Jig's changelog check on PRs. |
 | Later | Nightly (not per-PR) Playwright smoke run against live Audible, reporting to an issue on failure.                    |

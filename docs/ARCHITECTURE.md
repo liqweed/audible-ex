@@ -175,8 +175,15 @@ Background → content
 
 `BookUpdate` carries what its `status` implies: `ready` has `rating` (and `details` once the book page has been read), `failed` has `error`, `loading` and `notFound` have neither. The `queued` status of §6's `BookView` exists in the content script's store only; the background never sends it.
 
-Popup / options → background (one-off `sendMessage`): `CacheStats`, `ClearCache { scope: 'unpinned' | 'all' }`.
-These replace the userscript's `GM_registerMenuCommand` entries.
+Popup / options → background (one-off `sendMessage`, schemas in `src/schema/popup.ts`):
+`CacheStats`, answered with `Stats { books, entries, bytes, pinned }`, and
+`ClearCache { scope: 'unpinned' | 'all' }`, answered with `Cleared { deleted }`; a cache that cannot
+be read or cleared is answered `Failed { message }`. These replace the userscript's
+`GM_registerMenuCommand` entries. `src/background/popup.ts` answers them from the same `BookCache`
+the port server uses (`liveLayer` builds it once and offers it next to `PortServer`). A message
+that does not decode is left unanswered, and one that comes from a content script (it has a
+`sender.tab`, and runs among a web page's scripts) is ignored, so a page cannot make the extension
+empty its cache.
 
 ## 6. Content script
 
@@ -225,6 +232,13 @@ hundreds, and the userscript's placement code already handles Audible's layouts.
 `books` and `prefs` (§7). A subscriber writes it to `data-agx-filter` on each card, and CSS does the
 rest (`[data-agx-filter=hide]{display:none!important}`). Removing a filter only removes an
 attribute; nothing is torn down and rebuilt.
+
+**Hover overview.** `src/content/overview.ts`, plain DOM: one `mouseover`/`mouseout` listener pair
+on the document finds the badge (its `data-asin` names the book, read from the store when the
+pointer arrives, so a year that came later shows), and a capturing `scroll` listener hides the box.
+The box is `position: fixed` inside a shadow root on an `agx-overview-host` element (ignored by the
+scanner), so Audible's CSS can't reach it. The host and its root are made by hand for now; the
+panel will take over the same root.
 
 **Floating panel.** React mounted with WXT's `createShadowRootUi` (`cssInjectionMode: 'ui'`), so
 Tailwind and Audible's CSS can't affect each other. The hover overview renders inside the same
@@ -279,6 +293,11 @@ filter can't apply to it and the card stays visible.
 Every reader (content scripts, popup, options) watches `sync:prefs`, so a change in one tab applies
 everywhere at once. Prefs are decoded with an Effect Schema that supplies defaults, so a missing or
 older field never crashes the UI.
+
+Only `enabled` is implemented so far (`src/storage/prefs.ts`; the popup's master switch). The
+content script runs only while it is on (`src/content/lifecycle.ts`): turning it off removes the
+badges, the overview and the stylesheet and closes the port, which ends this tab's lookups; turning
+it on starts the script again. The rest of the shape below arrives in phase 3.
 
 ```ts
 // Prefs v1, defaults shown

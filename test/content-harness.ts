@@ -176,8 +176,16 @@ export interface WorldOptions {
   now?: () => number
 }
 
-/** Starts the content script on whatever the test document holds. */
+/** The world started last; its listeners are on the shared test document until it is stopped. */
+let previous: World | undefined
+
+/**
+ * Starts the content script on whatever the test document holds. The world a test started before
+ * is stopped first: the document outlives the tests, and a script still listening on it would
+ * answer events meant for the new one.
+ */
 export function startWorld(options: WorldOptions = {}): World {
+  previous?.content?.stop()
   const io = new FakeIntersection()
   const timers = new ManualScheduler()
   const ports: FakePort[] = []
@@ -196,6 +204,7 @@ export function startWorld(options: WorldOptions = {}): World {
     createIntersectionObserver: io.create,
     schedule: timers.schedule,
     css: '.agx-badge{}',
+    overviewCss: '.tip{}',
     now: options.now,
   }
   const world: World = {
@@ -208,6 +217,7 @@ export function startWorld(options: WorldOptions = {}): World {
       return ports[ports.length - 1] as FakePort
     },
   }
+  previous = world
   return world
 }
 

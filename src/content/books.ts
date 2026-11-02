@@ -14,11 +14,21 @@ export interface BookView {
     readonly genres: readonly string[]
     /** First-published year; 0 when Goodreads has none, negative before year 1. */
     readonly year: number
-    /** Plain text, 600 characters at most. Kept for the hover overview (#30). */
+    /** Plain text, 600 characters at most. Shown by the hover overview. */
     readonly desc: string
   }
   readonly error?: { reason: string; message: string }
 }
+
+/** A `ready` book that has a rating and an overview text. */
+export type WithOverview = BookView & {
+  readonly rating: NonNullable<BookView['rating']>
+  readonly details: NonNullable<BookView['details']>
+}
+
+/** True for a book with a rating and an overview to show; the others get the plain tooltip. */
+export const hasOverview = (view: BookView | undefined): view is WithOverview =>
+  view?.status === 'ready' && !!view.rating && !!view.details?.desc
 
 export type BookListener = (asin: string, view: BookView) => void
 

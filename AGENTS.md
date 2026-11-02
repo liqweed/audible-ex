@@ -20,9 +20,9 @@ Design and plan are agreed. Phase 0's toolchain is in place: Bun, WXT with
 `main` (`.github/workflows/ci.yml`, one job, `Extension — check, build`); Jig
 reads the gate from `gates.command` and the required check from
 `ci.required_checks` in `.config/jig.yaml`. The background worker serves the `agx`
-port (`LookupQueue`, `PortServer`) and the content script finds cards and shows
-badges (`src/content/`); the popup is an empty shell, and the hover overview,
-panel and filters are later work.
+port (`LookupQueue`, `PortServer`) and the content script finds cards, shows badges
+and the hover overview (`src/content/`); the popup has the on/off switch and the
+cache size and clearing. The panel and filters are later work.
 
 ## Non-negotiables
 
@@ -53,9 +53,10 @@ same command on every pull request:
 ```sh
 bun check   # biome ci → effect-tsgo tsc --noEmit → bun test
 bun run build   # wxt build; also run it when you touch wxt.config.ts or entrypoints
+bun scripts/check-content-size.ts   # after the build: the content script's gzipped size budget
 ```
 
-Run both yourself before pushing; CI repeats them and uploads the unpacked
+Run these yourself before pushing; CI repeats them (and builds Firefox) and uploads the unpacked
 extension (`.output/chrome-mv3`) as an artifact for loading in Chrome. Biome
 doesn't check Markdown (DECISIONS.md D4): keep docs tidy by review.
 

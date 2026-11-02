@@ -1,0 +1,45 @@
+/* The hover overview's styles, ported from the userscript's `.agr-tip`. Imported as a string
+   (`?inline`) and put inside the overview's shadow root by overview.ts, so they never reach the page. */
+:host {
+  /* Nothing is inherited from Audible's body, and the host takes no room in its layout. */
+  all: initial;
+}
+.tip {
+  position: fixed;
+  z-index: 2147483647;
+  max-width: 420px;
+  max-height: 60vh;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fffdf8;
+  color: #2b2118;
+  border: 1px solid #d8d0c0;
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.18);
+  font:
+    13px / 1.45 system-ui,
+    sans-serif;
+  white-space: pre-line;
+  /* The box never takes the pointer, so moving onto it cannot end the hover. */
+  pointer-events: none;
+}
+.tip b {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+.tip .meta {
+  display: block;
+  margin-bottom: 6px;
+  opacity: 0.7;
+  font-size: 12px;
+}
+.tip .fade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 28px;
+  background: linear-gradient(transparent, #fffdf8);
+}

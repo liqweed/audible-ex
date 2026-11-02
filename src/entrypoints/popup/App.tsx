@@ -1,11 +1,177 @@
-// Empty shell; the enable toggle, show-panel button and cache stats arrive in phase 2.
-export function App() {
+import * as Switch from '@radix-ui/react-switch'
+import { useCallback, useEffect, useState } from 'react'
+import type { ClearScope, Stats } from '@/schema/popup'
+import { readPrefs, updatePrefs, watchPrefs } from '@/storage/prefs'
+import { type Backend, extensionBackend } from './backend'
+import { books, formatBytes } from './format'
+
+const button =
+  'rounded-md border border-border bg-secondary px-3 py-1.5 text-left text-sm hover:bg-accent disabled:opacity-50'
+
+const messageOf = (error: unknown) =>
+  error instanceof Error ? error.message : String(error)
+
+/** The master switch, kept in step with the preference: other popups and the options page change it too. */
+function useEnabled() {
+  const [enabled, setEnabled] = useState<boolean>()
+  const [error, setError] = useState<string>()
+  useEffect(() => {
+    let current = true
+    readPrefs().then(
+      prefs => current && setEnabled(prefs.enabled),
+      e => current && setError(messageOf(e))
+    )
+    const stop = watchPrefs(prefs => setEnabled(prefs.enabled))
+    return () => {
+      current = false
+      stop()
+    }
+  }, [])
+  const change = useCallback((value: boolean) => {
+    setEnabled(value)
+    updatePrefs({ enabled: value }).catch(e => setError(messageOf(e)))
+  }, [])
+  return { enabled, change, error }
+}
+
+type CacheState =
+  | { kind: 'loading' }
+  | { kind: 'ready'; stats: Stats }
+  | { kind: 'error'; message: string }
+
+/** The cache's size and the two ways to empty it. */
+function Cache({ backend }: { backend: Backend }) {
+  const [cache, setCache] = useState<CacheState>({ kind: 'loading' })
+  const [result, setResult] = useState<string>()
+  const [confirming, setConfirming] = useState(false)
+  const [busy, setBusy] = useState(false)
+
+  const load = useCallback(
+    () =>
+      backend.stats().then(
+        stats => setCache({ kind: 'ready', stats }),
+        e => setCache({ kind: 'error', message: messageOf(e) })
+      ),
+    [backend]
+  )
+  useEffect(() => {
+    load()
+  }, [load])
+
+  async function clear(scope: ClearScope) {
+    setBusy(true)
+    setConfirming(false)
+    setResult(undefined)
+    try {
+      const deleted = await backend.clear(scope)
+      setResult(
+        `Cleared ${deleted} ${deleted === 1 ? 'entry' : 'entries'}.` +
+          (scope === 'unpinned'
+            ? ' Library and Wish List books were kept.'
+            : '')
+      )
+    } catch (e) {
+      setResult(`Could not clear the cache: ${messageOf(e)}`)
+    }
+    await load()
+    setBusy(false)
+  }
+
   return (
-    <main className='w-72 p-4'>
-      <h1 className='text-lg font-semibold'>audible-ex</h1>
-      <p className='text-sm text-muted-foreground'>
-        Goodreads ratings on Audible.
+    <section aria-labelledby='cache-heading' className='space-y-2'>
+      <h2 id='cache-heading' className='text-sm font-semibold'>
+        Cache
+      </h2>
+      <p className='text-sm text-muted-foreground' aria-live='polite'>
+        {cache.kind === 'loading' && 'Reading the cache…'}
+        {cache.kind === 'error' && `Could not read the cache: ${cache.message}`}
+        {cache.kind === 'ready' &&
+          (cache.stats.books === 0
+            ? 'The cache is empty.'
+            : `${books(cache.stats.books)} cached (${formatBytes(cache.stats.bytes)}), ${cache.stats.pinned} from Library and Wish List.`)}
       </p>
+      <div className='flex flex-col gap-2'>
+        <button
+          type='button'
+          className={button}
+          disabled={busy}
+          onClick={() => clear('unpinned')}
+        >
+          Clear, keeping Library and Wish List
+        </button>
+        {confirming ? (
+          <div className='space-y-2 rounded-md border border-destructive p-2'>
+            <p className='text-sm'>
+              This also forgets the books of your Library and Wish List.
+            </p>
+            <div className='flex gap-2'>
+              <button
+                type='button'
+                className={button}
+                disabled={busy}
+                onClick={() => clear('all')}
+              >
+                Clear everything
+              </button>
+              <button
+                type='button'
+                className={button}
+                onClick={() => setConfirming(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type='button'
+            className={button}
+            disabled={busy}
+            onClick={() => setConfirming(true)}
+          >
+            Clear everything…
+          </button>
+        )}
+      </div>
+      {result && (
+        <p className='text-sm' role='status'>
+          {result}
+        </p>
+      )}
+    </section>
+  )
+}
+
+export function App({ backend = extensionBackend }: { backend?: Backend }) {
+  const { enabled, change, error } = useEnabled()
+  return (
+    <main className='w-80 space-y-4 p-4'>
+      <header>
+        <h1 className='text-lg font-semibold'>audible-ex</h1>
+        <p className='text-sm text-muted-foreground'>
+          Goodreads ratings on Audible.
+        </p>
+      </header>
+      <div className='flex items-center justify-between gap-3'>
+        <label htmlFor='enabled' className='text-sm'>
+          Show ratings on Audible
+        </label>
+        <Switch.Root
+          id='enabled'
+          checked={enabled ?? true}
+          disabled={enabled === undefined}
+          onCheckedChange={change}
+          className='relative h-5 w-9 shrink-0 rounded-full border border-border bg-secondary data-[state=checked]:bg-foreground'
+        >
+          <Switch.Thumb className='block h-4 w-4 translate-x-0.5 rounded-full bg-background shadow transition-transform data-[state=checked]:translate-x-[18px]' />
+        </Switch.Root>
+      </div>
+      {error && (
+        <p className='text-sm text-destructive' role='alert'>
+          Could not use the settings: {error}
+        </p>
+      )}
+      <Cache backend={backend} />
     </main>
   )
 }

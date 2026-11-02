@@ -6,6 +6,7 @@ import * as Layer from 'effect/Layer'
 import { TestClock } from 'effect/testing'
 import { IDBFactory } from 'fake-indexeddb'
 import { catalogUrl } from './AudibleCatalog'
+import { BookCache } from './BookCache'
 import { autocompleteUrl, bookPageUrl } from './Goodreads'
 import { fakeHttp, html, json } from './HttpTest'
 import { PortServer } from './PortServer'
@@ -92,5 +93,41 @@ describe('the live layer graph', () => {
       'www.goodreads.com',
     ])
     expect(http.requests.every(r => r.credentials === 'omit')).toBe(true)
+  })
+})
+
+describe('the cache the popup reads', () => {
+  test('is the one the port server writes to, opened once', async () => {
+    const factory = new IDBFactory()
+    let opens = 0
+    const counting = new Proxy(factory, {
+      get(target, key) {
+        if (key === 'open')
+          return (...args: Parameters<IDBFactory['open']>) => {
+            opens++
+            return target.open(...args)
+          }
+        return Reflect.get(target, key, target)
+      },
+    })
+    const stats = await Effect.runPromise(
+      Effect.gen(function* () {
+        yield* PortServer
+        const cache = yield* BookCache
+        yield* cache.setRating({
+          _tag: 'Miss',
+          asin: HAIL_MARY,
+        })
+        return yield* cache.stats
+      }).pipe(
+        Effect.provide(
+          liveLayer(counting, fakeHttp(reply).layer).pipe(
+            Layer.provideMerge(TestClock.layer())
+          )
+        )
+      )
+    )
+    expect(stats.books).toBe(1)
+    expect(opens).toBe(1)
   })
 })

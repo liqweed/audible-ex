@@ -14,11 +14,13 @@ import {
   attachBadges,
   hasBadge,
   injectStyles,
+  removeAllBadges,
   removeBadges,
   renderCard,
 } from './badges'
 import { type BookStore, createBookStore, isUnresolved, viewOf } from './books'
 import { isKnownRow, titleOf } from './cards'
+import { createOverview } from './overview'
 import {
   type ClientPort,
   createPortClient,
@@ -44,12 +46,17 @@ export interface ContentDeps {
   schedule: Schedule
   /** The badge stylesheet's text. */
   css: string
+  /** The hover overview's stylesheet text; it goes inside the overview's shadow root. */
+  overviewCss: string
   now?: () => number
 }
 
 export interface Content {
   readonly books: BookStore
+  /** Stops watching and lookups; what is on the page stays (the extension was reloaded). */
   stop(): void
+  /** Stops, then takes every badge, the overview and the stylesheet off the page (turned off). */
+  remove(): void
 }
 
 /** Starts the content script; does nothing, and returns undefined, on a site that is not Audible. */
@@ -150,11 +157,24 @@ export function startContent(deps: ContentDeps): Content | undefined {
   })
   scanner.start()
 
+  const overview = createOverview({
+    doc,
+    css: deps.overviewCss,
+    viewOf: badge => books.get((badge as HTMLElement).dataset.asin ?? ''),
+  })
+
+  function stop() {
+    overview.stop()
+    scanner.stop()
+    client.close()
+  }
+
   return {
     books,
-    stop() {
-      scanner.stop()
-      client.close()
+    stop,
+    remove() {
+      stop()
+      removeAllBadges(doc)
     },
   }
 }
