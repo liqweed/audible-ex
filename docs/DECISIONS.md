@@ -219,3 +219,22 @@ the code it describes, and the listing claims only what has shipped (the
 manifest's description no longer mentions filters). Rejected: waiting for 1.0
 (months without real users or store feedback), and publishing publicly at once
 (unlisted first was the plan's safeguard against a broken first impression).
+
+## D18 — Verified CRX uploads, with the signing key in 1Password (2026-11-02)
+
+The Chrome Web Store item opts in to Verified CRX uploads: the store rejects
+any package not signed with the project's RSA key, so taking over the developer
+account is not enough to push an update to users, which is how malicious
+updates of other extensions have shipped. The 2048-bit private key lives only in
+1Password (Private vault); `bun crx` (`scripts/pack-crx.ts`) copies it into a
+private temporary directory for the run, checks it against the committed public
+key (`.config/cws-signing-key.pub.pem`), packs the build with Chrome's
+`--pack-extension` from Playwright's bundled Chromium, verifies the CRX's
+signature, and deletes the key. No new dependency: Chrome packs, `node:crypto`
+verifies, and the `op` CLI reads 1Password. The cost is that every upload is a
+signed CRX and that losing the key blocks updates for up to a week while Web
+Store support replaces it. The opt-in happens after 0.1.0's first review and
+before the listing goes public. Rejected: staying with Google-signed zips (no
+protection against an account takeover); a key file kept on disk or in CI
+(easier to leak than to lose); the `crx3` npm package (a dependency for what
+Chrome already does).
