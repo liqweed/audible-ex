@@ -72,7 +72,7 @@ library and wish list rows say. Captured signed out, except those two.
 | `audible/{uk,com}/search.html`        | `/search?keywords=andy+weir` (one author, many books)   | script      |
 | `audible/{uk,com}/category.html`      | Science Fiction & Fantasy category                      | script      |
 | `audible/{uk,com}/deals.html`         | `/ep/audiobook-deals`                                   | script      |
-| `audible/uk/library.html`             | `/library/titles`, first page (`.com`: not captured)    | by hand     |
+| `audible/{uk,com}/library.html`       | `/library/titles`, first page (`com`: not captured yet) | by hand     |
 | `audible/{uk,com}/wishlist.html`      | `/wl` (now `/library/wishlist`), first page             | by hand     |
 | `audible/{uk,com}/catalog.json`       | `api.audible.<tld>/1.0/catalog/products`, see below     | script      |
 
