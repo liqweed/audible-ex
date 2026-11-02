@@ -2,7 +2,7 @@
   "name": "audible-ex",
   "description": "Shows Goodreads ratings, genres and first-published years on Audible book cards. Not affiliated with Audible, Amazon or Goodreads.",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "packageManager": "bun@1.4.0",
   "scripts": {
