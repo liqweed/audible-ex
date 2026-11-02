@@ -1,5 +1,5 @@
 /**
- * The worker's layer graph (ARCHITECTURE.md §4): `PortServer` over `LookupQueue` over the cache, the
+ * The worker's layer graph (ARCHITECTURE.md §4): `PortServer` over `LookupQueue` and `ProgressHub` over the cache, the
  * two network services and `fetch`. Kept out of the entrypoint so the entrypoint stays a few lines
  * and the wiring has a home a test can import.
  */
@@ -14,6 +14,7 @@ import { BookCache } from './BookCache'
 import { Goodreads } from './Goodreads'
 import { LookupQueue } from './LookupQueue'
 import { PortServer } from './PortServer'
+import { ProgressHub } from './ProgressHub'
 
 /**
  * Everything the worker runs on: the port server, and the cache the popup's requests read. They
@@ -30,8 +31,9 @@ export const liveLayer = (
     Layer.provide(http)
   )
   const cache = BookCache.layer(indexedDB)
+  const lookups = ProgressHub.layer.pipe(Layer.provideMerge(LookupQueue.layer))
   const server = PortServer.layer.pipe(
-    Layer.provide(LookupQueue.layer),
+    Layer.provide(lookups),
     Layer.provide(Layer.mergeAll(network, cache))
   )
   return Layer.mergeAll(server, cache)

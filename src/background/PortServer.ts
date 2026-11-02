@@ -12,7 +12,10 @@
  * After a worker restart the content script opens a new port, says `Hello` and sends again every
  * ASIN that had not resolved: a fresh session with no memory of the old one, answered from the cache
  * where it can be. Within a session an ASIN already being looked up is not started twice, so a
- * repeated `Lookup` is harmless. Nothing here sends `Progress` yet (issue #31).
+ * repeated `Lookup` is harmless.
+ *
+ * Each session also reports to the `ProgressHub` when a lookup begins and how its rating ended, and
+ * the hub's publisher sends the tab its `Progress` counters.
  */
 
 import type * as Cause from 'effect/Cause'
@@ -25,13 +28,12 @@ import type { RegionCode } from '../core/regions'
 import {
   BackgroundMessage,
   type BookError,
-  type BookUpdate,
   ContentMessage,
 } from '../schema/messages'
 import { type LookupError, LookupQueue, type RatingResult } from './LookupQueue'
+import { ProgressHub } from './ProgressHub'
 import type { PortLike } from './port'
 
-type Update = typeof BookUpdate.Type
 type FoundRating = Extract<RatingResult, { _tag: 'Found' }>
 
 export interface PortServerService {
@@ -69,185 +71,219 @@ export class PortServer extends Context.Service<
   PortServer,
   PortServerService
 >()('audible-ex/PortServer') {
-  static layer: Layer.Layer<PortServer, never, LookupQueue> = Layer.effect(
-    PortServer,
-    Effect.gen(function* () {
-      const queue = yield* LookupQueue
-      const scope = yield* Effect.scope
+  static layer: Layer.Layer<PortServer, never, LookupQueue | ProgressHub> =
+    Layer.effect(
+      PortServer,
+      Effect.gen(function* () {
+        const queue = yield* LookupQueue
+        const hub = yield* ProgressHub
+        const scope = yield* Effect.scope
 
-      const session = (
-        port: PortLike,
-        inbox: Queue.Dequeue<unknown, Cause.Done>,
-        isClosed: () => boolean
-      ) =>
-        Effect.scoped(
-          Effect.gen(function* () {
-            /** Set by `Hello`; the `Lookup` messages do not carry it. */
-            let region: RegionCode | undefined
-            /** ASINs this port is waiting on, so a repeated `Lookup` starts nothing new. */
-            const inFlight = new Set<string>()
+        const session = (
+          port: PortLike,
+          inbox: Queue.Dequeue<unknown, Cause.Done>,
+          isClosed: () => boolean
+        ) =>
+          Effect.scoped(
+            Effect.gen(function* () {
+              /** Set by `Hello`; the `Lookup` messages do not carry it. */
+              let region: RegionCode | undefined
+              /** ASINs this port is waiting on, so a repeated `Lookup` starts nothing new. */
+              const inFlight = new Set<string>()
 
-            const send = (update: Update) =>
-              encodeBackground(update).pipe(
-                Effect.flatMap(message =>
-                  Effect.suspend(() => {
-                    try {
-                      port.postMessage(message)
-                      return Effect.void
-                    } catch (error) {
-                      // A port that has just gone away throws; its session is ending anyway.
-                      return Effect.logDebug(
-                        'Port closed before an update',
-                        error
-                      )
-                    }
-                  })
-                ),
-                Effect.catch(error =>
-                  Effect.logWarning('An update does not encode', error)
-                )
-              )
-
-            /**
-             * The book is found; sends it `ready` with its details. When the details must be read
-             * first, `ready` goes out with the rating alone before the wait. A details failure
-             * leaves the badge as it is: the rating is still good.
-             */
-            const withDetails = (asin: string, found: FoundRating) => {
-              const rating = ratingOf(found)
-              return queue
-                .details(
-                  found.bookId,
-                  send({ _tag: 'BookUpdate', asin, status: 'ready', rating })
-                )
-                .pipe(
-                  Effect.matchEffect({
-                    onSuccess: details =>
-                      send({
-                        _tag: 'BookUpdate',
-                        asin,
-                        status: 'ready',
-                        rating,
-                        details,
-                      }),
-                    onFailure: error =>
-                      Effect.logWarning(
-                        `Details of ${found.bookId} (${asin}) failed`,
-                        error
-                      ),
-                  })
-                )
-            }
-
-            /** The lookup of one ASIN, from the first update to the last. */
-            const lookupOne = (
-              lookupRegion: RegionCode,
-              asin: string,
-              pinned: boolean
-            ) =>
-              queue
-                .rating(
-                  { region: lookupRegion, asin, pinned },
-                  send({ _tag: 'BookUpdate', asin, status: 'loading' })
-                )
-                .pipe(
-                  Effect.flatMap(result =>
-                    result._tag === 'Miss'
-                      ? send({ _tag: 'BookUpdate', asin, status: 'notFound' })
-                      : withDetails(asin, result)
-                  ),
-                  Effect.catch(error =>
-                    send({
-                      _tag: 'BookUpdate',
-                      asin,
-                      status: 'failed',
-                      error: {
-                        reason: reasonOf(error),
-                        message: error.message,
-                      },
+              const send = (update: BackgroundMessage) =>
+                encodeBackground(update).pipe(
+                  Effect.flatMap(message =>
+                    Effect.suspend(() => {
+                      try {
+                        port.postMessage(message)
+                        return Effect.void
+                      } catch (error) {
+                        // A port that has just gone away throws; its session is ending anyway.
+                        return Effect.logDebug(
+                          'Port closed before an update',
+                          error
+                        )
+                      }
                     })
                   ),
-                  Effect.ensuring(Effect.sync(() => inFlight.delete(asin)))
+                  Effect.catch(error =>
+                    Effect.logWarning('An update does not encode', error)
+                  )
                 )
 
-            const start = (
-              items: ReadonlyArray<{ asin: string; pinned: boolean }>
-            ) =>
-              Effect.gen(function* () {
-                if (region === undefined) {
-                  return yield* Effect.logWarning(
-                    'Dropped a lookup that came before Hello',
-                    { port: port.name, items: items.length }
+              /**
+               * The book is found; sends it `ready` with its details. When the details must be read
+               * first, `ready` goes out with the rating alone before the wait. A details failure
+               * leaves the badge as it is: the rating is still good.
+               */
+              const withDetails = (asin: string, found: FoundRating) => {
+                const rating = ratingOf(found)
+                return queue
+                  .details(
+                    found.bookId,
+                    send({ _tag: 'BookUpdate', asin, status: 'ready', rating })
                   )
-                }
-                for (const { asin, pinned } of items) {
-                  if (inFlight.has(asin)) continue
-                  inFlight.add(asin)
-                  yield* Effect.forkScoped(lookupOne(region, asin, pinned))
-                }
-              })
-
-            const dispatch = (message: ContentMessage) => {
-              switch (message._tag) {
-                case 'Hello':
-                  return Effect.sync(() => {
-                    region = message.region
-                  })
-                case 'Lookup':
-                  return start(message.items)
-                case 'Retry':
-                  // Failures are never cached, so looking up again is all a retry is.
-                  return start(
-                    message.asins.map(asin => ({ asin, pinned: false }))
+                  .pipe(
+                    Effect.matchEffect({
+                      onSuccess: details =>
+                        send({
+                          _tag: 'BookUpdate',
+                          asin,
+                          status: 'ready',
+                          rating,
+                          details,
+                        }),
+                      onFailure: error =>
+                        Effect.logWarning(
+                          `Details of ${found.bookId} (${asin}) failed`,
+                          error
+                        ),
+                    })
                   )
               }
-            }
 
-            const handle = (raw: unknown) =>
-              decodeContent(raw).pipe(
-                Effect.matchEffect({
-                  onFailure: error =>
-                    Effect.logWarning(
-                      'Dropped a port message that does not decode',
-                      { port: port.name, issue: error.message }
-                    ),
-                  onSuccess: dispatch,
-                }),
-                // Whatever goes wrong with one message must not end the session.
-                Effect.catchCause(cause =>
-                  Effect.logError('A port message failed to be handled', cause)
-                )
+              const progress = yield* hub.track(counters =>
+                send({ _tag: 'Progress', ...counters })
               )
 
-            // The inbox ends with `Done` on disconnect; messages still queued then are dropped.
-            yield* Effect.gen(function* () {
-              while (true) {
-                const raw = yield* Queue.take(inbox)
-                if (isClosed()) return
-                yield* handle(raw)
+              /** The lookup of one ASIN, from the first update to the last. */
+              const lookupOne = (
+                lookupRegion: RegionCode,
+                asin: string,
+                pinned: boolean
+              ) => {
+                // The queue runs `onMiss` only when the cache did not have the rating.
+                let fromCache = true
+                return queue
+                  .rating(
+                    { region: lookupRegion, asin, pinned },
+                    Effect.suspend(() => {
+                      fromCache = false
+                      return send({
+                        _tag: 'BookUpdate',
+                        asin,
+                        status: 'loading',
+                      })
+                    })
+                  )
+                  .pipe(
+                    Effect.tap(result =>
+                      Effect.sync(() =>
+                        progress.end(asin, {
+                          result: result._tag === 'Miss' ? 'notFound' : 'found',
+                          cached: fromCache,
+                        })
+                      )
+                    ),
+                    Effect.flatMap(result =>
+                      result._tag === 'Miss'
+                        ? send({ _tag: 'BookUpdate', asin, status: 'notFound' })
+                        : withDetails(asin, result)
+                    ),
+                    Effect.catch(error =>
+                      Effect.sync(() =>
+                        progress.end(asin, { result: 'failed', cached: false })
+                      ).pipe(
+                        Effect.andThen(
+                          send({
+                            _tag: 'BookUpdate',
+                            asin,
+                            status: 'failed',
+                            error: {
+                              reason: reasonOf(error),
+                              message: error.message,
+                            },
+                          })
+                        )
+                      )
+                    ),
+                    Effect.ensuring(Effect.sync(() => inFlight.delete(asin)))
+                  )
               }
-            }).pipe(Effect.ignore)
-          })
-        )
 
-      return PortServer.of({
-        accept: port =>
-          Effect.gen(function* () {
-            const inbox = yield* Queue.unbounded<unknown, Cause.Done>()
-            let closed = false
-            port.onMessage.addListener(message => {
-              Queue.offerUnsafe(inbox, message)
+              const start = (
+                items: ReadonlyArray<{ asin: string; pinned: boolean }>
+              ) =>
+                Effect.gen(function* () {
+                  if (region === undefined) {
+                    return yield* Effect.logWarning(
+                      'Dropped a lookup that came before Hello',
+                      { port: port.name, items: items.length }
+                    )
+                  }
+                  for (const { asin, pinned } of items) {
+                    if (inFlight.has(asin)) continue
+                    inFlight.add(asin)
+                    progress.begin(asin)
+                    yield* Effect.forkScoped(lookupOne(region, asin, pinned))
+                  }
+                })
+
+              const dispatch = (message: ContentMessage) => {
+                switch (message._tag) {
+                  case 'Hello':
+                    return Effect.sync(() => {
+                      region = message.region
+                    })
+                  case 'Lookup':
+                    return start(message.items)
+                  case 'Retry':
+                    // Failures are never cached, so looking up again is all a retry is.
+                    return start(
+                      message.asins.map(asin => ({ asin, pinned: false }))
+                    )
+                }
+              }
+
+              const handle = (raw: unknown) =>
+                decodeContent(raw).pipe(
+                  Effect.matchEffect({
+                    onFailure: error =>
+                      Effect.logWarning(
+                        'Dropped a port message that does not decode',
+                        { port: port.name, issue: error.message }
+                      ),
+                    onSuccess: dispatch,
+                  }),
+                  // Whatever goes wrong with one message must not end the session.
+                  Effect.catchCause(cause =>
+                    Effect.logError(
+                      'A port message failed to be handled',
+                      cause
+                    )
+                  )
+                )
+
+              // The inbox ends with `Done` on disconnect; messages still queued then are dropped.
+              yield* Effect.gen(function* () {
+                while (true) {
+                  const raw = yield* Queue.take(inbox)
+                  if (isClosed()) return
+                  yield* handle(raw)
+                }
+              }).pipe(Effect.ignore)
             })
-            port.onDisconnect.addListener(() => {
-              closed = true
-              Queue.endUnsafe(inbox)
-            })
-            yield* Effect.forkIn(
-              session(port, inbox, () => closed),
-              scope
-            )
-          }),
+          )
+
+        return PortServer.of({
+          accept: port =>
+            Effect.gen(function* () {
+              const inbox = yield* Queue.unbounded<unknown, Cause.Done>()
+              let closed = false
+              port.onMessage.addListener(message => {
+                Queue.offerUnsafe(inbox, message)
+              })
+              port.onDisconnect.addListener(() => {
+                closed = true
+                Queue.endUnsafe(inbox)
+              })
+              yield* Effect.forkIn(
+                session(port, inbox, () => closed),
+                scope
+              )
+            }),
+        })
       })
-    })
-  )
+    )
 }

@@ -110,6 +110,11 @@ export interface LookupQueueService {
   ) => Effect.Effect<typeof Details.Type, LookupError>
   /** When the current rate-limit pause ends (epoch milliseconds), or none when traffic is not paused. */
   readonly pausedUntil: Effect.Effect<Option.Option<number>>
+  /**
+   * The ASINs whose Goodreads search is running right now (a request is out), for every tab; the
+   * progress counters tell these from the lookups still waiting.
+   */
+  readonly running: Effect.Effect<ReadonlySet<string>>
 }
 
 /** Ratings run before details (the userscript's `grQueue` before `grLowQueue`). */
@@ -350,6 +355,15 @@ const make = Effect.gen(function* () {
     )
 
   // ---------- the lookup of one ASIN ----------
+  const runningRatings = new Set<string>()
+
+  /** Marks `asin` as running for as long as one attempt of its search runs (not while it waits). */
+  const whileRunning = <A, E>(asin: string, search: Effect.Effect<A, E>) =>
+    Effect.suspend(() => {
+      runningRatings.add(asin)
+      return search
+    }).pipe(Effect.ensuring(Effect.sync(() => runningRatings.delete(asin))))
+
   const metaFor = (region: RegionCode, asin: string) =>
     Effect.gen(function* () {
       const cached = yield* soft('read', cache.getMeta(asin), Option.none())
@@ -368,7 +382,10 @@ const make = Effect.gen(function* () {
       if (Option.isSome(stored)) return stored.value as RatingResult
 
       const meta = yield* metaFor(region, asin)
-      const match = yield* submit('rating', goodreads.search(meta))
+      const match = yield* submit(
+        'rating',
+        whileRunning(asin, goodreads.search(meta))
+      )
       const result: RatingResult = Option.isNone(match)
         ? { _tag: 'Miss' }
         : {
@@ -423,6 +440,7 @@ const make = Effect.gen(function* () {
     pausedUntil: Effect.map(Clock.currentTimeMillis, now =>
       now < pausedUntil ? Option.some(pausedUntil) : Option.none()
     ),
+    running: Effect.sync(() => new Set(runningRatings)),
   })
 })
 
