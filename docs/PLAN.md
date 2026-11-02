@@ -184,11 +184,32 @@ Release 0.4 (with 3b).
 
 ## Phase 5 — Publish (M)
 
-Repository and releases
+Publishing moved forward (DECISIONS.md D17): release 0.1, phase 1's parity
+build, goes to the Chrome Web Store unlisted and switches to public after a week
+of use without reported breakage. Each later release updates the same listing.
 
-- [ ] Make the repository public. Before that, decide whether history is fine
-      as it is: a quick scan on 2026-10-29 found no secrets, but the removed
-      `.claude/` agent prompts, which name another project, are still in history.
+Release 0.1 (unlisted)
+
+- [x] Name and icon that use neither Audible/Amazon/Goodreads logos nor their
+      trade dress: **Book Ratings for Audible**, checked against existing
+      listings.
+- [x] Privacy policy: [PRIVACY.md](../PRIVACY.md), linked from the popup.
+- [x] Store listing text, single purpose statement, permission justifications
+      and privacy disclosures: [STORE-LISTING.md](STORE-LISTING.md). The popup
+      carries the "not affiliated" line until the options page does.
+- [x] Playwright smoke run on live `.co.uk` and `.com` (`bun e2e`), which also
+      writes the screenshots and promo tile.
+- [ ] Make the repository public, with its history rewritten first (the removed
+      `.claude/` prompts and the branch names of earlier pull requests name
+      another project), and a ruleset on `main` requiring the CI job.
+- [ ] Cut release 0.1.0 by hand (`changes/README.md`), `bun zip`, register the
+      developer account and upload as unlisted (STORE-LISTING.md, "Submitting a
+      release").
+- [ ] Switch the listing to public after a week of use without reported
+      breakage.
+
+Afterwards, before 1.0
+
 - [ ] Finish the changelog setup (`/jig:changelog setup`, steps 2–4): the
       release App, the `changelog-release` environment, the rulesets and
       `.github/workflows/changelog.yml`. Change notes are already on
@@ -199,22 +220,7 @@ Repository and releases
 - [ ] Add an AI reviewer (CodeRabbit is free for public repositories) and set
       `review.*` in `.config/jig.yaml`, so `/jig:drive-pr` can run review
       rounds unattended.
-
-Store
-
-- [ ] Name and icon that use neither Audible/Amazon/Goodreads logos nor their
-      trade dress; a descriptive "… for Audible" style name. Check the name
-      against existing listings.
-- [ ] Privacy policy page (GitHub Pages is enough): what is read, what is sent
-      to Goodreads, nothing else collected.
-- [ ] Store listing: single purpose statement, permission justifications per
-      host, privacy disclosures (website content), screenshots, "not
-      affiliated" line.
-- [ ] Playwright smoke run on live `.co.uk` and `.com` before upload.
-- [ ] Upload as unlisted first; switch to public after a week of use. Release
-      1.0.
-- [ ] Firefox: `bun zip:firefox`, source archive for AMO review. Optional for
-      the first release.
+- [ ] Firefox: `bun zip:firefox`, source archive for AMO review. Optional.
 
 ## Later
 

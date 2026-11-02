@@ -15,8 +15,8 @@ export default defineConfig({
   }),
   // Version and description are package.json's (WXT copies them); the release step owns the version.
   manifest: {
-    // Placeholder until the extension is named (issue #50).
-    name: 'audible-ex',
+    // The store name (issue #50): descriptive, and no Audible, Amazon or Goodreads trade dress.
+    name: 'Book Ratings for Audible',
     permissions: ['storage', 'unlimitedStorage'],
     // ARCHITECTURE.md §11; the content script's matches come from the same region table.
     host_permissions: ['https://www.goodreads.com/*', ...apiHostPermissions()],

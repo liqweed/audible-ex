@@ -200,3 +200,22 @@ as the browser would. Rejected: calling `fetch` directly (no typed errors or
 test seam for free, and the credentials rule would be easy to lose in one call
 site), and turning `unstableApiUsage` off for the whole repository (it would
 hide the next unstable import in code that holds data).
+
+## D17 — Publish 0.1 to the Chrome Web Store, unlisted, before phases 2–4 (2026-11-02)
+
+The store listing moves from the end of the plan (release 1.0, after the panel,
+filters and options page) to release 0.1: phase 1 already does what the
+userscript does, and getting through store review, the privacy disclosures and
+real use early is worth more than a feature-complete first listing. 0.1 is
+published unlisted and goes public after a week without reported breakage; later
+releases update the same listing. The extension is named **Book Ratings for
+Audible**: descriptive, findable, and free of Goodreads' trademark (the closest
+existing listing, "Goodreads ratings for Amazon", uses it). Until the options
+page exists, the popup carries the "not affiliated" line and links to the
+privacy policy, which is `PRIVACY.md` in the repository rather than a GitHub
+Pages site: the store only needs a public URL, and one file is simpler to keep
+in step. The listing text lives in `docs/STORE-LISTING.md` so it is reviewed with
+the code it describes, and the listing claims only what has shipped (the
+manifest's description no longer mentions filters). Rejected: waiting for 1.0
+(months without real users or store feedback), and publishing publicly at once
+(unlisted first was the plan's safeguard against a broken first impression).

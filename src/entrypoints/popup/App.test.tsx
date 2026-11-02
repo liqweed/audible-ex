@@ -171,3 +171,20 @@ describe('the cache', () => {
     ).toBeDefined()
   })
 })
+
+describe('the footer', () => {
+  test('says the extension is not affiliated and links to the privacy policy and source', async () => {
+    render(<App backend={fakeBackend(0, 0).backend} />)
+    expect(
+      await screen.findByText(
+        'Not affiliated with Audible, Amazon or Goodreads.'
+      )
+    ).toBeDefined()
+    expect(
+      screen.getByRole('link', { name: 'Privacy' }).getAttribute('href')
+    ).toBe('https://github.com/liqweed/audible-ex/blob/main/PRIVACY.md')
+    expect(
+      screen.getByRole('link', { name: 'Source' }).getAttribute('href')
+    ).toBe('https://github.com/liqweed/audible-ex')
+  })
+})

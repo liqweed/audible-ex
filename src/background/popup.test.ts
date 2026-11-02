@@ -3,7 +3,7 @@ import * as Effect from 'effect/Effect'
 import type { PopupReply } from '../schema/popup'
 import { BookCache } from './BookCache'
 import { BookCacheTest } from './BookCacheTest'
-import { answer, decodeRequest, handlePopupMessage } from './popup'
+import { answer, decodeRequest, handlePopupMessage, type Sender } from './popup'
 
 const sample = (n: number) => ({
   rating: {
@@ -88,9 +88,12 @@ describe('handlePopupMessage', () => {
     effect: Parameters<Parameters<typeof handlePopupMessage>[0]>[0]
   ) => Effect.runPromise(withCache(effect))
 
-  const ask = async (message: unknown, sender: { tab?: unknown } = {}) => {
+  const BASE = 'chrome-extension://abcdefgh/'
+  const POPUP = { url: `${BASE}popup.html` }
+
+  const ask = async (message: unknown, sender: Sender = POPUP) => {
     const replies: PopupReply[] = []
-    const handled = handlePopupMessage(run, message, sender, r =>
+    const handled = handlePopupMessage(run, message, sender, BASE, r =>
       replies.push(r)
     )
     await new Promise(resolve => setTimeout(resolve, 20))
@@ -111,13 +114,32 @@ describe('handlePopupMessage', () => {
     expect(replies).toEqual([])
   })
 
+  test('answers the popup opened in a tab, as the options page will be', async () => {
+    const inTab = { ...POPUP, tab: { id: 1 } }
+    const { handled } = await ask({ _tag: 'CacheStats' }, inTab)
+    expect(handled).toBe(true)
+  })
+
   test('does not clear the cache for a message that came from a web page', async () => {
     const { handled, replies } = await ask(
       { _tag: 'ClearCache', scope: 'all' },
-      { tab: { id: 1 } }
+      { url: 'https://www.audible.com/search' }
     )
     expect(handled).toBe(false)
     expect(replies).toEqual([])
+  })
+
+  test('nor for one from another extension or with no URL', async () => {
+    for (const sender of [
+      { url: 'chrome-extension://someoneelse/popup.html' },
+      {},
+    ]) {
+      const { handled } = await ask(
+        { _tag: 'ClearCache', scope: 'all' },
+        sender
+      )
+      expect(handled).toBe(false)
+    }
   })
 
   test('replies Failed when the runtime cannot run the request', async () => {
@@ -126,7 +148,8 @@ describe('handlePopupMessage', () => {
     handlePopupMessage(
       () => Promise.reject(new Error('IndexedDB is blocked')),
       { _tag: 'CacheStats' },
-      {},
+      POPUP,
+      BASE,
       r => replies.push(r)
     )
     await new Promise(resolve => setTimeout(resolve, 5))

@@ -148,14 +148,14 @@ There is no analytics, so these are checked by hand.
 
 ## Releases
 
-| Release | Contents                                         |
-| ------- | ------------------------------------------------ |
-| 0.1     | R1 and the popup (parity with the userscript)    |
-| 0.2     | R2 floating panel and progress                   |
-| 0.3     | R3 rating, count and label filters               |
-| 0.4     | R3 price and year; R4 options page               |
-| 1.0     | Public Chrome Web Store listing                  |
-| Later   | Hardcover, series, duration and narrator filters |
+| Release | Contents                                                                                       |
+| ------- | ---------------------------------------------------------------------------------------------- |
+| 0.1     | R1 and the popup (parity with the userscript); Chrome Web Store, unlisted, public after a week |
+| 0.2     | R2 floating panel and progress                                                                 |
+| 0.3     | R3 rating, count and label filters                                                             |
+| 0.4     | R3 price and year; R4 options page                                                             |
+| 1.0     | Everything above, stable                                                                       |
+| Later   | Hardcover, series, duration and narrator filters                                               |
 
 ## Risks
 

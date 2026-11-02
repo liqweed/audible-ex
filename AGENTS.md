@@ -85,6 +85,10 @@ doesn't check Markdown (DECISIONS.md D4): keep docs tidy by review.
   bundled Chromium (or another Chromium build) to load the unpacked extension.
 - `@effect/tsgo` replaces `@effect/language-service` under TypeScript 7; the
   `typecheck` script runs `effect-tsgo tsc --noEmit` (DECISIONS.md D14).
+- Goodreads answers 403 to a `HeadlessChrome` user agent (checked 2026-11-02),
+  so `bun e2e` runs Chromium in a window; real browsers get 200. Outside the
+  US, `audible.com` search and book pages show an error page even with
+  `ipRedirectOverride=true`; its home page works.
 - Goodreads has no API for new developers (closed 2020); the extension uses
   `book/auto_complete?format=json` and the book page's `__NEXT_DATA__` JSON.
 

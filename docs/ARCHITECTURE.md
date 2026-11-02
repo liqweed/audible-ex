@@ -181,9 +181,11 @@ Popup / options → background (one-off `sendMessage`, schemas in `src/schema/po
 be read or cleared is answered `Failed { message }`. These replace the userscript's
 `GM_registerMenuCommand` entries. `src/background/popup.ts` answers them from the same `BookCache`
 the port server uses (`liveLayer` builds it once and offers it next to `PortServer`). A message
-that does not decode is left unanswered, and one that comes from a content script (it has a
-`sender.tab`, and runs among a web page's scripts) is ignored, so a page cannot make the extension
-empty its cache.
+that does not decode is left unanswered, and one whose `sender.url` is not one of the extension's
+own pages (`runtime.getURL('/')`) is ignored: a content script's sender URL is the web page's, so a
+page cannot make the extension empty its cache. The URL decides rather than the absence of
+`sender.tab`, because extension pages opened in a tab (the options page, the popup in a test) have
+one too.
 
 ## 6. Content script
 
@@ -390,7 +392,9 @@ Publishing constraints that shape the code:
 - The overview is capped at 600 characters, kept only as long as the cache entry, and never
   exported.
 - Name and icons don't use Audible, Amazon or Goodreads logos or trade dress. The listing and the
-  options page carry "Not affiliated with Audible, Amazon or Goodreads."
+  popup (the options page too, once it exists) carry "Not affiliated with Audible, Amazon or
+  Goodreads." The popup links to the privacy policy, `PRIVACY.md`; the listing's text and answers
+  are in `docs/STORE-LISTING.md`.
 - Conservative request rate and caching, as in §4.
 
 ## 12. Project layout

@@ -25,7 +25,8 @@ the repository.
 
 `minor` for a new capability or anything breaking, `patch` for a fix or an
 internal change. Phases end in minor releases (0.1 parity, 0.2 panel, 0.3
-filters, 0.4 options); 1.0.0 is the public store release.
+filters, 0.4 options); 0.1.0 is the first store release (DECISIONS.md
+D17), and 1.0.0 follows 0.4.
 
 ## Cutting a release, until automation exists
 

@@ -30,12 +30,19 @@ export const answer = (
     )
   )
 
+/** What `handlePopupMessage` reads of `runtime.MessageSender`. */
+export interface Sender {
+  readonly url?: string
+}
+
 /**
- * True for a message from the extension's own pages. A content script (which has a tab) runs inside
- * a web page, so what it relays is not trusted to clear the cache.
+ * True for a message from one of the extension's own pages (`base` is `runtime.getURL('/')`). A
+ * content script runs inside a web page and its sender's URL is that page's, so what it relays is not
+ * trusted to clear the cache. The URL decides, not the absence of a tab: the popup opened in a tab,
+ * and the options page, are extension pages with a tab.
  */
-export const fromExtensionPage = (sender: { tab?: unknown }): boolean =>
-  sender.tab === undefined
+export const fromExtensionPage = (sender: Sender, base: string): boolean =>
+  sender.url?.startsWith(base) === true
 
 /**
  * The `runtime.onMessage` listener's body. Returns true when it will answer through `respond`
@@ -47,10 +54,11 @@ export function handlePopupMessage(
     effect: Effect.Effect<PopupReply, never, BookCache>
   ) => Promise<PopupReply>,
   message: unknown,
-  sender: { tab?: unknown },
+  sender: Sender,
+  base: string,
   respond: (reply: PopupReply) => void
 ): boolean {
-  if (!fromExtensionPage(sender)) return false
+  if (!fromExtensionPage(sender, base)) return false
   const request = decodeRequest(message)
   if (Option.isNone(request)) return false
   run(answer(request.value)).then(respond, error => {

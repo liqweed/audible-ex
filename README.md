@@ -1,21 +1,23 @@
-# audible-ex
+# Book Ratings for Audible
 
-A Chrome extension that shows Goodreads ratings on Audible. Every book card
-gets its Goodreads rating, number of ratings, first-published year and top
-genres, with the Goodreads overview on hover. A floating panel shows lookup
-progress and holds your filters: minimum rating, minimum number of ratings,
-genres to hide, and later price and year. Filters are saved and follow you
-across devices and Audible marketplaces.
+A Chrome extension (repository name `audible-ex`) that shows Goodreads ratings
+on Audible. Every book card gets its Goodreads rating, number of ratings,
+first-published year and top genres, with the Goodreads overview on hover.
+Coming next: a floating panel that shows lookup progress and holds your filters
+(minimum rating, minimum number of ratings, genres to hide, and later price and
+year), saved and following you across devices and Audible marketplaces.
 
 Works on all ten Audible marketplaces: `.com`, `.co.uk`, `.ca`, `.com.au`,
 `.in`, `.de`, `.fr`, `.it`, `.es` and `.co.jp`.
 
 ## Status
 
-Not released yet. The design and plan are done, and the toolchain is in place;
-porting the userscript (phase 1) comes next. Until the extension reaches parity, the userscript in
-[`reference/`](reference/audible-goodreads-ratings.user.js) does the rating part
-in any userscript manager (Tampermonkey, Violentmonkey).
+Release 0.1 does what the userscript in
+[`reference/`](reference/audible-goodreads-ratings.user.js) does: badges with
+rating, year and genres, the hover overview, and an on/off switch and cache
+controls in the toolbar popup. It is headed for the Chrome Web Store, unlisted
+at first ([docs/STORE-LISTING.md](docs/STORE-LISTING.md)). The floating panel
+and filters come next ([docs/PLAN.md](docs/PLAN.md)).
 
 | Document                                     | What it holds                               |
 | -------------------------------------------- | ------------------------------------------- |
@@ -45,7 +47,9 @@ See [AGENTS.md](AGENTS.md) for the current state.
 No server, no account, no analytics. The extension reads Audible pages
 (including your Library and Wish List) to find the books on them, and sends
 each book's title and author to Goodreads to look it up. Nothing else leaves
-your browser.
+your browser. The full policy is [PRIVACY.md](PRIVACY.md).
+
+Not affiliated with Audible, Amazon or Goodreads.
 
 ## Licence
 

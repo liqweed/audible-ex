@@ -8,6 +8,9 @@ import { books, formatBytes } from './format'
 const button =
   'rounded-md border border-border bg-secondary px-3 py-1.5 text-left text-sm hover:bg-accent disabled:opacity-50'
 
+const SOURCE_URL = 'https://github.com/liqweed/audible-ex'
+const PRIVACY_URL = `${SOURCE_URL}/blob/main/PRIVACY.md`
+
 const messageOf = (error: unknown) =>
   error instanceof Error ? error.message : String(error)
 
@@ -147,7 +150,7 @@ export function App({ backend = extensionBackend }: { backend?: Backend }) {
   return (
     <main className='w-80 space-y-4 p-4'>
       <header>
-        <h1 className='text-lg font-semibold'>audible-ex</h1>
+        <h1 className='text-lg font-semibold'>Book Ratings for Audible</h1>
         <p className='text-sm text-muted-foreground'>
           Goodreads ratings on Audible.
         </p>
@@ -172,6 +175,27 @@ export function App({ backend = extensionBackend }: { backend?: Backend }) {
         </p>
       )}
       <Cache backend={backend} />
+      <footer className='space-y-1 border-t border-border pt-3 text-xs text-muted-foreground'>
+        <p>Not affiliated with Audible, Amazon or Goodreads.</p>
+        <p className='flex gap-3'>
+          <a
+            href={PRIVACY_URL}
+            target='_blank'
+            rel='noreferrer'
+            className='underline'
+          >
+            Privacy
+          </a>
+          <a
+            href={SOURCE_URL}
+            target='_blank'
+            rel='noreferrer'
+            className='underline'
+          >
+            Source
+          </a>
+        </p>
+      </footer>
     </main>
   )
 }

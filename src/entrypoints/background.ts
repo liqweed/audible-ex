@@ -30,6 +30,7 @@ export default defineBackground(() => {
       effect => runtime.runPromise(effect),
       message,
       sender,
+      browser.runtime.getURL('/'),
       respond
     )
   )
