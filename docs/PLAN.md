@@ -64,7 +64,7 @@ CI and Jig (see [CI](#ci) below)
 - [ ] Renovate for dependency and action updates, grouped weekly, pinned
       versions only (D12).
 
-Spikes, each a short note in the pull request (issue #21; the notes are on the issue and the
+Spikes, each a short note in the pull request (issue #18; the notes are on the issue and the
 settled choices are in DECISIONS.md D13 and D14)
 
 - [x] Effect `ManagedRuntime` in the MV3 service worker: survives a worker
@@ -247,7 +247,7 @@ days) runs on `pull_request` and `push` to `main`:
   pull request runs but never a run on `main`; `timeout-minutes: 15` on the
   job; the artifact is kept for 7 days.
 - Actions pinned by commit SHA with the version in a comment; Renovate updates
-  them (the setup is #20). `/jig:github-actions` reviews every workflow change.
+  them (the setup is #17). `/jig:github-actions` reviews every workflow change.
 - No path filters: the job is required, and a filtered required check never
   reports.
 - Required check: GitHub doesn't offer rulesets for a private repository on the

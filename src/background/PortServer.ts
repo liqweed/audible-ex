@@ -12,7 +12,7 @@
  * After a worker restart the content script opens a new port, says `Hello` and sends again every
  * ASIN that had not resolved: a fresh session with no memory of the old one, answered from the cache
  * where it can be. Within a session an ASIN already being looked up is not started twice, so a
- * repeated `Lookup` is harmless. Nothing here sends `Progress` yet (issue #34).
+ * repeated `Lookup` is harmless. Nothing here sends `Progress` yet (issue #31).
  */
 
 import type * as Cause from 'effect/Cause'
