@@ -114,8 +114,8 @@ function looksLikeTitle(el: Element, title: string): boolean {
 
 /**
  * The element that holds the title inside `scope`. `inPopover` decides whether popover content is
- * allowed. First a text link to the book (in a heading when there is one), then any heading, span or
- * paragraph showing `title` (the home page's daily deal).
+ * allowed. First a text link to the book that reads like `title` (else one in a heading), then any
+ * heading, span or paragraph showing `title` (the home page's daily deal).
  */
 export function findTitleEl(
   scope: Element,
@@ -124,7 +124,11 @@ export function findTitleEl(
   inPopover: boolean
 ): Element | null {
   const links = textLinks(scope, asin, inPopover)
-  const link = links.find(a => a.closest(HEADINGS)) ?? links[0]
+  // As the userscript: a link that reads like the title, else one in a heading. Any other text
+  // link to the ASIN is not the title (the Download menu's "Full" links to `?asin=…`).
+  const link =
+    links.find(a => looksLikeTitle(a, title)) ??
+    links.find(a => a.closest(HEADINGS))
   if (link) return link
   if (!title) return null
   return (

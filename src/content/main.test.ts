@@ -1,8 +1,8 @@
 /**
  * The content script's behaviour on small hand-written pages: what the saved Audible pages cannot
  * show on their own (late cards, shared ASINs, retry, pinned rows, reconnect, navigation links).
- * Real library and wish list pages are not captured yet (test/fixtures/README.md); the rows below
- * are hand-written stand-ins for them, and real fixtures replace them once they exist.
+ * The saved library and wish list pages are tested in library-fixtures.test.ts; the rows below are
+ * small hand-written ones for cases those pages do not hold.
  */
 import { describe, expect, test } from 'bun:test'
 import {

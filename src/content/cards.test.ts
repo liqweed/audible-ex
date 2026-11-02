@@ -101,4 +101,23 @@ describe('placeAfterTitle', () => {
     ).toBe(false)
     expect(wrap.parentElement).toBeNull()
   })
+
+  test("does not take the library's Download menu link for the title", () => {
+    loadBody(`<div id="c"><a href="/pd/T/${A}">Dune</a>
+      <div class="bc-popover"><a href="/library/download?asin=${A}&codec=AAX">Full</a></div></div>`)
+    const card = document.getElementById('c') as Element
+    const popover = card.querySelector('.bc-popover') as Element
+    const wrap = document.createElement('span')
+    expect(placeAfterTitle(popover, wrap, A, 'Dune', true)).toBe(false)
+    expect(wrap.parentElement).toBeNull()
+  })
+
+  test('puts the popover badge after a title link in the popover', () => {
+    loadBody(`<div id="c"><a href="/pd/T/${A}">Dune</a>
+      <div class="bc-popover"><h2><a href="/pd/T/${A}">Dune</a></h2></div></div>`)
+    const popover = document.querySelector('.bc-popover') as Element
+    const wrap = document.createElement('span')
+    expect(placeAfterTitle(popover, wrap, A, 'Dune', true)).toBe(true)
+    expect(wrap.previousElementSibling?.tagName).toBe('H2')
+  })
 })

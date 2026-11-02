@@ -113,8 +113,8 @@ The extension does everything userscript v2.4.0 does, on all 10 marketplaces.
       backoff and dedupe.
 - [x] Content script: scanner, card detection, IntersectionObserver, badge
       placement and rendering, labels and year, retry on failure. DOM tests per
-      page type from fixtures. (Library and wish list rows are tested on
-      hand-written HTML until their fixtures are captured.)
+      page type from fixtures (library and wish list: `.co.uk` and the `.com`
+      wish list; the `.com` library awaits a fixture, see Phase 0).
 - [x] Hover overview rendered in a shadow root (prepares the panel's mount
       point), capped at 600 characters.
 - [x] Popup: enable/disable, cache stats, clear unpinned / clear all (replaces
