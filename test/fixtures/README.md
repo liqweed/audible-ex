@@ -63,8 +63,8 @@ session or reviewer data.
 
 ## Audible pages
 
-Each exists for `uk` (audible.co.uk) and `com` (audible.com). Captured signed
-out.
+Each exists for `uk` (audible.co.uk) and `com` (audible.com), except as the
+library and wish list rows say. Captured signed out, except those two.
 
 | File                                  | Page                                                    | Captured by |
 | ------------------------------------- | ------------------------------------------------------- | ----------- |
@@ -72,14 +72,21 @@ out.
 | `audible/{uk,com}/search.html`        | `/search?keywords=andy+weir` (one author, many books)   | script      |
 | `audible/{uk,com}/category.html`      | Science Fiction & Fantasy category                      | script      |
 | `audible/{uk,com}/deals.html`         | `/ep/audiobook-deals`                                   | script      |
-| `audible/{uk,com}/library.html`       | `/library/titles`, first page                           | by hand     |
-| `audible/{uk,com}/wishlist.html`      | `/wl`, first page                                       | by hand     |
+| `audible/uk/library.html`             | `/library/titles`, first page (`.com`: not captured)    | by hand     |
+| `audible/{uk,com}/wishlist.html`      | `/wl` (now `/library/wishlist`), first page             | by hand     |
 | `audible/{uk,com}/catalog.json`       | `api.audible.<tld>/1.0/catalog/products`, see below     | script      |
 
 Library and wish list need a signed-in browser, so they are saved by hand and
-cleaned by the script's `import` command. They do not exist until someone
-captures them; until then phase 1's library and wish-list card tests have
-nothing to run on.
+cleaned by the script's `import` command. Captured 2026-11-02 from a signed-in
+browser: `uk/library.html` (20 rows), `uk/wishlist.html` (19 books; `/wl`
+redirects to `/library/wishlist`) and `com/wishlist.html` (one book, from an
+account with an empty library). `com/library.html` does not exist: the `.com`
+account has no titles, so there is no card to save. Capture it from an account
+that has some.
+
+The account menu shows the membership plan and the credit count, which `import`
+does not remove; they were replaced by hand (`REDACTED` and `0`). Do the same
+for the next capture.
 
 ### Catalogue API responses
 

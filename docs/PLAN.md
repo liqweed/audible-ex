@@ -89,7 +89,8 @@ Fixtures and docs
 - [ ] Library and wish list fixtures on `.co.uk` and `.com`: saved by hand from
       a signed-in browser and cleaned with `capture-fixtures.ts import`
       (steps in `test/fixtures/README.md`). Needed before phase 1's card tests
-      for those two pages.
+      for those two pages. Done except `.com` library: that account has no
+      titles, so it waits for one that has.
 - [ ] `AGENTS.md`: drop the "phase 0 has not started" status, make the gate and
       command sections current.
 
