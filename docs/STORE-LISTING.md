@@ -8,6 +8,15 @@ this file in the same pull request (AGENTS.md, "Change together").
 Release 0.1 is published **unlisted** (DECISIONS.md D17); it switches to public
 after a week of use without reported breakage.
 
+| Item       | Value                                                                     |
+| ---------- | ------------------------------------------------------------------------- |
+| Item ID    | `kmmnfidbflcgfcbifjfakgnjppoflffo`                                        |
+| Store page | https://chromewebstore.google.com/detail/kmmnfidbflcgfcbifjfakgnjppoflffo |
+| Dashboard  | https://chrome.google.com/webstore/devconsole (the item, by its ID)       |
+| Submitted  | 0.1.0, 2026-11-02, unlisted; pending review                               |
+
+Later releases upload a new package to this item; they never create a new one.
+
 ## Store listing tab
 
 **Name** (from the manifest): Book Ratings for Audible
