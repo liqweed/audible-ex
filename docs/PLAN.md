@@ -199,12 +199,14 @@ Release 0.1 (unlisted)
       carries the "not affiliated" line until the options page does.
 - [x] Playwright smoke run on live `.co.uk` and `.com` (`bun e2e`), which also
       writes the screenshots and promo tile.
-- [ ] Make the repository public, with its history rewritten first (the removed
+- [x] Make the repository public, with its history rewritten first (the removed
       `.claude/` prompts and the branch names of earlier pull requests name
       another project), and a ruleset on `main` requiring the CI job.
-- [ ] Cut release 0.1.0 by hand (`changes/README.md`), `bun zip`, register the
+- [x] Cut release 0.1.0 by hand (`changes/README.md`), `bun zip`, register the
       developer account and upload as unlisted (STORE-LISTING.md, "Submitting a
-      release").
+      release"). Submitted 2026-11-02 as item `kmmnfidbflcgfcbifjfakgnjppoflffo`.
+- [ ] After approval, install from the store link and check badges on two
+      marketplaces.
 - [ ] Switch the listing to public after a week of use without reported
       breakage.
 
