@@ -107,7 +107,7 @@ cuts releases by hand. Rejected: waiting until phase 5 to start (the notes for
 
 ## D11 — Toolchain details settled while moving to Bun (2026-10-29)
 
-Moving the scaffold to the D2 stack (issue #18) needed four choices D2 didn't
+Moving the scaffold to the D2 stack (issue #15) needed four choices D2 didn't
 name. `@types/bun` is added: TypeScript 7 includes no type packages by default,
 and `tsc` can't type `bun:test` without it. Tailwind moves from
 `@tailwindcss/postcss` to `@tailwindcss/vite`, configured in `wxt.config.ts` as
@@ -137,7 +137,7 @@ has no `mise.toml` support and so would leave the toolchain pins unmanaged.
 ## D13 — IndexedDB through `idb` behind `BookCache`, not `@effect/platform-browser` (2026-10-29)
 
 The cache (ARCHITECTURE.md §8) uses `idb` 8, a thin promise wrapper over
-IndexedDB, behind the `BookCache` service. The phase 0 spike (issue #21)
+IndexedDB, behind the `BookCache` service. The phase 0 spike (issue #18)
 prototyped both options on the hard case, an index on a timestamp and a
 range delete for the daily purge, and both worked. `@effect/platform-browser`'s
 `IndexedDb` modules give Schema-typed tables and typed errors, but every one of

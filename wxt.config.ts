@@ -15,7 +15,7 @@ export default defineConfig({
   }),
   // Version and description are package.json's (WXT copies them); the release step owns the version.
   manifest: {
-    // The store name (issue #50): descriptive, and no Audible, Amazon or Goodreads trade dress.
+    // The store name (issue #47): descriptive, and no Audible, Amazon or Goodreads trade dress.
     name: 'Book Ratings for Audible',
     permissions: ['storage', 'unlimitedStorage'],
     // ARCHITECTURE.md §11; the content script's matches come from the same region table.

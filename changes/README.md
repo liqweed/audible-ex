@@ -30,7 +30,7 @@ D17), and 1.0.0 follows 0.4.
 
 ## Cutting a release, until automation exists
 
-The release App and workflow need the repository to be public (issue #47).
+The release App and workflow need the repository to be public (issue #44).
 Until then a person releases by hand on an up-to-date `main`:
 
 1. `bun <jig>/skills/changelog/scripts/release.ts --dry-run`, and read it.
