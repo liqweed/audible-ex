@@ -1,0 +1,1653 @@
+<!DOCTYPE html>
+<html lang="en-US" dir="ltr" class=" a-js a-audio a-video a-canvas a-svg a-drag-drop a-geolocation a-history a-webworker a-autofocus a-input-placeholder a-textarea-placeholder a-local-storage a-gradients a-hires a-transform3d a-touch-scrolling a-text-shadow a-text-stroke a-box-shadow a-border-radius a-border-image a-opacity a-transform a-transition null" data-aui-build-date="3.26.9-2026-10-28"><head>
+<title>My Library | Audible.com</title>
+</head>
+<body class="navigation-initialized">
+<adbl-style-scope>
+<slot></slot>
+<adbl-skip-link></adbl-skip-link>
+</adbl-style-scope>
+<adbl-page loaded="" data-faded-in="true">
+<div id="adbl-loader" aria-live="polite" aria-label="Loading" style="visibility: hidden;">
+<img src="https://m.media-amazon.com/images/G/01/SearchExcellence/QueryTriage/Signpost/audible.png" class="logo" alt="Audible Logo">
+</div>
+<div class="adbl-page desktop">
+<div id="top-gdpr" class="slot topSlot">
+</div>
+<div id="top-customer-notifications" class="slot topSlot">
+</div>
+<div id="top-0" class="slot topSlot">
+<adbl-style-scope class="light lego-padding-top-none lego-padding-bottom-none">
+<slot></slot>
+<adbl-stack spacing="md">
+<div class="adbl-impression-emitted" data-asin="Not Applicable" data-widget="upsell-banner" data-position="1" data-face-out="" data-source="" data-url="/library/wishlist?ref=a_library_w_t0_lego" data-celyx-weblab-treatment="T2">
+<adbl-enhanced-upsell-banner variant="partner" asset-type="" icon="" tag-text="" gradient-color="" button-label="Get this deal" button-variant="prominent" href="https://www.audible.com/subscription/confirmation?membershipAsin=B0DBMB6PZN&amp;promoCode=1SJGOFUN" dark-styling="" style="--adbl-custom-bg-color: #008B76">
+<p slot="title">This Season's Biggest Deal | $0.99/mo for 3 months + $20 Audible bonus</p>
+$8.99/mo thereafter—terms apply.
+</adbl-enhanced-upsell-banner>
+</div>
+</adbl-stack>
+</adbl-style-scope>
+</div>
+<div id="nav-header" class="slot topSlot">
+<adbl-style-scope>
+<slot></slot>
+<adbl-theme mode="light">
+<adbl-nav-header data-testid="header-nav">
+<a href="/?ref=a_library_w_nhe_logo" slot="logo" class="bc-pub-block bc-pub-block ui-it-header-logo js-only-element" data-testid="header-logo" data-logo-src="https://m.media-amazon.com/images/G/01/audibleweb/arya/navigation/audible_logo._V517446980_.svg">
+</a>
+<adbl-nav-menu slot="utility" label="Hi, REDACTED!" data-testid="header-greeting-menu">
+<div>
+<div class="adbl-text-action-s adbl-text-quaternary-fill">Non-Member</div>
+<adbl-nav-link variant="secondary" href="/account/overview?ref=a_library_w_nhe_acct_overview" data-testid="header-account-overview">
+Membership details
+</adbl-nav-link>
+<adbl-nav-link variant="secondary" href="/account/rewards?ref=a_library_w_nhe_acct_rewards" data-testid="header-audible-rewards">
+Audible rewards
+</adbl-nav-link>
+<adbl-nav-link variant="secondary" href="/account/purchase-history?ref=a_library_w_nhe_acct_purchase" data-testid="header-purchase-history">
+Purchase history
+</adbl-nav-link>
+<adbl-nav-link variant="secondary" href="/listener?ref=a_library_w_nhe_listener" data-testid="header-listener-page">
+Listener page
+</adbl-nav-link>
+<adbl-nav-link variant="secondary" href="/account/listen-history?ref=a_library_w_nhe_acct_listen" data-testid="header-listen-history">
+Listen history
+</adbl-nav-link>
+<adbl-nav-link variant="secondary" href="/promo/redemption?bp_o=true&amp;ref=a_library_w_nhe_promo_redeem" data-testid="header-promo-redeem">
+Enter promo code
+</adbl-nav-link>
+<adbl-nav-link variant="secondary" data-testid="header-invite-friends" id="invite-friends-link" href="#">
+Invite friends
+</adbl-nav-link>
+<adbl-divider></adbl-divider>
+<adbl-nav-link class="ui-it-sign-out-link" variant="secondary" href="https://www.amazon.com/ap/signin?openid.return_to=https%3A%2F%2Fwww.audible.com%2F%3Fopenid.mode%3Dlogout&amp;openid.identity=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select&amp;openid.assoc_handle=audible_shared_web_us&amp;openid.mode=logout&amp;openid.claimed_id=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select&amp;openid.ns=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0" data-testid="header-sign-out">
+Sign out
+</adbl-nav-link>
+</div>
+</adbl-nav-menu>
+<adbl-dialog id="invite-friends-overlay" variant="prompt" tabindex="-1" data-copy-link-label="Copy Link" data-link-copied-label="Link copied" data-retry-label="Try again" data-error-message="Couldn't generate your referral code. Please try again.">
+<h2>Invite friends to Audible</h2>
+<div slot="body">
+<adbl-progress-circle size="lg" status="preparing" color="base" value="0" label-alignment="end" success-icon="arrow-down-circle-fill-fullbleed"></adbl-progress-circle>
+</div>
+</adbl-dialog>
+<adbl-nav-link slot="utility" variant="secondary" href="https://help.audible.com" data-testid="header-help">
+Help
+</adbl-nav-link>
+<adbl-nav-menu data-testid="header-lop-picker" slot="utility" label="English" icon="globe">
+<adbl-nav-list id="lop-select" label="Language">
+<form method="GET">
+<adbl-chip-group variant="stacked" align="start" select="single">
+<adbl-toggle-chip selected="" data-locale="en_US" data-value="/library/wishlist?language=en_US" data-overridden="false" tabindex="0" role="radio" aria-checked="true" variant="outline" value="on" name="">English</adbl-toggle-chip>
+<adbl-toggle-chip data-locale="es_US" data-value="/library/wishlist?language=es_US" data-overridden="false" tabindex="-1" role="radio" aria-checked="false" variant="outline" value="on" name="" style="inset-inline-start: 0px;">Español</adbl-toggle-chip>
+</adbl-chip-group>
+</form>
+</adbl-nav-list>
+</adbl-nav-menu>
+<adbl-nav-menu data-testid="header-marketplace-picker" slot="utility" icon="flag:us" label="USD" aria-label="Currently shopping on Audible US using USD">
+<adbl-nav-list label="Currently shopping on Audible US">
+<adbl-nav-link href="/customer-preference/atr" variant="secondary" data-testid="header-marketplace-preferences">
+Change marketplace
+</adbl-nav-link>
+</adbl-nav-list>
+</adbl-nav-menu>
+<adbl-nav-cart slot="utility" count="0" href="/cart/view?ref=a_library_w_nhe_cart" data-testid="header-cart"></adbl-nav-cart>
+<adbl-nav-mega-menu data-testid="header-discover-menu" label="Browse" icon="discover">
+<adbl-nav-list label="Get Started">
+<adbl-nav-link variant="secondary" href="/ep/audiobooks?ref=a_library_w_ndi1_i0_rowitem" data-testid="header-ndi1_i0_rowitem">Audiobooks</adbl-nav-link>
+<adbl-nav-link variant="secondary" href="/ep/podcasts?ref=a_library_w_ndi1_i1_rowitem" data-testid="header-ndi1_i1_rowitem">Podcasts</adbl-nav-link>
+<adbl-nav-link variant="secondary" href="/ep/audible-originals?ref=a_library_w_ndi1_i2_rowitem" data-testid="header-ndi1_i2_rowitem">Audible Originals</adbl-nav-link>
+<adbl-nav-link variant="secondary" href="/ep/sleep?ref=a_library_w_ndi1_i3_rowitem" data-testid="header-ndi1_i3_rowitem">Sleep</adbl-nav-link>
+<adbl-nav-link variant="secondary" href="/ep/voces?ref=a_library_w_ndi1_i4_rowitem" data-testid="header-ndi1_i4_rowitem">Latino and Hispanic voices</adbl-nav-link>
+<adbl-nav-link variant="secondary" href="/categories?ref=a_library_w_ndi1_i5_rowitem" data-testid="header-ndi1_i5_rowitem">All categories</adbl-nav-link>
+</adbl-nav-list>
+<adbl-nav-list label="Popular lists">
+<adbl-nav-link variant="secondary" href="/adblbestsellers?ref=a_library_w_ndi2_i0_rowitem" data-testid="header-ndi2_i0_rowitem">Bestsellers</adbl-nav-link>
+<adbl-nav-link variant="secondary" href="/coming-soon?ref=a_library_w_ndi2_i1_rowitem" data-testid="header-ndi2_i1_rowitem">Coming Soon</adbl-nav-link>
+<adbl-nav-link variant="secondary" href="/newreleases?ref=a_library_w_ndi2_i2_rowitem" data-testid="header-ndi2_i2_rowitem">New Releases</adbl-nav-link>
+<adbl-nav-link variant="secondary" href="/ep/best-audiobooks?ref=a_library_w_ndi2_i3_rowitem" data-testid="header-ndi2_i3_rowitem">Best of the Best</adbl-nav-link>
+<adbl-nav-link variant="secondary" href="/ep/series?ref=a_library_w_ndi2_i4_rowitem" data-testid="header-ndi2_i4_rowitem">Series</adbl-nav-link>
+<adbl-nav-link variant="secondary" href="/ep/authors?ref=a_library_w_ndi2_i5_rowitem" data-testid="header-ndi2_i5_rowitem">Authors</adbl-nav-link>
+<adbl-nav-link variant="secondary" href="/ep/popular-features-audible?ref=a_library_w_ndi2_i6_rowitem" data-testid="header-ndi2_i6_rowitem">Editors’ Picks</adbl-nav-link>
+<adbl-nav-link variant="secondary" href="/ep/booktok?ref=a_library_w_ndi2_i7_rowitem" data-testid="header-ndi2_i7_rowitem">Best of #BookTok</adbl-nav-link>
+</adbl-nav-list>
+<adbl-nav-list label="Explore Audible">
+<adbl-nav-link variant="secondary" href="/ep/audible-plus-member-benefit?ref=a_library_w_ndi3_i0_rowitem" data-testid="header-ndi3_i0_rowitem">Plus Catalog</adbl-nav-link>
+<adbl-nav-link variant="secondary" href="/ep/giftcenter?ref=a_library_w_ndi3_i1_rowitem" data-testid="header-ndi3_i1_rowitem">Gifts</adbl-nav-link>
+<adbl-nav-link variant="secondary" href="/ep/memberbenefits?ref=a_library_w_ndi3_i2_rowitem" data-testid="header-ndi3_i2_rowitem">Membership FAQs</adbl-nav-link>
+<adbl-nav-link variant="secondary" href="https://help.audible.com/s/?language=en_US" data-testid="header-ndi3_i3_rowitem">Help Center</adbl-nav-link>
+<adbl-nav-link variant="secondary" href="/about?ref=a_library_w_ndi3_i4_rowitem" data-testid="header-ndi3_i4_rowitem">About Audible</adbl-nav-link>
+<adbl-nav-link variant="secondary" href="/blog?ref=a_library_w_ndi3_i5_rowitem" data-testid="header-ndi3_i5_rowitem">Blog</adbl-nav-link>
+<adbl-nav-link variant="secondary" href="https://www.audible.com/business" data-testid="header-ndi3_i6_rowitem">Audible for Business</adbl-nav-link>
+<adbl-nav-link variant="secondary" href="/ep/audiobook-deals?ref=a_library_w_ndi3_i7_rowitem" data-testid="header-ndi3_i7_rowitem">Sales &amp; Deals</adbl-nav-link>
+</adbl-nav-list>
+</adbl-nav-mega-menu>
+<adbl-nav-link variant="primary" href="/library?ref=a_library_w_nhe_library" data-testid="header-library">
+<adbl-icon name="library" slot="start"></adbl-icon>
+Library
+</adbl-nav-link>
+<adbl-nav-link href="/library/wishlist?ref=a_library_w_n1_rowitem" data-testid="header-n1_rowitem" variant="primary">Wish list</adbl-nav-link>
+<adbl-nav-link href="/ep/memberbenefits?ref=a_library_w_n2_rowitem" data-testid="header-n2_rowitem" variant="primary">Plans &amp; Pricing</adbl-nav-link>
+<div style="width: 400px" slot="search">
+<adbl-legacy-style-scope class="adbl-light">
+<div class="bc-section
+bc-a11y-dynamic-skiplink-target" style="" data-bc-a11y-dynamic-skiplink-display-value="Search Box" data-bc-a11y-dynamic-skiplink-feature="search-box-skipLink" tabindex="-1">
+<input type="hidden" id="adbl-nav-search-ref-override" name="ref-override" value="">
+<div id="audible-search-autocomplete-root" data-maven-enabled-is-t-1="" data-prompt-placement="suggestions" data-filters-enabled=""><div class="app"><main class="app-main"><div class="audible-search-autocomplete"><form role="search" action="/search" method="GET" id="audible-search-form"><div><div class="search-autocomplete-content"><div class="search-wrapper"><adbl-search-input id="audible-search-input" data-testid="search-input" aria-controls="suggestions-dropdown" size="lg" value="" placeholder="Find your next great listen" name="keywords"><adbl-icon slot="start" aria-label="Search" name="search" size="md" style="cursor: pointer;"></adbl-icon></adbl-search-input><adbl-search-suggestions-dropdown id="suggestions-dropdown" aria-label="Search suggestions"><div class="empty-state"><p>No suggestions available</p></div></adbl-search-suggestions-dropdown></div></div></div></form></div></main></div></div>
+</div>
+</adbl-legacy-style-scope>
+</div>
+</adbl-nav-header>
+</adbl-theme>
+</adbl-style-scope>
+</div>
+<div id="top-2" class="slot topSlot">
+</div>
+<div id="top-3" class="slot topSlot">
+</div>
+<div id="top-4" class="slot topSlot">
+</div>
+<div id="maven-container-slot" class="slot topSlot">
+</div>
+<div id="maven-open-button-slot" class="slot topSlot">
+</div>
+<div role="main" class="adbl-main" id="adbl-main" aria-label="Main Page">
+<div id="center-0" class="slot centerSlot">
+</div>
+<div id="center-1" class="slot centerSlot">
+<div class="bc-divider
+library-header-divider
+bc-divider-secondary">
+</div>
+<div class="bc-container">
+<div id="" class="bc-row-responsive
+bc-spacing-top-s2" style="">
+<div class="bc-col-responsive
+bc-col-9">
+<h1 class="bc-heading
+bc-color-base
+bc-size-display
+bc-text-bold
+bc-text-normal" data-testid="library-page-heading">
+Library
+</h1>
+</div>
+</div>
+</div>
+</div>
+<div id="center-2" class="slot centerSlot">
+<div class="bc-container">
+<div id="" class="bc-row-responsive
+bc-spacing-top-s2
+bc-spacing-s2" style="">
+<div class="bc-col-responsive
+bc-spacing-micro
+bc-spacing-top-micro">
+<div class="bc-tabs">
+<div class="bc-tab-set
+bc-tab-lenses" role="tablist" aria-label="">
+<a class="bc-link
+bc-tab-heading bc-inline-block
+bc-tab-lens
+bc-lens-heading bc-pub-inline-block
+bc-size-title1
+bc-color-secondary" tabindex="0" role="tab" aria-selected="false" href="/library/titles">
+All
+</a>
+<a class="bc-link
+bc-tab-heading bc-inline-block
+bc-tab-lens
+bc-lens-heading bc-pub-inline-block
+bc-size-title1
+bc-color-secondary" tabindex="0" role="tab" aria-selected="false" href="/library/audiobooks">
+Audiobooks
+</a>
+<a class="bc-link
+bc-tab-heading bc-inline-block
+bc-tab-lens
+bc-lens-heading bc-pub-inline-block
+bc-size-title1
+bc-color-secondary" tabindex="0" role="tab" aria-selected="false" href="/library/podcasts">
+Podcasts
+</a>
+<a class="bc-link
+bc-tab-heading bc-inline-block
+bc-tab-lens
+bc-tab-active
+bc-lens-heading bc-pub-inline-block
+bc-size-headline1
+bc-color-active" tabindex="0" role="tab" aria-selected="true" href="/library/wishlist">
+Wish List
+</a>
+<a class="bc-link
+bc-tab-heading bc-inline-block
+bc-tab-lens
+bc-lens-heading bc-pub-inline-block
+bc-size-title1
+bc-color-secondary" tabindex="0" role="tab" aria-selected="false" href="/library/collections">
+Collections
+</a>
+<a class="bc-link
+bc-tab-heading bc-inline-block
+bc-tab-lens
+bc-lens-heading bc-pub-inline-block
+bc-size-title1
+bc-color-secondary" tabindex="0" role="tab" aria-selected="false" href="/library/authors">
+Authors
+</a>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="center-3" class="slot centerSlot">
+<div class="bc-container">
+<div id="" class="bc-row-responsive" style="">
+<div class="bc-divider
+bc-spacing-s2
+bc-divider-secondary">
+</div>
+</div>
+<div id="" class="bc-row-responsive
+adbl-library-refinement-section" style="">
+<div class="bc-col-responsive
+bc-col-6">
+<div id="" class="bc-row-responsive
+display-flex" style="">
+<div class="bc-col-responsive">
+<span class="bc-text
+bc-size-body
+bc-color-secondary" style="vertical-align: middle">
+1 title
+</span>
+</div>
+</div>
+</div>
+<div class="bc-col-responsive
+bc-text-right
+bc-col-6">
+<form class="refinementsAndPagingForm ct" data-form-id="ct">
+<input type="hidden" name="ct" value="">
+</form>
+<form class="refinementsAndPagingForm bc-pub-inline-block" data-form-id="sorting" autocomplete="off">
+<span class="bc-dropdown
+bc-dropdown-inline
+bc-dropdown-small">
+<select name="sortBy" class="bc-input
+bc-color-base
+bc-color-border-focus
+bc-color-background-base
+bc-color-border-base
+refinementFormDropDown libraryRefinementFormDropDown refinementDropdown-sortBy
+bc-input-inline
+bc-input-small" aria-label="Sort by:">
+<option selected="" value="DATE_ADDED.dsc" class="" data-url="/library/wishlist?ref=a_library_w_c3_sortBy_DATE_ADDED.dsc">
+Date added
+</option>
+<option value="PRICE.asc" class="" data-url="/library/wishlist?ref=a_library_w_c3_sortBy_PRICE.asc">
+Price: Low to High
+</option>
+<option value="PRICE.dsc" class="" data-url="/library/wishlist?ref=a_library_w_c3_sortBy_PRICE.dsc">
+Price: High to Low
+</option>
+<option value="RUNTIME_LENGTH.asc" class="" data-url="/library/wishlist?ref=a_library_w_c3_sortBy_RUNTIME_LENGTH.asc">
+Length
+</option>
+<option value="SHORT_TITLE.asc" class="" data-url="/library/wishlist?ref=a_library_w_c3_sortBy_SHORT_TITLE.asc">
+Title
+</option>
+<option value="AUTHORS.asc" class="" data-url="/library/wishlist?ref=a_library_w_c3_sortBy_AUTHORS.asc">
+A-Z
+</option>
+<option value="RELEASE_DATE.dsc" class="" data-url="/library/wishlist?ref=a_library_w_c3_sortBy_RELEASE_DATE.dsc">
+Release Date
+</option>
+</select>
+<i class="bc-icon bc-icon-chevron-down" aria-hidden="true"></i>
+</span>
+<input type="hidden" id="currentSort" value="">
+</form>
+</div>
+</div>
+<div id="" class="bc-row-responsive" style="">
+<div class="bc-divider
+bc-spacing-top-s2
+bc-divider-secondary">
+</div>
+</div>
+</div>
+</div>
+<div id="center-3-1" class="slot centerSlot">
+</div>
+<div id="center-4" class="slot centerSlot">
+</div>
+<div id="center-5" class="slot centerSlot">
+<div class="bc-container" id="adbl-library-content-main">
+<span>
+<ul class="bc-list
+bc-spacing-top-s2
+bc-list-nostyle">
+<li class="bc-list-item
+productListItem">
+<div id="" class="bc-row-responsive" style="">
+<div class="bc-col-responsive
+bc-spacing-top-none
+bc-col-8">
+<div id="" class="bc-row-responsive" style="">
+<div class="bc-col-responsive
+bc-col-4">
+<div id="" class="bc-row-responsive" style="">
+<div class="bc-col-responsive
+bc-col-12">
+<div data-trigger="product-list-flyout-B002V00YSK" class="bc-trigger
+bc-pub-block
+bc-trigger-popover">
+<a class="bc-link
+bc-color-link" tabindex="0" href="/pd/The-Book-Thief-Audiobook/B002V00YSK?ref=a_library_w_c5_prod_1">
+<img id="" class="bc-pub-block
+bc-image-inset-border js-only-element" src="https://m.media-amazon.com/images/I/51Rs-tsiwBL._SL500_.jpg" alt="The Book Thief By Markus Zusak" width="100%" style="/">
+</a>
+</div>
+<div id="product-list-flyout-B002V00YSK" class="bc-popover bc-hidden
+bc-palette-default" role="tooltip" aria-label="popover" data-popover-position="right" data-width="320" data-hoverable="false" data-bodylevel="true">
+<span class="bc-popover-beak"></span>
+<div class="bc-popover-inner" style="">
+<span>
+<ul class="bc-list
+bc-pub-overflow-hidden
+bc-spacing-small
+bc-size-small
+bc-color-secondary
+bc-list-nostyle">
+<li class="bc-list-item
+bc-spacing-micro">
+<h2 class="bc-heading
+bc-color-base
+bc-text-bold">
+The Book Thief
+</h2>
+</li>
+<li class="bc-list-item
+bc-spacing-micro
+bc-size-base
+bc-color-base">
+</li>
+<li class="bc-list-item">
+<span class="bc-text">
+By:
+Markus Zusak
+</span>
+</li>
+<li class="bc-list-item">
+<span class="bc-text">
+Narrated by:
+Allan Corduner
+</span>
+</li>
+<li class="bc-list-item">
+<span class="bc-text">
+Length: 13 hrs and 56 mins
+</span>
+</li>
+<li class="bc-list-item">
+<span class="bc-text">
+unabridged
+</span>
+</li>
+</ul>
+</span>
+<span>
+<ul class="bc-list
+bc-spacing-small
+bc-size-mini
+bc-color-secondary
+bc-list-nostyle">
+<li class="bc-list-item
+bc-spacing-micro">
+<div id="" class="bc-row-responsive" style="">
+<div class="bc-col-responsive
+bc-col-4">
+<span class="bc-text
+bc-size-mini
+bc-color-secondary">Overall</span>
+</div>
+<div class="bc-col-responsive
+bc-col-8">
+<div aria-label="4.5 out of 5 stars" role="img" class="bc-review-stars">
+<span class="full-review-star">
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-base
+bc-icon-star-empty-s2
+bc-icon-star-empty
+bc-icon-size-small
+bc-color-base">
+</i>
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-progress
+bc-icon-star-fill-s2
+bc-icon-star-fill
+bc-icon-size-small
+bc-color-progress">
+</i>
+</span>
+<span class="full-review-star">
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-base
+bc-icon-star-empty-s2
+bc-icon-star-empty
+bc-icon-size-small
+bc-color-base">
+</i>
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-progress
+bc-icon-star-fill-s2
+bc-icon-star-fill
+bc-icon-size-small
+bc-color-progress">
+</i>
+</span>
+<span class="full-review-star">
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-base
+bc-icon-star-empty-s2
+bc-icon-star-empty
+bc-icon-size-small
+bc-color-base">
+</i>
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-progress
+bc-icon-star-fill-s2
+bc-icon-star-fill
+bc-icon-size-small
+bc-color-progress">
+</i>
+</span>
+<span class="full-review-star">
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-base
+bc-icon-star-empty-s2
+bc-icon-star-empty
+bc-icon-size-small
+bc-color-base">
+</i>
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-progress
+bc-icon-star-fill-s2
+bc-icon-star-fill
+bc-icon-size-small
+bc-color-progress">
+</i>
+</span>
+<span class="half-review-star">
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-base
+bc-icon-star-empty-s2
+bc-icon-star-empty
+bc-icon-size-small
+bc-color-base">
+</i>
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-progress
+bc-icon-star-left-fill-s2
+bc-icon-star-left-fill
+bc-icon-size-small
+bc-color-progress">
+</i>
+</span>
+</div>
+<span class="bc-text
+bc-size-mini
+bc-color-secondary">35329</span>
+</div>
+</div>
+</li>
+<li class="bc-list-item
+bc-spacing-micro">
+<div id="" class="bc-row-responsive" style="">
+<div class="bc-col-responsive
+bc-col-4">
+<span class="bc-text
+bc-size-mini
+bc-color-secondary">Performance</span>
+</div>
+<div class="bc-col-responsive
+bc-col-8">
+<div aria-label="5 out of 5 stars" role="img" class="bc-review-stars">
+<span class="full-review-star">
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-base
+bc-icon-star-empty-s2
+bc-icon-star-empty
+bc-icon-size-small
+bc-color-base">
+</i>
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-progress
+bc-icon-star-fill-s2
+bc-icon-star-fill
+bc-icon-size-small
+bc-color-progress">
+</i>
+</span>
+<span class="full-review-star">
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-base
+bc-icon-star-empty-s2
+bc-icon-star-empty
+bc-icon-size-small
+bc-color-base">
+</i>
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-progress
+bc-icon-star-fill-s2
+bc-icon-star-fill
+bc-icon-size-small
+bc-color-progress">
+</i>
+</span>
+<span class="full-review-star">
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-base
+bc-icon-star-empty-s2
+bc-icon-star-empty
+bc-icon-size-small
+bc-color-base">
+</i>
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-progress
+bc-icon-star-fill-s2
+bc-icon-star-fill
+bc-icon-size-small
+bc-color-progress">
+</i>
+</span>
+<span class="full-review-star">
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-base
+bc-icon-star-empty-s2
+bc-icon-star-empty
+bc-icon-size-small
+bc-color-base">
+</i>
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-progress
+bc-icon-star-fill-s2
+bc-icon-star-fill
+bc-icon-size-small
+bc-color-progress">
+</i>
+</span>
+<span class="full-review-star">
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-base
+bc-icon-star-empty-s2
+bc-icon-star-empty
+bc-icon-size-small
+bc-color-base">
+</i>
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-progress
+bc-icon-star-fill-s2
+bc-icon-star-fill
+bc-icon-size-small
+bc-color-progress">
+</i>
+</span>
+</div>
+<span class="bc-text
+bc-size-mini
+bc-color-secondary">30594</span>
+</div>
+</div>
+</li>
+<li class="bc-list-item
+bc-spacing-micro">
+<div id="" class="bc-row-responsive" style="">
+<div class="bc-col-responsive
+bc-col-4">
+<span class="bc-text
+bc-size-mini
+bc-color-secondary">Story</span>
+</div>
+<div class="bc-col-responsive
+bc-col-8">
+<div aria-label="4.5 out of 5 stars" role="img" class="bc-review-stars">
+<span class="full-review-star">
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-base
+bc-icon-star-empty-s2
+bc-icon-star-empty
+bc-icon-size-small
+bc-color-base">
+</i>
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-progress
+bc-icon-star-fill-s2
+bc-icon-star-fill
+bc-icon-size-small
+bc-color-progress">
+</i>
+</span>
+<span class="full-review-star">
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-base
+bc-icon-star-empty-s2
+bc-icon-star-empty
+bc-icon-size-small
+bc-color-base">
+</i>
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-progress
+bc-icon-star-fill-s2
+bc-icon-star-fill
+bc-icon-size-small
+bc-color-progress">
+</i>
+</span>
+<span class="full-review-star">
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-base
+bc-icon-star-empty-s2
+bc-icon-star-empty
+bc-icon-size-small
+bc-color-base">
+</i>
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-progress
+bc-icon-star-fill-s2
+bc-icon-star-fill
+bc-icon-size-small
+bc-color-progress">
+</i>
+</span>
+<span class="full-review-star">
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-base
+bc-icon-star-empty-s2
+bc-icon-star-empty
+bc-icon-size-small
+bc-color-base">
+</i>
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-progress
+bc-icon-star-fill-s2
+bc-icon-star-fill
+bc-icon-size-small
+bc-color-progress">
+</i>
+</span>
+<span class="half-review-star">
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-base
+bc-icon-star-empty-s2
+bc-icon-star-empty
+bc-icon-size-small
+bc-color-base">
+</i>
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-progress
+bc-icon-star-left-fill-s2
+bc-icon-star-left-fill
+bc-icon-size-small
+bc-color-progress">
+</i>
+</span>
+</div>
+<span class="bc-text
+bc-size-mini
+bc-color-secondary">30570</span>
+</div>
+</div>
+</li>
+</ul>
+</span>
+<p class="bc-text
+bc-spacing-small
+bc-spacing-top-none
+bc-size-small
+bc-color-base">
+DON’T MISS BRIDGE OF CLAY, MARKUS ZUSAK’S FIRST NOVEL SINCE THE BOOK THIEF. The extraordinary #1 New York Times bestseller that is now a major motion picture, Markus Zusak's unforgettable story is about the ability of books to feed the soul. Nominated as one of America's best-loved novels by...
+</p>
+<div class="bc-divider
+bc-spacing-small
+bc-divider-secondary">
+</div>
+<span>
+<ul class="bc-list
+bc-list-nostyle">
+<li class="bc-list-item
+bc-spacing-micro">
+<div aria-label="5 out of 5 stars" role="img" class="bc-review-stars">
+<span class="full-review-star">
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-base
+bc-icon-star-empty-s2
+bc-icon-star-empty
+bc-icon-size-small
+bc-color-base">
+</i>
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-progress
+bc-icon-star-fill-s2
+bc-icon-star-fill
+bc-icon-size-small
+bc-color-progress">
+</i>
+</span>
+<span class="full-review-star">
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-base
+bc-icon-star-empty-s2
+bc-icon-star-empty
+bc-icon-size-small
+bc-color-base">
+</i>
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-progress
+bc-icon-star-fill-s2
+bc-icon-star-fill
+bc-icon-size-small
+bc-color-progress">
+</i>
+</span>
+<span class="full-review-star">
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-base
+bc-icon-star-empty-s2
+bc-icon-star-empty
+bc-icon-size-small
+bc-color-base">
+</i>
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-progress
+bc-icon-star-fill-s2
+bc-icon-star-fill
+bc-icon-size-small
+bc-color-progress">
+</i>
+</span>
+<span class="full-review-star">
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-base
+bc-icon-star-empty-s2
+bc-icon-star-empty
+bc-icon-size-small
+bc-color-base">
+</i>
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-progress
+bc-icon-star-fill-s2
+bc-icon-star-fill
+bc-icon-size-small
+bc-color-progress">
+</i>
+</span>
+<span class="full-review-star">
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-base
+bc-icon-star-empty-s2
+bc-icon-star-empty
+bc-icon-size-small
+bc-color-base">
+</i>
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-progress
+bc-icon-star-fill-s2
+bc-icon-star-fill
+bc-icon-size-small
+bc-color-progress">
+</i>
+</span>
+</div>
+<span class="bc-text"></span>
+</li>
+<li class="bc-list-item
+bc-spacing-micro">
+<h2 class="bc-heading
+bc-color-base
+bc-size-base
+bc-text-bold
+bc-text-quote">
+Glad I took a chance.
+</h2>
+</li>
+<li class="bc-list-item
+bc-size-mini
+bc-color-secondary">
+By Robert D
+</li>
+</ul>
+</span>
+</div>
+</div>
+</div>
+<div class="bc-col-responsive
+bc-col-12">
+<adbl-button class="jpp-preview-button display-flex" size="sm" aria-label="Preview The Book Thief" variant="simple" data-asin="B002V00YSK" data-issample="true">
+<adbl-icon slot="start" name="play"></adbl-icon>
+Preview
+</adbl-button>
+</div>
+</div>
+</div>
+<div class="bc-col-responsive
+bc-col-7">
+<div id="" class="bc-row-responsive" style="">
+<div class="bc-col-responsive
+bc-col-12">
+<span>
+<ul class="bc-list
+bc-list-nostyle">
+<li class="bc-list-item
+bc-spacing-s0_5">
+<a class="bc-link
+bc-color-base" tabindex="0" href="/pd/The-Book-Thief-Audiobook/B002V00YSK?ref=a_library_w_c5_lProduct_1">
+<span class="bc-text
+bc-size-headline3">
+The Book Thief
+</span>
+</a>
+</li>
+<li class="bc-list-item
+bc-spacing-s0_5">
+</li>
+<li class="bc-list-item
+bc-spacing-s0_5">
+<span class="bc-text
+authorLabel
+bc-color-secondary">
+By:
+<a class="bc-link
+bc-color-base" tabindex="0" href="/author/B0H5TWZCFV?ref=a_library_w_c5_lAuthor_1">Markus Zusak</a>
+</span>
+</li>
+<li class="bc-list-item
+bc-spacing-s0_5">
+<span class="bc-text
+narratorLabel
+bc-color-secondary">
+Narrated by:
+<a class="bc-link
+bc-color-base" tabindex="0" href="/search?searchNarrator=Allan+Corduner&amp;ref=a_library_w_c5_lNarrator_1">Allan Corduner</a>
+</span>
+</li>
+<li class="bc-list-item
+seriesLabel
+bc-spacing-s0_5">
+</li>
+<li class="bc-list-item
+runtimeLabel
+bc-spacing-s0_5">
+<span class="bc-text
+bc-size-small
+bc-color-secondary">
+Length: 13 hrs and 56 mins
+</span>
+</li>
+<li class="bc-list-item
+releaseDateLabel
+bc-spacing-s0_5">
+<span class="bc-text
+bc-size-small
+bc-color-secondary">
+Release date: 09-26-06
+</span>
+</li>
+<li class="bc-list-item
+languageLabel
+bc-spacing-s0_5">
+<span class="bc-text
+bc-size-small
+bc-color-secondary">
+Language: English
+</span>
+</li>
+<li class="bc-list-item
+ratingsLabel
+bc-spacing-s0_5">
+<div aria-label="4.5 out of 5 stars" role="img" class="bc-review-stars">
+<span class="full-review-star">
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-base
+bc-icon-star-empty-s2
+bc-icon-star-empty
+bc-icon-size-small
+bc-color-base">
+</i>
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-progress
+bc-icon-star-fill-s2
+bc-icon-star-fill
+bc-icon-size-small
+bc-color-progress">
+</i>
+</span>
+<span class="full-review-star">
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-base
+bc-icon-star-empty-s2
+bc-icon-star-empty
+bc-icon-size-small
+bc-color-base">
+</i>
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-progress
+bc-icon-star-fill-s2
+bc-icon-star-fill
+bc-icon-size-small
+bc-color-progress">
+</i>
+</span>
+<span class="full-review-star">
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-base
+bc-icon-star-empty-s2
+bc-icon-star-empty
+bc-icon-size-small
+bc-color-base">
+</i>
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-progress
+bc-icon-star-fill-s2
+bc-icon-star-fill
+bc-icon-size-small
+bc-color-progress">
+</i>
+</span>
+<span class="full-review-star">
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-base
+bc-icon-star-empty-s2
+bc-icon-star-empty
+bc-icon-size-small
+bc-color-base">
+</i>
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-progress
+bc-icon-star-fill-s2
+bc-icon-star-fill
+bc-icon-size-small
+bc-color-progress">
+</i>
+</span>
+<span class="half-review-star">
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-base
+bc-icon-star-empty-s2
+bc-icon-star-empty
+bc-icon-size-small
+bc-color-base">
+</i>
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-progress
+bc-icon-star-left-fill-s2
+bc-icon-star-left-fill
+bc-icon-size-small
+bc-color-progress">
+</i>
+</span>
+</div>
+<span class="bc-text
+bc-size-small
+bc-color-secondary">35329 ratings</span>
+</li>
+</ul>
+</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="bc-col-responsive
+bc-spacing-top-none
+bc-col-4">
+<div id="" class="bc-row-responsive" style="">
+<div id="adbl-buy-box-area" class="bc-section
+bc-spacing-none
+bc-spacing-top-none
+bc-padding-none
+bc-padding-top-none
+adblBuyBoxArea" style="">
+<div id="adbl-callto-action-container" class="bc-section
+bc-spacing-none
+bc-spacing-top-none
+bc-padding-none
+bc-padding-top-none
+adblCalltoActionContainer" style="">
+<div id="adbl-buy-box-container" class="bc-row-responsive
+adblBuyBoxContainer
+bc-spacing-top-small
+bc-spacing-none" style="">
+<div id="adbl-buy-box" class="bc-col-responsive
+adblBuyBox
+bc-spacing-none
+bc-spacing-top-none
+bc-col-12">
+<div id="adbl-common-buybox-1" class="bc-box
+bc-box-padding-none
+adblCommonBuyBox
+bc-text-left">
+<div id="adbl-buybox-area-1" class="bc-section
+bc-spacing-none
+bc-spacing-top-none" style="">
+<div id="adbl-buy-box-ajax-error-1" class="bc-section
+bc-spacing-mini
+bc-padding-none
+bc-padding-top-none
+adblBuyBoxAjaxError bc-hidden" style="">
+<div id="adbl-buy-box-cart-capacity-exceeded-error-alert-1" class="bc-box
+bc-palette-default" role="alert">
+<div class="bc-box-padding-small
+bc-color-secondary
+bc-inline-alert-error
+adblBuyBoxCartCapacityExceededErrorAlert bc-hidden
+bc-color-background-base">
+<div id="" class="bc-row-responsive
+bc-spacing-none" style="">
+<div class="bc-col-responsive
+bc-text-right
+bc-col-1">
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-error
+bc-icon-exclamation-triangle-s2
+bc-icon-exclamation-triangle
+bc-icon-size-small
+bc-color-error">
+</i>
+</div>
+<div class="bc-col-responsive
+bc-col-11">
+<div class="bc-section" style="">
+<h2 class="bc-heading
+bc-color-error
+bc-size-base
+bc-text-bold">
+Failed to add items
+</h2>
+</div>
+<div class="bc-section
+bc-spacing-top-micro" style="">
+<span class="bc-text
+bc-color-base">
+<span class="bc-text">Sorry, we are unable to add the item because your shopping cart is already at capacity.</span>
+</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="adbl-buy-box-cart-error-alert-1" class="bc-box
+bc-palette-default" role="alert">
+<div class="bc-box-padding-small
+bc-color-secondary
+bc-inline-alert-error
+adblBuyBoxCartErrorAlert bc-hidden
+bc-color-background-base">
+<div id="" class="bc-row-responsive
+bc-spacing-none" style="">
+<div class="bc-col-responsive
+bc-text-right
+bc-col-1">
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-error
+bc-icon-exclamation-triangle-s2
+bc-icon-exclamation-triangle
+bc-icon-size-small
+bc-color-error">
+</i>
+</div>
+<div class="bc-col-responsive
+bc-col-11">
+<div class="bc-section" style="">
+<h2 class="bc-heading
+bc-color-error
+bc-size-base
+bc-text-bold">
+Add to Cart failed.
+</h2>
+</div>
+<div class="bc-section
+bc-spacing-top-micro" style="">
+<span class="bc-text
+bc-color-base">
+<span class="bc-text">Please try again later</span>
+</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="adbl-buy-box-add-to-wishlist-error-alert-1" class="bc-box
+bc-palette-default" role="alert">
+<div class="bc-box-padding-small
+bc-color-secondary
+bc-inline-alert-error
+adblBuyBoxAddToWishlistErrorAlert bc-hidden
+bc-color-background-base">
+<div id="" class="bc-row-responsive
+bc-spacing-none" style="">
+<div class="bc-col-responsive
+bc-text-right
+bc-col-1">
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-error
+bc-icon-exclamation-triangle-s2
+bc-icon-exclamation-triangle
+bc-icon-size-small
+bc-color-error">
+</i>
+</div>
+<div class="bc-col-responsive
+bc-col-11">
+<div class="bc-section" style="">
+<h2 class="bc-heading
+bc-color-error
+bc-size-base
+bc-text-bold">
+Add to Wish List failed.
+</h2>
+</div>
+<div class="bc-section
+bc-spacing-top-micro" style="">
+<span class="bc-text
+bc-color-base">
+<span class="bc-text">Please try again later</span>
+</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="adbl-buy-box-remove-from-wishlist-error-alert-1" class="bc-box
+bc-palette-default" role="alert">
+<div class="bc-box-padding-small
+bc-color-secondary
+bc-inline-alert-error
+adblBuyBoxRemoveFromWishlistErrorAlert bc-hidden
+bc-color-background-base">
+<div id="" class="bc-row-responsive
+bc-spacing-none" style="">
+<div class="bc-col-responsive
+bc-text-right
+bc-col-1">
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-error
+bc-icon-exclamation-triangle-s2
+bc-icon-exclamation-triangle
+bc-icon-size-small
+bc-color-error">
+</i>
+</div>
+<div class="bc-col-responsive
+bc-col-11">
+<div class="bc-section" style="">
+<h2 class="bc-heading
+bc-color-error
+bc-size-base
+bc-text-bold">
+Remove from wishlist failed.
+</h2>
+</div>
+<div class="bc-section
+bc-spacing-top-micro" style="">
+<span class="bc-text
+bc-color-base">
+<span class="bc-text">Please try again later</span>
+</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="adbl-buy-box-discovery-aycl-error-alert-1" class="bc-box
+bc-palette-default" role="alert">
+<div class="bc-box-padding-small
+bc-color-secondary
+bc-inline-alert-error
+adblBuyBoxAddToLibraryErrorAlert bc-hidden
+bc-color-background-base">
+<div id="" class="bc-row-responsive
+bc-spacing-none" style="">
+<div class="bc-col-responsive
+bc-text-right
+bc-col-1">
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-error
+bc-icon-exclamation-triangle-s2
+bc-icon-exclamation-triangle
+bc-icon-size-small
+bc-color-error">
+</i>
+</div>
+<div class="bc-col-responsive
+bc-col-11">
+<div class="bc-section" style="">
+<h2 class="bc-heading
+bc-color-error
+bc-size-base
+bc-text-bold">
+Adding to library failed
+</h2>
+</div>
+<div class="bc-section
+bc-spacing-top-micro" style="">
+<span class="bc-text
+bc-color-base">
+<span class="bc-text">Please try again</span>
+</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="adbl-buy-box-follow-podcast-error-alert-1" class="bc-box
+bc-palette-default" role="alert">
+<div class="bc-box-padding-small
+bc-color-secondary
+bc-inline-alert-error
+adblBuyBoxFollowPodcastErrorAlert bc-hidden
+bc-color-background-base">
+<div id="" class="bc-row-responsive
+bc-spacing-none" style="">
+<div class="bc-col-responsive
+bc-text-right
+bc-col-1">
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-error
+bc-icon-exclamation-triangle-s2
+bc-icon-exclamation-triangle
+bc-icon-size-small
+bc-color-error">
+</i>
+</div>
+<div class="bc-col-responsive
+bc-col-11">
+<div class="bc-section" style="">
+<h2 class="bc-heading
+bc-color-error
+bc-size-base
+bc-text-bold">
+Follow podcast failed
+</h2>
+</div>
+<div class="bc-section
+bc-spacing-top-micro" style="">
+<span class="bc-text
+bc-color-base">
+<span class="bc-text">Please try again</span>
+</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="adbl-buy-box-unfollow-podcast-error-alert-1" class="bc-box
+bc-palette-default" role="alert">
+<div class="bc-box-padding-small
+bc-color-secondary
+bc-inline-alert-error
+adblBuyBoxUnfollowPodcastErrorAlert bc-hidden
+bc-color-background-base">
+<div id="" class="bc-row-responsive
+bc-spacing-none" style="">
+<div class="bc-col-responsive
+bc-text-right
+bc-col-1">
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-error
+bc-icon-exclamation-triangle-s2
+bc-icon-exclamation-triangle
+bc-icon-size-small
+bc-color-error">
+</i>
+</div>
+<div class="bc-col-responsive
+bc-col-11">
+<div class="bc-section" style="">
+<h2 class="bc-heading
+bc-color-error
+bc-size-base
+bc-text-bold">
+Unfollow podcast failed
+</h2>
+</div>
+<div class="bc-section
+bc-spacing-top-micro" style="">
+<span class="bc-text
+bc-color-base">
+<span class="bc-text">Please try again</span>
+</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="" class="bc-row
+bc-spacing-top-none" style="">
+<div id="adbl-buy-box-price-1" class="bc-section
+bc-spacing-none
+adblBuyBoxPrice" style="">
+<p id="buybox-regular-price-1" class="bc-text
+buybox-regular-price
+bc-spacing-none
+bc-spacing-top-none
+bc-text-left">
+<span class="bc-text
+bc-size-base
+bc-color-base">Regular price:</span>
+<span class="bc-text
+bc-size-base
+bc-color-base">
+$22.95
+</span>
+<span class="bc-text
+adblBuyBoxCreditCost bc-hidden
+bc-color-base" id="adbl_buybox_credit_cost">
+or 1 credit
+</span>
+</p>
+<p id="buybox-member-price-1" class="bc-text
+buybox-member-price bc-hidden
+bc-spacing-none
+bc-spacing-top-none
+bc-text-left">
+<span class="bc-text
+bc-size-base
+bc-color-base">Sale price:</span>
+<span class="bc-text
+bc-size-base
+bc-color-price">$22.95</span>
+<span class="bc-text
+adblBuyBoxCreditCost bc-hidden
+bc-color-base" id="adbl_buybox_credit_cost">
+or 1 credit
+</span>
+</p>
+</div>
+</div>
+<div id="" class="bc-row
+bc-spacing-top-micro" style="">
+<span class="bc-button
+bc-button-primary
+bc-spacing-top-mini
+bc-button-small">
+<a class="bc-button-text" href="/pd/The-Book-Thief-Audiobook/B002V00YSK?ref=a_library_w_c5_a_list_product-0" tabindex="0" role="button">
+<span class="bc-text
+bc-button-text-inner
+bc-size-action-small">
+Try Standard free
+</span>
+</a>
+</span>
+</div>
+<div id="" class="bc-row
+bc-spacing-top-micro" style="">
+<div id="adbl-add-to-cart-1" class="bc-row
+adblAddToCart
+bc-spacing-top-none
+bc-spacing-none" style="">
+<input type="hidden" name="asin" value="">
+<input type="hidden" name="ct" value="">
+<span id="adbl-add-to-cart-button-1" class="bc-button
+bc-button-secondary
+adblAddToCartButton
+bc-button-small">
+<button type="submit" class="bc-button-text" title="Add The Book Thief to cart" aria-label="Add The Book Thief to cart" tabindex="0">
+<span class="bc-text
+bc-button-text-inner
+bc-size-action-small">
+<span class="bc-text
+adblAddToCartText">Add to cart</span>
+<span class="bc-text
+adblAddingText bc-hidden">Adding...</span>
+</span>
+</button>
+</span>
+<span id="adbl-go-to-cart-button-1" class="bc-button
+bc-button-active
+adblGoToCartButton  bc-hidden
+bc-button-small">
+<a class="bc-button-text" title="The Book Thief already added to cart. Go to cart" alt="The Book Thief already added to cart. Go to cart" href="/cart/view?ref=a_library_w_c5_viewCart_-1" tabindex="0" role="button">
+<span class="bc-text
+bc-button-text-inner
+bc-size-action-small">
+<span class="bc-text
+adblInCart">
+<i aria-hidden="true" class="bc-icon
+bc-icon-fill-base
+bc-icon-check-s2
+bc-icon-check
+bc-color-base">
+</i>
+<span class="bc-letter-space bc-letter-space-micro"></span>
+In cart
+</span>
+</span>
+</a>
+</span>
+</div>
+</div>
+<div id="" class="bc-row
+bc-spacing-top-micro" style="">
+<div id="adbl-add-to-wishlist-1" class="bc-row
+wishlist
+bc-text-center" style="">
+<input type="hidden" name="token" value="">
+<input type="hidden" name="key" value="">
+<input type="hidden" name="asin" value="">
+<span id="adbl-add-to-wishlist-button-1" class="bc-button
+bc-button-secondary
+adblAddToWishlistButton  bc-hidden
+bc-button-small">
+<button class="bc-button-text" title="Add The Book Thief to your Wish List" alt="Add The Book Thief to your Wish List" contentdeliverytype="MULTI_PART_BOOK" type="button" tabindex="0">
+<span class="bc-text
+bc-button-text-inner
+bc-size-action-small">
+<span class="bc-text
+adblAddToWishlistText">Add to Wish List</span>
+<span class="bc-text
+adblAddingToWishlistText bc-hidden">Adding...</span>
+</span>
+</button>
+</span>
+<span id="adbl-remove-from-wishlist-button-1" class="bc-button
+bc-button-secondary
+adblRemoveFromWishlistButton
+bc-button-small">
+<button class="bc-button-text" title="Remove The Book Thief from Wish List" alt="Remove The Book Thief from Wish List" data-content-type="MULTI_PART_BOOK" data-asin="B002V00YSK" type="button" tabindex="0">
+<span class="bc-text
+bc-button-text-inner
+bc-size-action-small">
+<span class="bc-text
+adblRemoveFromWishlistText">Remove from Wish List</span>
+<span class="bc-text
+adblRemovingFromWishlistText bc-hidden">Removing...</span>
+</span>
+</button>
+</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="" class="bc-row-responsive
+bc-spacing-top-base
+bc-spacing-base" style="">
+<div class="bc-divider
+bc-divider-secondary">
+</div>
+</div>
+</li>
+</ul>
+</span>
+</div>
+</div>
+<div id="center-6" class="slot centerSlot">
+</div>
+<div id="center-7" class="slot centerSlot">
+</div>
+<div id="center-8" class="slot centerSlot">
+</div>
+<div id="center-9" class="slot centerSlot">
+</div>
+<div id="center-10" class="slot centerSlot">
+</div>
+<div id="center-11" class="slot centerSlot">
+</div>
+<div id="center-12" class="slot centerSlot">
+</div>
+<div id="center-13" class="slot centerSlot">
+</div>
+<div id="center-14" class="slot centerSlot">
+</div>
+<div id="center-15" class="slot centerSlot">
+</div>
+<div id="center-16" class="slot centerSlot">
+</div>
+<div id="center-17" class="slot centerSlot">
+</div>
+<div id="center-18" class="slot centerSlot">
+</div>
+<div id="center-19" class="slot centerSlot">
+</div>
+<div id="center-20" class="slot centerSlot">
+</div>
+<div id="center-21" class="slot centerSlot">
+</div>
+<div id="center-22" class="slot centerSlot">
+</div>
+<div id="center-23" class="slot centerSlot">
+</div>
+<div id="center-24" class="slot centerSlot">
+</div>
+<div id="center-25" class="slot centerSlot">
+</div>
+<div id="center-26" class="slot centerSlot">
+</div>
+<div id="center-27" class="slot centerSlot">
+</div>
+<div id="center-28" class="slot centerSlot">
+</div>
+<div id="center-29" class="slot centerSlot">
+</div>
+<div id="center-30" class="slot centerSlot">
+</div>
+<div id="center-31" class="slot centerSlot">
+</div>
+<div id="center-32" class="slot centerSlot">
+</div>
+<div id="center-33" class="slot centerSlot">
+</div>
+<div id="center-34" class="slot centerSlot">
+</div>
+<div id="center-35" class="slot centerSlot">
+</div>
+<div id="center-36" class="slot centerSlot">
+</div>
+<div id="center-37" class="slot centerSlot">
+</div>
+<div id="center-38" class="slot centerSlot">
+</div>
+<div id="center-39" class="slot centerSlot">
+</div>
+<div id="center-40" class="slot centerSlot">
+</div>
+<div id="center-41" class="slot centerSlot">
+</div>
+<div id="center-42" class="slot centerSlot">
+</div>
+<div id="center-43" class="slot centerSlot">
+</div>
+<div id="center-44" class="slot centerSlot">
+</div>
+<div id="center-45" class="slot centerSlot">
+</div>
+<div id="center-46" class="slot centerSlot">
+</div>
+<div id="center-47" class="slot centerSlot">
+</div>
+<div id="center-48" class="slot centerSlot">
+</div>
+<div id="center-49" class="slot centerSlot">
+</div>
+<div id="center-50" class="slot centerSlot">
+</div>
+</div>
+<div id="bottom-0" class="slot bottomSlot">
+</div>
+<div id="nav-footer" class="slot bottomSlot">
+<footer role="contentinfo">
+<adbl-style-scope>
+<slot></slot>
+<adbl-theme mode="light">
+<div class="adbl-bg-background">
+<div class="adbl-footer-container adbl-mx-auto adbl-stack adbl-gap-1 adbl-py-1.5 adbl-px-3">
+<nav class="adbl-cluster adbl-column-gap-2 adbl-row-gap-0">
+<adbl-nav-link variant="tertiary" data-testid="footer-AccountDetails">
+<a href="/account/overview?ref=a_library_w_nfo_adbl_nav_footer_account_details">Account Details</a>
+</adbl-nav-link>
+<adbl-nav-link variant="tertiary" data-testid="footer-HelpCenter">
+<a href="https://help.audible.com">Help Center</a>
+</adbl-nav-link>
+<adbl-nav-link variant="tertiary" data-testid="footer-ContactUs">
+<a href="/contactus?ref=a_library_w_nfo_adbl_nav_footer_contact_us">Contact Us</a>
+</adbl-nav-link>
+<adbl-nav-link variant="tertiary" data-testid="footer-ConditionsOfUse">
+<a href="/legal/conditions-of-use?ref=a_library_w_nfo_adbl_nav_footer_conditions_of_use">Conditions of Use</a>
+</adbl-nav-link>
+<adbl-nav-link variant="tertiary" data-testid="footer-PrivacyPolicy">
+<a href="https://www.amazon.com/gp/help/customer/display.html/?nodeId=468496">Privacy Policy</a>
+</adbl-nav-link>
+<adbl-nav-link variant="tertiary" data-testid="footer-InterestBasedAds">
+<a href="/legal/interest-based-ads-notice?ref=a_library_w_nfo_adbl_nav_footer_interest_based_ads">Interest-Based Ads</a>
+</adbl-nav-link>
+<adbl-nav-link variant="tertiary" data-testid="footer-Cookies">
+<a href="https://www.amazon.com/gp/help/customer/display.html/?nodeId=201890250">Cookies</a>
+</adbl-nav-link>
+<adbl-nav-link variant="tertiary" data-testid="footer-Accessibility">
+<a href="/ep/accessibility?ref=a_library_w_nfo_adbl_nav_footer_accessibility">Accessibility</a>
+</adbl-nav-link>
+<adbl-nav-link variant="tertiary" data-testid="footer-CountrySelector">
+<a href="https://www.audible.com/ep/country-selector?ref=a_library_w_nfo_adbl_nav_footer_country_selector">United States (English)</a>
+</adbl-nav-link>
+<adbl-nav-link variant="tertiary" data-testid="footer-License">
+<a href="/legal/license-agreement?ref=a_library_w_nfo_adbl_nav_footer_license">License</a>
+</adbl-nav-link>
+<adbl-nav-link variant="tertiary" data-testid="footer-AdsPrivacy">
+<a href="/audible-ads-privacy?ref_=adbl_iba_web&amp;ref=a_library_w_nfo_adbl_nav_footer_ads_privacy">Your ads privacy choices
+</a>
+</adbl-nav-link>
+<adbl-nav-link variant="tertiary" data-testid="footer-AudibleForBusiness">
+<a href="https://www.audible.com/business?ref=a_library_w_nfo_adbl_nav_footer_audible_for_business">Audible for Business</a>
+</adbl-nav-link>
+</nav>
+<div class="adbl-cluster adbl-row-gap-0 adbl-column-gap-2">
+<span class="adbl-text-action-s adbl-text-secondary-fill adbl-py-1" data-testid="footer-copyright">
+© Copyright 1997 - 2026 Audible, Inc</span>
+</div>
+</div>
+</div>
+</adbl-theme>
+</adbl-style-scope>
+</footer>
+</div>
+<span id="adbl_localization_prefs" data-json="{&quot;timezoneOffset&quot;:60,&quot;timezoneName&quot;:&quot;Europe/Amsterdam&quot;}"></span>
+<div id="bottom-2" class="slot bottomSlot">
+</div>
+<div id="debugInfo" class="slot bottomSlot">
+</div>
+</div>
+</adbl-page>
+<div id="be" style="display:none;visibility:hidden;"><form name="ue_backdetect" action="get"><input type="hidden" name="ue_back" value=""></form>
+</div>
+<div id="bc-outside-container" class=" desktop"></div><div id="toast" class="toast-hide" role="alert"><span class="toast-message"></span><button class="bc-link bc-hidden toast-action-button"><span class="toast-action-message bc-text bc-size-base"></span></button></div><audio id="webPlayer"></audio><div class="bc-popover-container"></div><div id="bc-modal-overlay" class="bc-overlay-legacy"></div><div id="batBeacon494562633242" style="width: 0px; height: 0px; display: none; visibility: hidden;"><img id="batBeacon867291835625" width="0" height="0" alt="" src="https://bat.bing.net/action/0?ti=4004590&amp;Ver=2&amp;mid=165622be-e293-45fa-aabd-5cf29f4f7528&amp;bo=2&amp;pi=918639831&amp;lg=en-US&amp;sw=1728&amp;sh=1117&amp;sc=30&amp;tl=My%20Library%20%7C%20Audible.com&amp;p=https%3A%2F%2Fwww.audible.com%2Flibrary%2Fwishlist%3FipRedirectOverride%3Dtrue&amp;r=&amp;lt=740&amp;evt=pageLoad&amp;sv=2&amp;asc=D&amp;cdb=AQAY&amp;rn=561255" style="width: 0px; height: 0px; display: none; visibility: hidden;"></div>
+<img src="https://ad.doubleclick.net/ddm/activity/src=5164101;type=merch;cat=genuniq0;transaction_id=;u3=RegNoBuy;u8=ANONAUDW0378WS010202;u18=;dc_lat=;dc_rdid=;tag_for_child_directed_treatment=;tfua=;npa=;ord=1" height="1" width="1" border="0" style="display:none"><img src="https://ad.doubleclick.net/ddm/activity/src=5164101;type=universl;cat=audib0;transaction_id=;u3=RegNoBuy;u8=ANONAUDW0378WS010202;u18=;dc_lat=;dc_rdid=;tag_for_child_directed_treatment=;tfua=;npa=;ord=1" height="1" width="1" border="0" style="display:none"></body></html>

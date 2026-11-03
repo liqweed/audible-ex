@@ -22,7 +22,8 @@ reads the gate from `gates.command` and the required check from
 `ci.required_checks` in `.config/jig.yaml`. The background worker serves the `agx`
 port (`LookupQueue`, `PortServer`) and the content script finds cards, shows badges
 and the hover overview (`src/content/`); the popup has the on/off switch and the
-cache size and clearing. The panel and filters are later work.
+cache size and clearing; a floating panel (its own content script, D19) shows lookup
+progress. Its drag, collapse and hide controls and the filters are later work.
 
 ## Non-negotiables
 
@@ -53,7 +54,7 @@ same command on every pull request:
 ```sh
 bun check   # biome ci → effect-tsgo tsc --noEmit → bun test
 bun run build   # wxt build; also run it when you touch wxt.config.ts or entrypoints
-bun scripts/check-content-size.ts   # after the build: the content script's gzipped size budget
+bun scripts/check-content-size.ts   # after the build: gzipped size budgets of content.js (50 KB) and panel.js (100 KB)
 ```
 
 Run these yourself before pushing; CI repeats them (and builds Firefox) and uploads the unpacked
@@ -67,7 +68,7 @@ doesn't check Markdown (DECISIONS.md D4): keep docs tidy by review.
 | Hammering Goodreads, getting the extension blocked | All lookups through `LookupQueue` and `BookCache`; no new request paths without review   |
 | Hiding a book before its data arrives (page jumps) | Filter verdict is `show` for any book not `ready` (`src/core/filter.ts`)                 |
 | Breaking Audible carousels                         | Cards in carousels are dimmed, never hidden                                              |
-| A content script that slows every Audible page     | Content script imports only `effect/Schema` from Effect; no React for badges             |
+| A content script that slows every Audible page     | `content.js` imports only `effect/Schema` from Effect and no React; React lives in `panel.content` (D19) |
 | Store rejection or takedown                        | No new permission or host without updating ARCHITECTURE.md §11 and the privacy statement |
 | Settings lost or split per region                  | Prefs only in `storage.sync` via the `sync:prefs` item, with a version and migrations    |
 

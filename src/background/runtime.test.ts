@@ -76,8 +76,12 @@ describe('the live layer graph', () => {
       )
     )
 
-    expect(sent.map(m => m.status)).toEqual(['loading', 'ready', 'ready'])
-    const last = sent.at(-1) as {
+    const updates = sent.filter(m => m._tag === 'BookUpdate')
+    expect(updates.map(m => m.status)).toEqual(['loading', 'ready', 'ready'])
+    // The tab is also told its progress: the looked-up book is pending in the first message.
+    const progress = sent.filter(m => m._tag === 'Progress')
+    expect(progress[0]).toMatchObject({ queued: 1, active: 0, done: 0 })
+    const last = updates.at(-1) as {
       rating: { url: string; loose: boolean }
       details: { genres: string[]; year: number }
     }

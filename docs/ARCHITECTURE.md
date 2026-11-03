@@ -106,7 +106,7 @@ on it. Each service is a `Context` service with a live layer and a test layer.
 | `Goodreads`      | `search(meta)` via `book/auto_complete` (title only first, title and author when `needsAuthorSearch`) and the scoring rules, answering `Option<Match>`; `details(bookId)` from the book page's `__NEXT_DATA__` (genres, overview as text capped at 600 characters, first-published year). Responses are decoded with Schemas; a decode failure is a `FormatChanged` error, not a miss.                                                                      | `searchGoodreads`, `fetchDetails`                          |
 | `BookCache`      | IndexedDB stores `ratings` (by ASIN), `meta` (by ASIN), `details` (by Goodreads id), `pins` (ASIN → last seen) and `housekeeping` (last purge); layout in §8. Time limits: found 30 days, miss 7 days; failures are never stored. A fibre purges unpinned entries older than 32 days daily; pins expire 180 days after last seen in Library/Wish List. | `cacheGet/Set`, `pin`, `purge`                             |
 | `LookupQueue`    | The one place a book is looked up, for every tab: cache, then Audible metadata, then the Goodreads search; details for a found book. Dedupes in-flight work per ASIN and per Goodreads id (the shared work runs in the layer's scope, so one tab leaving cancels nothing another waits for). Every Goodreads request is a job for 3 workers, each holding 250 ms after a job; ratings run before details. A `RateLimited` pauses all workers with exponential backoff (5 s → 2 min, raised to `Retry-After`, capped at 5 min) and the job runs again after the pause, up to 3 times. A circuit breaker opens after 5 failures in a row; see below. | `grQueued`, `pumpGr`, `ratingFor`, `detailsFor`, `addYear` |
-| `ProgressHub`    | Per-tab counters (queued, active, done, cached, not found, failed, paused-until), published with `PubSub` to the tab's port.                                                                                                                                                                                                      | — (new)                                                    |
+| `ProgressHub`    | `track(publish)` for one tab's port session: the session reports when a lookup begins and how its rating ended, and the hub turns that, with the queue's running searches and pause, into the tab's counters (`src/core/progress.ts`) and calls `publish` when they change, at most every 100 ms; a tab with lookups pending also looks every 500 ms. Nothing is sent for a tab that has asked for nothing. | — (new)                                                    |
 | `PortServer`     | Accepts `runtime.connect` from content scripts, decodes messages, routes to the queue, encodes updates back. (One-off popup messages arrive with the popup, phase 1.)                                                                                                                                                                                      | — (new)                                                    |
 
 Pure logic stays outside Effect, in `src/core/` (title normalisation, author/title scoring, filter
@@ -171,7 +171,7 @@ Background → content
 | `BookUpdate` | `asin`, `status` (`loading`, `ready`, `notFound`, `failed`), `rating?` (`{ r, n, url, loose }`), `details?` (`{ genres, year, desc }`), `error?` (`{ reason, message }`, `reason` one of `httpError`, `rateLimited`, `formatChanged`, `noMetadata`) |
 | `Progress`   | `queued`, `active`, `done`, `cached`, `notFound`, `failed` (counters of this tab) and `pausedUntil?` (epoch milliseconds)                                                                                                                           |
 
-`PortServer` serves each port in its own session. `Hello` records the tab's region, which `Lookup` and `Retry` need; a `Lookup` before `Hello` is dropped and logged. A message that does not decode is dropped and logged as a warning; the port stays open. For each ASIN the server sends `loading` when the cache did not have it, then `ready` with the rating, then `ready` again with the details; a cached book with its details is one `ready` and no `loading`. A book that is not on Goodreads is `notFound`; any lookup failure is `failed` with its reason. If only the details fail, the `ready` with the rating stands. An ASIN already being looked up for the same port is not started twice, so a repeated `Hello` or `Lookup` (the content script re-sending the ASINs that had no answer after a reconnect) is harmless; `Retry` is a lookup again, since failures are not cached. When the port disconnects, only the session's waiting fibres end; lookups other tabs share carry on. The worker buffers a port's early messages (`buffered` in `src/background/port.ts`) because the runtime opens IndexedDB after `onConnect` fires. The server sees the port through the small `PortLike` interface, so tests use a fake. `Progress` is not sent yet (issue #31).
+`PortServer` serves each port in its own session. `Hello` records the tab's region, which `Lookup` and `Retry` need; a `Lookup` before `Hello` is dropped and logged. A message that does not decode is dropped and logged as a warning; the port stays open. For each ASIN the server sends `loading` when the cache did not have it, then `ready` with the rating, then `ready` again with the details; a cached book with its details is one `ready` and no `loading`. A book that is not on Goodreads is `notFound`; any lookup failure is `failed` with its reason. If only the details fail, the `ready` with the rating stands. An ASIN already being looked up for the same port is not started twice, so a repeated `Hello` or `Lookup` (the content script re-sending the ASINs that had no answer after a reconnect) is harmless; `Retry` is a lookup again, since failures are not cached. When the port disconnects, only the session's waiting fibres end; lookups other tabs share carry on. The worker buffers a port's early messages (`buffered` in `src/background/port.ts`) because the runtime opens IndexedDB after `onConnect` fires. The server sees the port through the small `PortLike` interface, so tests use a fake. The session reports each lookup to the `ProgressHub`, whose publisher sends the tab a `Progress` when its counters change. `done` counts every ASIN whose rating is settled, so the bar is `done / (done + queued + active)`; `cached`, `notFound` and `failed` are counted inside `done` and may overlap (a miss answered from the cache is both `cached` and `notFound`); of the ASINs still pending, `active` have a Goodreads search running (`LookupQueue.running`) and `queued` are the rest, waiting for the catalogue, a worker or a pause. A `Retry` takes the ASIN's earlier outcome back until it settles again. `pausedUntil` is set only while something is pending.
 
 `BookUpdate` carries what its `status` implies: `ready` has `rating` (and `details` once the book page has been read), `failed` has `error`, `loading` and `notFound` have neither. The `queued` status of §6's `BookView` exists in the content script's store only; the background never sends it.
 
@@ -208,8 +208,14 @@ else (cards linked from the cover only) the cover's `alt` text. The element sear
 userscript's. On the saved pages this places every badge where the userscript did
 (`src/content/fixtures.test.ts` compares each card with a copy of the userscript's code).
 
-**Book store (TanStack Store in phase 2).** Until then `src/content/books.ts` is a `Map` with
-`get`, `set` and `subscribe`, holding the same `BookView`s, so the swap touches that module only.
+**Book store (TanStack Store).** `src/content/books.ts` holds the tab's state in a TanStack `Store`
+(`BookStore.state`) and keeps the small interface the DOM code uses: `get`, `set`, `entries` and
+`subscribe`, whose listener hears which book changed. The panel reads `state` with selectors
+(`useStore`); the badges and the hover overview do not need React or a selector, and redrawing one
+book's cards when one book changes is cheaper than diffing the page. Each change replaces the
+`books` map, so a selector sees a new value; the background's `Progress` goes in through
+`setProgress` and does not call the per-book listeners. `prefs` and `peek` join the state in
+phase 3.
 
 ```ts
 type BookView = {
@@ -219,10 +225,10 @@ type BookView = {
   price?: { amount: number; currency: string }
 }
 type ContentState = {
-  books: Map<string, BookView>
-  progress: Progress
-  prefs: Prefs
-  peek: boolean
+  books: ReadonlyMap<string, BookView>
+  progress: Progress | undefined // until the background has sent any
+  prefs: Prefs // phase 3
+  peek: boolean // phase 3
 }
 ```
 
@@ -242,9 +248,20 @@ The box is `position: fixed` inside a shadow root on an `agx-overview-host` elem
 scanner), so Audible's CSS can't reach it. The host and its root are made by hand for now; the
 panel will take over the same root.
 
-**Floating panel.** React mounted with WXT's `createShadowRootUi` (`cssInjectionMode: 'ui'`), so
-Tailwind and Audible's CSS can't affect each other. The hover overview renders inside the same
-shadow root (`position: fixed`), which isolates it from page styles too.
+**Floating panel.** A second content script, `src/entrypoints/panel.content/` (DECISIONS.md D19), so
+React stays out of `content.js`. It draws React in a shadow root made by WXT's `createShadowRootUi`
+(host element `agx-panel`), so Tailwind and Audible's CSS can't affect each other. Its stylesheet is
+imported as text (`?inline`) and passed as the `css` option; `cssInjectionMode: 'ui'` would make WXT
+fetch the file from an extension URL and so list it in `web_accessible_resources`, which the manifest
+does not have. The hover overview keeps its own shadow root (`agx-overview-host`) in `content.js`.
+
+The two scripts share one isolated world, and meet through `src/content/shared.ts`: `content.js`
+publishes a `PanelHandle` (the book store's `state`, and `retryFailed()`) on `globalThis` and fires an
+`agx:panel-handle` event on the document; the panel script reads it with `watchHandle`, mounts when
+there is a handle and unmounts when it is withdrawn (the extension was switched off), through
+`runPanel` (`src/panel/host.ts`). There is one port per tab, and it is the badge script's. The panel
+shows nothing until the tab has asked for a book. `bun e2e` checks on live Audible that the panel's
+progress bar appears, which is the one thing `bun test` cannot prove about the shared world.
 
 - Shell: drag to a corner, collapse to a pill (rating icon + `34/60`), hide for this site. Hidden
   state is restored from the popup.
@@ -405,7 +422,8 @@ WXT `srcDir: 'src'`, so entrypoints live under `src/entrypoints` and the `@/` al
 src/
   entrypoints/
     background.ts            # builds the ManagedRuntime, starts PortServer
-    content/index.ts         # scanner, store, badges, filter applier, mounts the panel
+    content/index.ts         # scanner, store, badges, filter applier; publishes the panel handle (no React)
+    panel.content/index.tsx  # the floating panel: its own content script, React in a shadow root
     popup/                   # enable toggle, show panel, cache stats/clear
     options/                 # settings (TanStack Form), cache inspector (Table + Virtual)
   core/                      # pure TS, no DOM, no Effect: text.ts, matching.ts, filter.ts, regions.ts, asin.ts, page.ts,
@@ -414,9 +432,11 @@ src/
   background/                # Effect services: Goodreads.ts, AudibleCatalog.ts (with errors.ts, httpGet.ts), BookCache.ts,
                              #   BookCacheTest.ts (test layer over fake-indexeddb), HttpTest.ts (fake fetch for the network services' tests), LookupQueue.ts, ProgressHub.ts, PortServer.ts, layers.ts
   content/                   # main.ts (wires the parts below), scanner.ts, cards.ts, badges.ts, badges.css,
-                             #   books.ts (the book store, TanStack Store from phase 2), port-client.ts,
-                             #   schedule.ts; filter-applier.ts arrives with the filters
-  ui/                        # React: panel/, components/ (Radix-based), hooks/
+                             #   books.ts (the book store, a TanStack Store), shared.ts (the handle the panel reads),
+                             #   port-client.ts, schedule.ts; filter-applier.ts arrives with the filters
+  panel/                     # React, for the panel script only: Panel.tsx, host.ts (mounts it while the badge script
+                             #   has a handle), summary.ts (what to show for the counters), panel.css (Tailwind, as text)
+  ui/                        # React components shared with the popup and options page (Radix-based), hooks/
   storage/                   # WXT storage item definitions
   assets/                    # brand/ logo sources; icon.png (Conductor's repository icon)
   public/                    # icon/ PNGs, copied into the build as-is

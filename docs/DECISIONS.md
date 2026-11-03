@@ -238,3 +238,52 @@ before the listing goes public. Rejected: staying with Google-signed zips (no
 protection against an account takeover); a key file kept on disk or in CI
 (easier to leak than to lose); the `crx3` npm package (a dependency for what
 Chrome already does).
+
+## D19 — The panel is a second content script, with its own size budget (2026-11-03)
+
+The floating panel (phase 2) is React, and React does not fit the content
+script's budget. Measured on 2026-11-03 with Bun's bundler, minified, production
+mode, gzipped: React and `react-dom/client` alone 54 KB; with the Radix switch,
+slider and tooltip the panel needs 76 KB; `@tanstack/react-store` adds 3 KB. The
+content script that draws the badges is 37 KB against a budget of 50 KB
+(`scripts/check-content-size.ts`), so a panel inside it would make every Audible
+page carry about 113 KB, three times today's. So the panel is its own
+entrypoint, `src/entrypoints/panel.content/`, with the same `matches` and
+`all_frames: false`. WXT builds it as a separate file (`content-scripts/panel.js`,
+193 KB raw in a trial build with one Radix switch) and lists both files in one
+manifest entry. Both run on every Audible page; the split keeps `content.js`,
+the code that must stay cheap, free of React and keeps the 50 KB budget
+meaningful, but it does not make React load lazily. `check-content-size.ts`
+gets a second budget for `panel.js`, set from the first real build with room to
+grow, and CI keeps failing on either.
+
+The two scripts meet through the isolated world. All of an extension's content
+scripts in a frame share one isolated world, so `content.js` publishes its
+`BookStore` (D2's TanStack Store, `src/content/books.ts`) on a single property
+of `globalThis`, and announces it with an event on `document`; `panel.js` waits
+for it and renders nothing until it has the store and there is something to
+show. Neither opens a port of its own: a second port would be a second session
+with its own `Progress` counters (ARCHITECTURE.md §5). The shared-world
+behaviour is documented by Chrome and Firefox but is checked in a browser, not
+by `bun test`: the panel's pull request adds a step to `bun e2e` that fails
+if the panel does not find the store.
+
+Rejected: injecting the panel on demand with `scripting.executeScript` (a new
+permission, against ARCHITECTURE.md §11, for a saving of parse time that was not
+measured), and a dynamic `import()` of a chunk listed in
+`web_accessible_resources` (any Audible page could then probe for the extension,
+and it widens the manifest the store reviews). Also rejected for now: Preact
+through `preact/compat` to cut the 54 KB (a new dependency whose compatibility
+with Radix would have to be proven, for a cost that is local disk and parse
+time, not network), and drawing the panel in plain DOM like the badges (the
+filter controls are a slider, switches and a label picker with autocomplete, which
+is what Radix is for, and the options page will reuse the components).
+Revisit if the panel's parse time shows up in a measurement on a real Audible page;
+the first candidate then is `scripting.registerContentScripts` with a permission
+decision of its own.
+
+Follow-ups, each in the pull request that needs it: the second budget in
+`check-content-size.ts` and `docs/PLAN.md`'s CI table; ARCHITECTURE.md §6 and §12
+(the entrypoint and the shared store); the "no React for badges" guardrail in
+AGENTS.md, which stays true of `content.js` and gains "the panel is
+`panel.content`".

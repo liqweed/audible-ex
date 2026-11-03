@@ -21,14 +21,30 @@ export type Marketplace = 'uk' | 'com'
 export const fixtureHtml = (marketplace: Marketplace, page: string): string =>
   readFileSync(join(FIXTURES, marketplace, `${page}.html`), 'utf8')
 
+/**
+ * Replaces what the document holds with `html`, a whole page, but keeps the `<body>` element
+ * itself. Testing Library's `screen` is bound to `document.body` when the library is first
+ * imported; a body swapped for a new one would leave every later `screen` query looking at a
+ * detached element, whichever test file happened to import the library first.
+ */
+function replaceDocument(html: string): void {
+  const parsed = new DOMParser().parseFromString(html, 'text/html')
+  document.head.innerHTML = parsed.head.innerHTML
+  for (const { name } of [...document.body.attributes])
+    document.body.removeAttribute(name)
+  for (const { name, value } of [...parsed.body.attributes])
+    document.body.setAttribute(name, value)
+  document.body.innerHTML = parsed.body.innerHTML
+}
+
 /** Replaces the test document with a saved page (scripts are already stripped from fixtures). */
 export function loadFixture(marketplace: Marketplace, page: string): void {
-  document.documentElement.innerHTML = fixtureHtml(marketplace, page)
+  replaceDocument(fixtureHtml(marketplace, page))
 }
 
 /** Replaces the test document with a hand-written body. */
 export function loadBody(html: string): void {
-  document.documentElement.innerHTML = `<head></head><body>${html}</body>`
+  replaceDocument(`<head></head><body>${html}</body>`)
 }
 
 // ---------- IntersectionObserver ----------

@@ -1,9 +1,11 @@
 /**
- * What the content script knows about each book on the page, by ASIN. The shape is ARCHITECTURE.md
- * §6's `BookView`, so phase 2 can swap this module for the TanStack Store without touching the
- * badges: they only `get` a view and `subscribe` to changes. Until then a `Map` and a listener set
- * are all that is needed. Cards (DOM elements) are not in here; they stay in the scanner.
+ * What the content script knows about this tab, in a TanStack Store (ARCHITECTURE.md §6): each
+ * book by ASIN (`BookView`) and the background's latest progress counters. The panel reads the
+ * store with selectors; the badges and the hover overview keep to `get` and `subscribe`, which tell
+ * them which book changed, so they redraw one book's cards and not the page. Cards (DOM elements)
+ * are not in here; they stay in the scanner.
  */
+import { createStore, type Store } from '@tanstack/store'
 import type { BackgroundMessage } from '../schema/messages'
 
 export interface BookView {
@@ -32,7 +34,21 @@ export const hasOverview = (view: BookView | undefined): view is WithOverview =>
 
 export type BookListener = (asin: string, view: BookView) => void
 
+/** The background's counters for this tab (a `Progress` message without its tag). */
+export type ProgressView = Omit<
+  Extract<BackgroundMessage, { _tag: 'Progress' }>,
+  '_tag'
+>
+
+export interface ContentState {
+  readonly books: ReadonlyMap<string, BookView>
+  /** The latest counters; undefined until the background has sent any. */
+  readonly progress: ProgressView | undefined
+}
+
 export interface BookStore {
+  /** The state the panel selects from. Change it through the methods below only. */
+  readonly state: Store<ContentState>
   get(asin: string): BookView | undefined
   /** Replaces the view and tells every listener. */
   set(asin: string, view: BookView): void
@@ -40,24 +56,36 @@ export interface BookStore {
   entries(): IterableIterator<[string, BookView]>
   /** Returns the function that stops listening. */
   subscribe(listener: BookListener): () => void
+  /** Keeps the background's latest counters; they replace the earlier ones. */
+  setProgress(progress: ProgressView): void
 }
 
 export function createBookStore(): BookStore {
-  const books = new Map<string, BookView>()
+  const state = createStore<ContentState>({
+    books: new Map(),
+    progress: undefined,
+  })
   const listeners = new Set<BookListener>()
   return {
-    get: asin => books.get(asin),
+    state,
+    get: asin => state.get().books.get(asin),
     set(asin, view) {
-      books.set(asin, view)
+      state.setState(prev => ({
+        ...prev,
+        books: new Map(prev.books).set(asin, view),
+      }))
       // A copy, so a listener that unsubscribes while being called cannot skip another one.
       for (const listener of [...listeners]) listener(asin, view)
     },
-    entries: () => books.entries(),
+    entries: () => state.get().books.entries(),
     subscribe(listener) {
       listeners.add(listener)
       return () => {
         listeners.delete(listener)
       }
+    },
+    setProgress(progress) {
+      state.setState(prev => ({ ...prev, progress }))
     },
   }
 }

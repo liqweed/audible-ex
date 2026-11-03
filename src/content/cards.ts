@@ -19,8 +19,10 @@ export const NAVIGATION = 'header, nav, footer, [role="navigation"]'
 export const POPOVER = '.bc-popover'
 /** The element that holds the hover overview's shadow root (overview.ts). */
 export const OVERVIEW_HOST = 'agx-overview-host'
+/** The element that holds the floating panel's shadow root (the panel content script). */
+export const PANEL_HOST = 'agx-panel'
 /** What the extension adds to the page, so its own changes are never scanned. */
-export const OUR_NODES = `.agx-wrap, .agx-li, .${OVERVIEW_HOST}`
+export const OUR_NODES = `.agx-wrap, .agx-li, .${OVERVIEW_HOST}, ${PANEL_HOST}`
 
 const PRODUCT_LINKS = 'a[href*="/pd/"]'
 const HEADINGS = 'h1,h2,h3,h4'
@@ -114,8 +116,8 @@ function looksLikeTitle(el: Element, title: string): boolean {
 
 /**
  * The element that holds the title inside `scope`. `inPopover` decides whether popover content is
- * allowed. First a text link to the book (in a heading when there is one), then any heading, span or
- * paragraph showing `title` (the home page's daily deal).
+ * allowed. First a text link to the book that reads like `title` (else one in a heading), then any
+ * heading, span or paragraph showing `title` (the home page's daily deal).
  */
 export function findTitleEl(
   scope: Element,
@@ -124,7 +126,11 @@ export function findTitleEl(
   inPopover: boolean
 ): Element | null {
   const links = textLinks(scope, asin, inPopover)
-  const link = links.find(a => a.closest(HEADINGS)) ?? links[0]
+  // As the userscript: a link that reads like the title, else one in a heading. Any other text
+  // link to the ASIN is not the title (the Download menu's "Full" links to `?asin=…`).
+  const link =
+    links.find(a => looksLikeTitle(a, title)) ??
+    links.find(a => a.closest(HEADINGS))
   if (link) return link
   if (!title) return null
   return (

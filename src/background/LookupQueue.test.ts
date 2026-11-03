@@ -412,6 +412,33 @@ describe('LookupQueue pacing', () => {
   )
 })
 
+describe('LookupQueue.running', () => {
+  const holds = { 1: latch(), 2: latch() }
+
+  scenario(
+    'names the ASINs whose search is running, and only those',
+    holding(holds),
+    s =>
+      Effect.gen(function* () {
+        expect(yield* s.queue.running).toEqual(new Set())
+        const first = yield* s.ask(1)
+        const second = yield* s.ask(2)
+        yield* settle
+        expect(yield* s.queue.running).toEqual(new Set([asin(1), asin(2)]))
+
+        yield* holds[1].open
+        yield* settle
+        expect(yield* s.queue.running).toEqual(new Set([asin(2)]))
+
+        yield* holds[2].open
+        yield* settle
+        expect(yield* s.queue.running).toEqual(new Set())
+        yield* Fiber.join(first)
+        yield* Fiber.join(second)
+      })
+  )
+})
+
 describe('LookupQueue backoff', () => {
   const firstTimeLimited = (n: number, call: number) =>
     call === 1 ? Effect.fail(limited()) : Effect.succeedSome(matchFor(n))

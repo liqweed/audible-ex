@@ -27,12 +27,16 @@ import {
   settle,
 } from './LookupTest'
 import { PortServer, type PortServerService, reasonOf } from './PortServer'
+import { ProgressHub } from './ProgressHub'
 import type { PortLike } from './port'
 
 /** A `runtime.Port` the test drives by hand; like the browser's, it throws once disconnected. */
 class FakePort implements PortLike {
   readonly name = 'agx'
+  /** The `BookUpdate`s sent so far. */
   readonly sent: Array<Record<string, unknown>> = []
+  /** The `Progress` messages sent so far. */
+  readonly progress: Array<Record<string, unknown>> = []
   connected = true
   private readonly messageListeners: Array<(message: unknown) => void> = []
   private readonly disconnectListeners: Array<() => void> = []
@@ -41,7 +45,8 @@ class FakePort implements PortLike {
     if (!this.connected) {
       throw new Error('Attempting to use a disconnected port object')
     }
-    this.sent.push(message as Record<string, unknown>)
+    const sent = message as Record<string, unknown>
+    ;(sent._tag === 'Progress' ? this.progress : this.sent).push(sent)
   }
   readonly onMessage = {
     addListener: (listener: (message: unknown) => void) => {
@@ -113,7 +118,9 @@ const harness = (
     Layer.provideMerge(capture(logs))
   )
   const layer = PortServer.layer.pipe(
-    Layer.provideMerge(LookupQueue.layer),
+    Layer.provideMerge(
+      ProgressHub.layer.pipe(Layer.provideMerge(LookupQueue.layer))
+    ),
     Layer.provideMerge(deps)
   )
   const run = <A>(body: (h: Harness) => Effect.Effect<A, unknown>) =>
@@ -413,6 +420,181 @@ describe('PortServer failures', () => {
         ).not.toThrow()
       }
     })
+  )
+})
+
+describe('PortServer progress', () => {
+  /** Long enough for the publisher to poll the queue (500 ms) and wait its gap (100 ms). */
+  const SETTLE_MS = 1_000
+
+  const seeded = (h: Harness, n: number) =>
+    h.cache.ratings.set(asin(n), {
+      _tag: 'Found',
+      asin: asin(n),
+      savedAt: 0,
+      ...matchFor(n),
+      r: 3.9,
+      n: 77,
+    })
+
+  const lastProgress = (port: FakePort) => port.progress.at(-1)
+
+  scenario('sends a tab that has asked for nothing no Progress', {}, h =>
+    Effect.gen(function* () {
+      const port = yield* h.connect()
+      port.say(hello)
+      yield* TestClock.adjust(SETTLE_MS)
+      yield* settle
+      expect(port.progress).toEqual([])
+    })
+  )
+
+  test('counts a book as active while its search runs, then as done', async () => {
+    const gate = latch()
+    await harness({
+      search: n => gate.wait.pipe(Effect.as(Option.some(matchFor(n)))),
+    }).run(h =>
+      Effect.gen(function* () {
+        const port = yield* h.connect()
+        const idle = yield* h.connect()
+        port.say(hello)
+        idle.say(hello)
+        port.say(lookup(1, 2))
+        yield* TestClock.adjust(SETTLE_MS)
+        yield* settle
+        expect(lastProgress(port)).toEqual({
+          _tag: 'Progress',
+          queued: 0,
+          active: 2,
+          done: 0,
+          cached: 0,
+          notFound: 0,
+          failed: 0,
+        })
+
+        yield* gate.open
+        yield* TestClock.adjust(SETTLE_MS)
+        yield* settle
+        expect(lastProgress(port)).toEqual({
+          _tag: 'Progress',
+          queued: 0,
+          active: 0,
+          done: 2,
+          cached: 0,
+          notFound: 0,
+          failed: 0,
+        })
+        // The counters are this tab's: another tab asked for nothing and hears nothing.
+        expect(idle.progress).toEqual([])
+        for (const message of port.progress) {
+          expect(() =>
+            Schema.decodeUnknownSync(BackgroundMessage)(message)
+          ).not.toThrow()
+        }
+      })
+    )
+  })
+
+  scenario('counts a book answered from the cache as done and cached', {}, h =>
+    Effect.gen(function* () {
+      seeded(h, 1)
+      const port = yield* h.connect()
+      port.say(hello)
+      port.say(lookup(1))
+      yield* TestClock.adjust(SETTLE_MS)
+      yield* settle
+      expect(lastProgress(port)).toMatchObject({
+        queued: 0,
+        active: 0,
+        done: 1,
+        cached: 1,
+        notFound: 0,
+        failed: 0,
+      })
+      expect(searches(h.calls)).toEqual([])
+    })
+  )
+
+  scenario(
+    'counts a book that is not on Goodreads as done and not found',
+    { search: () => Effect.succeedNone },
+    h =>
+      Effect.gen(function* () {
+        const port = yield* h.connect()
+        port.say(hello)
+        port.say(lookup(1))
+        yield* TestClock.adjust(SETTLE_MS)
+        yield* settle
+        expect(lastProgress(port)).toMatchObject({
+          done: 1,
+          cached: 0,
+          notFound: 1,
+          failed: 0,
+        })
+      })
+  )
+
+  scenario(
+    'counts a failed book, and takes it back when Retry succeeds',
+    {
+      search: (n, call) =>
+        call === 1
+          ? Effect.fail(
+              new HttpError({ status: 500, url: 'u', cause: undefined })
+            )
+          : Effect.succeedSome(matchFor(n)),
+    },
+    h =>
+      Effect.gen(function* () {
+        const port = yield* h.connect()
+        port.say(hello)
+        port.say(lookup(1))
+        yield* TestClock.adjust(SETTLE_MS)
+        yield* settle
+        expect(lastProgress(port)).toMatchObject({ done: 1, failed: 1 })
+
+        port.say({ _tag: 'Retry', asins: [asin(1)] })
+        yield* TestClock.adjust(SETTLE_MS)
+        yield* settle
+        expect(lastProgress(port)).toMatchObject({ done: 1, failed: 0 })
+      })
+  )
+
+  scenario(
+    'reports the pause while the queue backs off, and drops it afterwards',
+    {
+      search: (n, call) =>
+        call === 1
+          ? Effect.fail(
+              new RateLimited({
+                status: 429,
+                url: 'u',
+                retryAfter: undefined,
+              })
+            )
+          : Effect.succeedSome(matchFor(n)),
+    },
+    h =>
+      Effect.gen(function* () {
+        const port = yield* h.connect()
+        port.say(hello)
+        port.say(lookup(1))
+        // The search is rate-limited at 0 ms, so the pause ends at 5 s.
+        yield* settle
+        yield* TestClock.adjust(SETTLE_MS)
+        yield* settle
+        expect(lastProgress(port)).toMatchObject({
+          queued: 1,
+          done: 0,
+          pausedUntil: 5_000,
+        })
+
+        yield* TestClock.adjust(6_000)
+        yield* settle
+        const last = lastProgress(port)
+        expect(last).toMatchObject({ queued: 0, active: 0, done: 1 })
+        expect(last).not.toHaveProperty('pausedUntil')
+      })
   )
 })
 
