@@ -223,8 +223,11 @@ Afterwards, before 1.0
       `.github/workflows/changelog.yml`. Change notes are already on
       (DECISIONS.md D10); until this lands, releases are cut by hand as
       `changes/README.md` describes.
-- [ ] Release workflow (see [CI](#ci)): on a version tag, build both zips and
-      attach them to a GitHub release.
+- [ ] Release workflow (see [CI](#ci), DECISIONS.md D20): on a version tag,
+      build both zips and attach them to a GitHub release, then sign the Chrome
+      build and submit it to the store. `release.yml` is written; the one-time
+      setup (environments, Google Workload Identity, variables) is in
+      STORE-LISTING.md, "Automated releases".
 - [ ] Add an AI reviewer (CodeRabbit is free for public repositories) and set
       `review.*` in `.config/jig.yaml`, so `/jig:drive-pr` can run review
       rounds unattended.
@@ -238,8 +241,6 @@ Afterwards, before 1.0
 - Duration and narrator filters.
 - Rating distribution on hover (needs the book page's histogram; check it's in
   `__NEXT_DATA__`).
-- Automated store upload from the release workflow (`wxt submit`), once manual
-  releases are routine.
 
 ## CI
 
@@ -270,7 +271,7 @@ Added later:
 | 1     | Content-script size budget: `scripts/check-content-size.ts` fails when `content-scripts/content.js` passes 50 KB gzipped (set from a 36 KB build). |
 | 2     | The same script also fails when `content-scripts/panel.js` passes 120 KB gzipped (a 64 KB build; raised in phase 3 for the Schema-decoded prefs and the Radix filter controls, 104.7 KB). |
 | 1     | `bun run build` for Firefox as a second step, so a Chrome-only API is caught early.                                  |
-| 5     | `release.yml` on `v*` tags: build Chrome and Firefox zips, attach to a GitHub release; Jig's changelog check on PRs. |
+| 5     | `release.yml` on `v*` tags: gate, build, attach the Chrome and Firefox zips to a GitHub release, sign the CRX and submit it to the store (D20); Jig's changelog check on PRs. |
 | Later | Nightly (not per-PR) Playwright smoke run against live Audible, reporting to an issue on failure.                    |
 
 End-to-end tests against live sites never gate a pull request: the sites change

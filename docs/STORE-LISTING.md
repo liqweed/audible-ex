@@ -162,3 +162,62 @@ NQIDAQAB
 4. Fill the three tabs from this file; upload the assets.
 5. **Submit for review.** After approval, install from the store link and check
    badges on two marketplaces.
+
+## Automated releases
+
+`.github/workflows/release.yml` does steps 1 and 3–5 of "Submitting a release"
+for every release after the first (DECISIONS.md D20). A person runs the release
+commit (`changes/README.md`), pushes `vx.y.z`, and approves the
+`chrome-web-store` environment in the Actions run. The run checks that the tag
+matches `package.json` and is on `main`, gates, builds, signs (`sign` job),
+uploads and submits (`publish` job) and attaches the zips to a GitHub release.
+The store then reviews it as usual; read the result in the dashboard.
+
+One-time setup, in this order (not yet done):
+
+1. **Opt in to Verified CRX uploads** (D18, after 0.1.0's first review). Put the
+   private key from 1Password into the repository's secret `CWS_SIGNING_KEY`,
+   under the `release-signing` environment, not the repository's secrets.
+2. **Environments** (Settings → Environments): `release-signing` and
+   `chrome-web-store`, each with *Deployment branches and tags* limited to the
+   tag pattern `v*`; `chrome-web-store` with *Required reviewers* set to the
+   owner.
+3. **A ruleset on `v*` tags** (Settings → Rules) that restricts who can create
+   them to the owner.
+4. **Google Cloud**: a project with the Chrome Web Store API enabled; a service
+   account; a Workload Identity pool and provider for GitHub with the attribute
+   condition `assertion.repository == 'liqweed/audible-ex'` and
+   `assertion.environment == 'chrome-web-store'` and
+   `assertion.job_workflow_ref` starting with
+   `liqweed/audible-ex/.github/workflows/release.yml@refs/tags/v`; the role
+   *Workload Identity User* on the service account for that provider's principal.
+5. **Add the service account to the store publisher** (developer dashboard →
+   Account → the publisher's service accounts), and note the publisher ID
+   (Account page).
+6. **Repository variables** (not secrets): `GCP_WORKLOAD_IDENTITY_PROVIDER`
+   (`projects/…/locations/global/workloadIdentityPools/…/providers/…`),
+   `GCP_SERVICE_ACCOUNT` (its email) and `CWS_PUBLISHER_ID`.
+7. **Try the credentials without releasing.** `gcloud auth print-access-token
+   --impersonate-service-account` drops the scope, so mint the token with the
+   scope the workflow asks for (needs *Service Account Token Creator* on the
+   service account for your own account):
+
+   ```sh
+   SA=cws-publisher@audible-ex.iam.gserviceaccount.com
+   TOKEN=$(curl -s -X POST "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${SA}:generateAccessToken" \
+     -H "Authorization: Bearer $(gcloud auth print-access-token)" -H "Content-Type: application/json" \
+     -d '{"scope":["https://www.googleapis.com/auth/chromewebstore"]}' | jq -r .accessToken)
+   bun run build && bun crx
+   CWS_ACCESS_TOKEN=$TOKEN CWS_PUBLISHER_ID=<id> bun scripts/upload-cws.ts --dry-run .output/audible-ex-<version>-chrome.crx
+   ```
+
+   It checks the signature, the token and the item's state without uploading.
+   Done on 2026-11-03: the service account is accepted by the store (it was
+   added in the dashboard's Account tab) and the item reports `PUBLISHED`.
+
+Not verified against the live store: the upload itself (`X-Goog-Upload-Protocol:
+raw` with a CRX under API v2), the Workload Identity exchange from GitHub, and
+that Chrome's `--pack-extension` runs on the CI runner (it does on a Mac). Watch
+the first automated release and fix what it shows; the manual route above still
+works. A submission already in review makes the run stop with a message (cancel
+it in the dashboard, then re-run the job).

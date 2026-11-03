@@ -58,8 +58,9 @@ bun scripts/check-content-size.ts   # after the build: gzipped size budgets of c
 ```
 
 Run these yourself before pushing; CI repeats them (and builds Firefox) and uploads the unpacked
-extension (`.output/chrome-mv3`) as an artifact for loading in Chrome. Biome
-doesn't check Markdown (DECISIONS.md D4): keep docs tidy by review.
+extension (`.output/chrome-mv3`) as an artifact for loading in Chrome.
+A `v*` tag on `main` runs `.github/workflows/release.yml`, which signs the build and
+submits it to the Chrome Web Store (DECISIONS.md D20). Biome doesn't check Markdown (DECISIONS.md D4): keep docs tidy by review.
 
 ## Guardrails
 

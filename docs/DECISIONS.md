@@ -296,3 +296,42 @@ the pull request that added the controls. Measured against alternatives: a
 hand-written debounce saves 3.5 KB; decoding without Schema would save about
 23 KB (the measure above) but leave the panel's records unchecked, which the rest of the code base
 does not do. The content script stays at 38 KB of 50.
+
+## D20 — A version tag releases to the Chrome Web Store (2026-11-03)
+
+Pushing a `vX.Y.Z` tag on a commit of `main` builds the extension, signs it and
+submits it to the store for review, with no manual upload (`release.yml`, PLAN.md
+phase 5). A person still decides when: they cut the release commit and push the
+tag, and the `chrome-web-store` environment asks for their approval before
+anything is uploaded. Store review stays Google's; the version reaches users when
+it is approved (`publishType: DEFAULT_PUBLISH`; `STAGED_PUBLISH` would hold an
+approved version until someone publishes it).
+
+This supersedes the part of D18 that kept the signing key out of CI. The key now
+also lives in an environment secret (`CWS_SIGNING_KEY` in `release-signing`);
+1Password stays the master copy and the way to sign by hand. What D18 protects
+still holds, with four fences: the secret exists only in the `sign` job, which
+has no store access; the store credential is never stored (the `publish` job
+exchanges GitHub's OIDC token for a short-lived Google access token through
+Workload Identity Federation, so there is no refresh token to leak or expire
+after 7 days on an OAuth screen left in testing), and that job has no key and
+installs no packages; both environments accept only `v*` tags, and a ruleset
+limits who can create them; and `upload-cws.ts` verifies the CRX against the
+committed public key before sending it. A leaked store credential alone still
+cannot publish, and neither can a leaked tag.
+
+Not `wxt submit`: its Chrome upload sends a zip without the raw-upload headers a
+signed CRX needs (publish-browser-extension 6.2.0), so `scripts/upload-cws.ts`
+calls the v2 API with `fetch` (about 100 lines, tested with a fake store). The
+v1.1 API, which older tools still use, stopped working on 2026-10-15. The one
+new dependency is the Action `google-github-actions/auth`, pinned by digest and
+kept current by Renovate. The same workflow attaches the Chrome and Firefox zips
+to a GitHub release.
+
+Rejected: a long-lived OAuth refresh token or service-account key in secrets
+(more to leak, and the first expires weekly while the consent screen is in
+testing); signing and uploading in one job (one compromised step would hold both
+halves); leaving the key in 1Password only (every release stays a manual step
+for the sake of a risk the fences already cover). Not covered: a person with
+write access who can push a tag and approve the environment can release; make
+sure that is only the owner.
