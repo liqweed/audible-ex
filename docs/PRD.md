@@ -9,7 +9,7 @@ audible-ex is a browser extension for Audible. On every book card it shows the
 book's Goodreads rating, number of ratings, first-published year and top genres,
 with the Goodreads overview on hover. A floating panel shows how far the lookups
 have got and holds personal filters (minimum rating, minimum number of ratings,
-hidden genres, later price and year) that hide or dim the books that don't
+hidden genres, first-published year, later price) that hide or dim the books that don't
 qualify. Filters persist and follow the user across devices and Audible
 regions.
 
@@ -80,7 +80,11 @@ catalogue goes unchecked.
 - Filters are saved in browser sync storage: they persist across restarts,
   follow the user's Chrome profile to other devices, apply on every
   marketplace, and update open tabs at once.
-- Later in phase 3: maximum price per marketplace; first-published year range.
+- First-published year range: optional, inclusive lower and upper bounds; blank
+  means no bound. Negative years represent BCE. Missing years stay visible
+  unless another filter applies, including while details are still loading.
+  Invalid years or reversed ranges are not saved.
+- Later in phase 3: maximum price per marketplace.
 
 ### R4 — Popup and options (phases 1 and 4)
 

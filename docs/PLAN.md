@@ -170,7 +170,9 @@ Release 0.3.
 - [ ] Find out whether `catalog/products` returns price without signing in. If
       yes, extend `AudibleCatalog`; if not, parse price from the card text per
       region.
-- [ ] `maxPrice` per region; first-published year range.
+- [x] First-published year range: inclusive optional bounds in the panel,
+      synced across tabs; missing years stay visible unless another filter applies.
+- [ ] `maxPrice` per region.
 
 Exit: preferences survive browser restart and sync to a second Chrome profile
 signed into the same account; filtering never hides a card whose data hasn't

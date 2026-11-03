@@ -190,6 +190,114 @@ describe('the settings', () => {
   })
 })
 
+describe('the first-published year range', () => {
+  const from = () => screen.getByLabelText('From year') as HTMLInputElement
+  const to = () => screen.getByLabelText('To year') as HTMLInputElement
+
+  test('starts open at both ends and saves the range together after typing pauses', async () => {
+    const { handle } = setup()
+    await show(handle)
+    openSettings()
+    expect(from().value).toBe('')
+    expect(to().value).toBe('')
+    fireEvent.change(from(), { target: { value: '2000' } })
+    fireEvent.change(to(), { target: { value: '2020' } })
+    expect((await saved()).minYear).toBeNull()
+    await waitFor(async () => {
+      const filters = await saved()
+      expect(filters.minYear).toBe(2000)
+      expect(filters.maxYear).toBe(2020)
+    })
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  test('keeps a bound open, supports BCE, and clears back to any year', async () => {
+    await updateFilters({ minYear: -800, maxYear: -700 })
+    const { handle } = setup()
+    await show(handle)
+    openSettings()
+    expect(from().value).toBe('-800')
+    expect(to().value).toBe('-700')
+    fireEvent.change(from(), { target: { value: '' } })
+    await waitFor(async () => {
+      expect((await saved()).minYear).toBeNull()
+      expect((await saved()).maxYear).toBe(-700)
+    })
+    fireEvent.change(to(), { target: { value: '' } })
+    await waitFor(async () => expect((await saved()).maxYear).toBeNull())
+    fireEvent.change(from(), { target: { value: '-600' } })
+    await waitFor(async () => expect((await saved()).minYear).toBe(-600))
+  })
+
+  test('a reversed range shows an error and keeps the last saved range until corrected', async () => {
+    await updateFilters({ minYear: 2000, maxYear: 2020 })
+    const { handle } = setup()
+    await show(handle)
+    openSettings()
+    fireEvent.change(from(), { target: { value: '2030' } })
+    expect(screen.getByRole('alert').textContent).toContain('From year')
+    expect(from().getAttribute('aria-invalid')).toBe('true')
+    await act(() => Bun.sleep(350))
+    expect((await saved()).minYear).toBe(2000)
+    fireEvent.change(to(), { target: { value: '2030' } })
+    await waitFor(async () => {
+      expect((await saved()).minYear).toBe(2030)
+      expect((await saved()).maxYear).toBe(2030)
+    })
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  test.each(['0', '2000.5', 'unknown', '-'])(
+    'does not save the invalid year %s, even on close',
+    async text => {
+      await updateFilters({ minYear: 2000 })
+      const { handle } = setup()
+      await show(handle)
+      openSettings()
+      fireEvent.change(from(), { target: { value: text } })
+      expect(screen.getByRole('alert').textContent).toContain('whole years')
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Hide filter settings' })
+      )
+      await act(() => Bun.sleep(10))
+      expect((await saved()).minYear).toBe(2000)
+      openSettings()
+      expect(from().value).toBe('2000')
+    }
+  )
+
+  test('saves pending edits on collapse and reloads them when reopened', async () => {
+    const { handle } = setup()
+    await show(handle)
+    openSettings()
+    fireEvent.change(from(), { target: { value: '1990' } })
+    fireEvent.change(to(), { target: { value: '2000' } })
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Hide filter settings' })
+    )
+    await waitFor(async () => expect((await saved()).maxYear).toBe(2000))
+    cleanup()
+    await show(handle)
+    openSettings()
+    expect(from().value).toBe('1990')
+    expect(to().value).toBe('2000')
+  })
+
+  test('follows year edits from another tab and preserves a draft during unrelated changes', async () => {
+    const { handle } = setup()
+    await show(handle)
+    openSettings()
+    await act(() => updateFilters({ minYear: 2000, maxYear: 2020 }))
+    await waitFor(() => expect(from().value).toBe('2000'))
+    expect(to().value).toBe('2020')
+    fireEvent.change(from(), { target: { value: '2010' } })
+    await act(() => updateFilters({ minRatings: 100 }))
+    expect(from().value).toBe('2010')
+    await waitFor(async () => expect((await saved()).minYear).toBe(2010))
+    expect((await saved()).minRatings).toBe(100)
+  })
+})
+
 describe('hidden labels', () => {
   function withGenres(books: BookStore) {
     const rating = { r: 4, n: 100, url: 'https://x.test', loose: false }

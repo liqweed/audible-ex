@@ -27,6 +27,8 @@ export const NO_FILTERS: FilterSettings = {
   enabled: false,
   minRating: 1,
   minRatings: 0,
+  minYear: null,
+  maxYear: null,
   hiddenLabels: [],
   notFound: 'show',
   mode: 'hide',

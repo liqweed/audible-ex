@@ -13,6 +13,8 @@ const settings: FilterSettings = {
   enabled: true,
   minRating: 4,
   minRatings: 50,
+  minYear: null,
+  maxYear: null,
   hiddenLabels: [],
   notFound: 'show',
   mode: 'hide',
@@ -84,6 +86,69 @@ describe('judge', () => {
     expect(judge(ready(1, 1), off)).toBe('show')
     expect(judge({ status: 'notFound' }, off)).toBe('show')
   })
+})
+
+describe('first-published year', () => {
+  const book = (year?: number): FilterBook => ({
+    ...ready(4.5, 900),
+    ...(year !== undefined && { details: { genres: [], year } }),
+  })
+  const range = with_({ minYear: 2000, maxYear: 2020 })
+
+  test.each([
+    [1999, 'hide'],
+    [2000, 'show'],
+    [2010, 'show'],
+    [2020, 'show'],
+    [2021, 'hide'],
+  ] as const)(
+    'year %s has the %s verdict (inclusive bounds)',
+    (year, expected) => {
+      expect(judge(book(year), range)).toBe(expected)
+    }
+  )
+
+  test('either end can be open and both are off by default', () => {
+    expect(judge(book(-700), settings)).toBe('show')
+    expect(judge(book(-700), with_({ maxYear: 2000 }))).toBe('show')
+    expect(judge(book(2050), with_({ minYear: 2000 }))).toBe('show')
+    expect(judge(book(2050), with_({ maxYear: 2000 }))).toBe('hide')
+  })
+
+  test('supports BCE years and a single year', () => {
+    const ancient = with_({ minYear: -800, maxYear: -700 })
+    expect(judge(book(-801), ancient)).toBe('hide')
+    expect(judge(book(-800), ancient)).toBe('show')
+    expect(judge(book(-700), ancient)).toBe('show')
+    expect(judge(book(1), ancient)).toBe('hide')
+    expect(judge(book(2000), with_({ minYear: 2000, maxYear: 2000 }))).toBe(
+      'show'
+    )
+  })
+
+  test('missing details and unknown years stay visible; other filters still apply', () => {
+    expect(judge(book(), range)).toBe('show')
+    expect(judge(book(0), range)).toBe('show')
+    expect(judge({ ...book(0), rating: { r: 2, n: 900 } }, range)).toBe('hide')
+  })
+
+  test('respects dim mode, the master switch, carousels and peek', () => {
+    expect(judge(book(1999), { ...range, mode: 'dim' })).toBe('dim')
+    expect(judge(book(1999), { ...range, enabled: false })).toBe('show')
+    expect(verdict(book(1999), range, { inCarousel: true, peek: false })).toBe(
+      'dim'
+    )
+    expect(verdict(book(1999), range, { inCarousel: false, peek: true })).toBe(
+      'dim'
+    )
+  })
+
+  test.each(['queued', 'loading', 'failed'] as const)(
+    'a %s book is never hidden by year',
+    status => {
+      expect(judge({ ...book(1999), status }, range)).toBe('show')
+    }
+  )
 })
 
 describe('place', () => {

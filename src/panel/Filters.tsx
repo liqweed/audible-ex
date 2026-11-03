@@ -77,6 +77,87 @@ function useDebouncedValue<T>(outside: T, save: (value: T) => void) {
 
 const tenth = (n: number) => Math.round(n * 10) / 10
 
+type YearDraft = { minYear: string; maxYear: string }
+
+function yearBound(text: string): number | null | undefined {
+  if (text.trim() === '') return null
+  const n = Number(text)
+  return /^-?\d+$/.test(text.trim()) && Number.isSafeInteger(n) && n !== 0
+    ? n
+    : undefined
+}
+
+function yearRange(draft: YearDraft) {
+  const minYear = yearBound(draft.minYear)
+  const maxYear = yearBound(draft.maxYear)
+  if (minYear === undefined || maxYear === undefined) {
+    return { error: 'Use whole years other than 0.' } as const
+  }
+  if (minYear !== null && maxYear !== null && minYear > maxYear) {
+    return { error: 'From year must be no later than to year.' } as const
+  }
+  return { value: { minYear, maxYear } } as const
+}
+
+/** Save the two bounds together, only when the entire range is valid. */
+function YearRange({
+  filters,
+  change,
+}: {
+  filters: FilterPrefs
+  change(patch: Partial<FilterPrefs>): void
+}) {
+  const outside = useMemo(
+    () => ({
+      minYear: filters.minYear?.toString() ?? '',
+      maxYear: filters.maxYear?.toString() ?? '',
+    }),
+    [filters.minYear, filters.maxYear]
+  )
+  const [draft, setDraft] = useDebouncedValue(outside, next => {
+    const range = yearRange(next)
+    if (range.value) change(range.value)
+  })
+  const { error } = yearRange(draft)
+  return (
+    <fieldset className='m-0 min-w-0 border-0 p-0'>
+      <legend className={quiet}>First-published year</legend>
+      <div className='mt-1 flex gap-2'>
+        {(['minYear', 'maxYear'] as const).map(bound => (
+          <div key={bound} className='min-w-0 flex-1'>
+            <label htmlFor={`agx-${bound}`} className={quiet}>
+              {bound === 'minYear' ? 'From year' : 'To year'}
+            </label>
+            <input
+              id={`agx-${bound}`}
+              type='text'
+              value={draft[bound]}
+              placeholder='Any'
+              aria-invalid={!!error}
+              aria-describedby={`agx-year-help${error ? ' agx-year-error' : ''}`}
+              onChange={e => setDraft({ ...draft, [bound]: e.target.value })}
+              className={`${field} mt-0.5 w-full`}
+            />
+          </div>
+        ))}
+      </div>
+      <p id='agx-year-help' className='mt-1 text-[11px] text-slate-500'>
+        Blank is any year; negative years are BCE. Books with no year stay
+        visible unless another filter applies.
+      </p>
+      {error && (
+        <p
+          id='agx-year-error'
+          role='alert'
+          className='mt-1 text-xs text-red-700'
+        >
+          {error}
+        </p>
+      )}
+    </fieldset>
+  )
+}
+
 /** Hidden labels: chips, and an input that suggests the genres the page's books carry. */
 function LabelPicker({
   hidden,
@@ -273,6 +354,8 @@ export function Filters({ handle }: { handle: PanelHandle }) {
                 seen={seen}
                 onChange={hiddenLabels => change({ hiddenLabels })}
               />
+
+              <YearRange filters={filters} change={change} />
 
               <div className='flex items-center justify-between gap-2'>
                 <label htmlFor='agx-not-found' className={quiet}>
