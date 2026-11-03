@@ -4,7 +4,7 @@
  * Audible page, so an accidental import of the `effect` barrel or of a heavy library must show up
  * in the pull request that adds it (ARCHITECTURE.md §6). Measured when the budget was set: one named
  * import from the barrel adds about 17 KB gzipped, a namespace import about 235 KB; both fail.
- * The floating panel is a second content script, `panel.js` (DECISIONS.md D18), with a budget of its
+ * The floating panel is a second content script, `panel.js` (DECISIONS.md D19), with a budget of its
  * own: React lives there, never in `content.js`. Run after `bun run build`:
  *
  *   bun scripts/check-content-size.ts [path/to/content.js] [path/to/panel.js]

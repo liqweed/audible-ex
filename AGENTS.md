@@ -22,7 +22,7 @@ reads the gate from `gates.command` and the required check from
 `ci.required_checks` in `.config/jig.yaml`. The background worker serves the `agx`
 port (`LookupQueue`, `PortServer`) and the content script finds cards, shows badges
 and the hover overview (`src/content/`); the popup has the on/off switch and the
-cache size and clearing; a floating panel (its own content script, D18) shows lookup
+cache size and clearing; a floating panel (its own content script, D19) shows lookup
 progress. Its drag, collapse and hide controls and the filters are later work.
 
 ## Non-negotiables
@@ -68,7 +68,7 @@ doesn't check Markdown (DECISIONS.md D4): keep docs tidy by review.
 | Hammering Goodreads, getting the extension blocked | All lookups through `LookupQueue` and `BookCache`; no new request paths without review   |
 | Hiding a book before its data arrives (page jumps) | Filter verdict is `show` for any book not `ready` (`src/core/filter.ts`)                 |
 | Breaking Audible carousels                         | Cards in carousels are dimmed, never hidden                                              |
-| A content script that slows every Audible page     | `content.js` imports only `effect/Schema` from Effect and no React; React lives in `panel.content` (D18) |
+| A content script that slows every Audible page     | `content.js` imports only `effect/Schema` from Effect and no React; React lives in `panel.content` (D19) |
 | Store rejection or takedown                        | No new permission or host without updating ARCHITECTURE.md §11 and the privacy statement |
 | Settings lost or split per region                  | Prefs only in `storage.sync` via the `sync:prefs` item, with a version and migrations    |
 

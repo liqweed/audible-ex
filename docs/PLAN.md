@@ -137,7 +137,7 @@ one queue. Release 0.1.
       `storage.local`; show again from the popup.
 - [x] Progress: bar and counters, rate-limit pause with countdown, "Retry
       failed", and a distinct "page format changed" error. (The panel is a
-      second content script, D18; it is fixed at the bottom right until the
+      second content script, D19; it is fixed at the bottom right until the
       shell lands.)
 - [ ] Component tests for each panel state. (Done for the progress states; the
       shell's drag, collapsed and hidden states come with it.)

@@ -1,5 +1,5 @@
 /**
- * Keeps the panel mounted exactly while the badge script has a handle for it (DECISIONS.md D18):
+ * Keeps the panel mounted exactly while the badge script has a handle for it (DECISIONS.md D19):
  * turning the extension off removes the handle and the panel with it; turning it on publishes a new
  * handle and the panel mounts again. Mounting is asynchronous (WXT builds the shadow root), so a
  * handle that is withdrawn or replaced while a mount is under way unmounts that mount when it ends.

@@ -248,7 +248,7 @@ The box is `position: fixed` inside a shadow root on an `agx-overview-host` elem
 scanner), so Audible's CSS can't reach it. The host and its root are made by hand for now; the
 panel will take over the same root.
 
-**Floating panel.** A second content script, `src/entrypoints/panel.content/` (DECISIONS.md D18), so
+**Floating panel.** A second content script, `src/entrypoints/panel.content/` (DECISIONS.md D19), so
 React stays out of `content.js`. It draws React in a shadow root made by WXT's `createShadowRootUi`
 (host element `agx-panel`), so Tailwind and Audible's CSS can't affect each other. Its stylesheet is
 imported as text (`?inline`) and passed as the `css` option; `cssInjectionMode: 'ui'` would make WXT

@@ -8,7 +8,7 @@ import { runPanel } from '@/panel/host'
 import { Panel } from '@/panel/Panel'
 import panelCss from '@/panel/panel.css?inline'
 
-// The floating panel (ARCHITECTURE.md §6, DECISIONS.md D18): a second content script, so React stays
+// The floating panel (ARCHITECTURE.md §6, DECISIONS.md D19): a second content script, so React stays
 // out of content.js. It takes the badge script's state from the shared handle and draws in a shadow
 // root. Its stylesheet is bundled as text and handed to WXT, so no web-accessible resource is needed.
 export default defineContentScript({

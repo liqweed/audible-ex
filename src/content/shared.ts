@@ -1,5 +1,5 @@
 /**
- * How the badge script hands the panel script its state (DECISIONS.md D18). Both are content
+ * How the badge script hands the panel script its state (DECISIONS.md D19). Both are content
  * scripts of this extension in the same frame, so they share one isolated world: the badge script
  * sets a handle on `globalThis` and announces it with an event on the document; the panel script
  * reads it and listens for the next one (the extension is switched off and on, which starts the
