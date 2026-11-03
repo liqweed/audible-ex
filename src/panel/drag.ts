@@ -29,9 +29,26 @@ export function nearestCorner(
   return `${vertical}${horizontal}`
 }
 
+/** The corner a box whose top-left corner is at `topLeft` would dock to. */
+function cornerFor(topLeft: Point, box: HTMLElement | null): Corner {
+  const { width, height } = box?.getBoundingClientRect() ?? {
+    width: 0,
+    height: 0,
+  }
+  return nearestCorner(
+    { x: topLeft.x + width / 2, y: topLeft.y + height / 2 },
+    { width: window.innerWidth, height: window.innerHeight }
+  )
+}
+
 export interface Drag {
-  /** Where the panel is while it is being dragged (its top-left corner); undefined when docked. */
-  readonly at: { left: number; top: number } | undefined
+  /**
+   * Where the panel is while it is being dragged (its top-left corner) and the corner it would dock
+   * to if dropped there; undefined when docked.
+   */
+  readonly at:
+    | { readonly left: number; readonly top: number; readonly target: Corner }
+    | undefined
   /** True when the press that just ended was a drag; a click handler ignores that click. */
   wasDrag(): boolean
   readonly handlers: {
@@ -69,16 +86,21 @@ export function useDrag(
     [box]
   )
 
-  const onPointerMove = useCallback((e: PointerEvent) => {
-    const start = press.current
-    if (!start) return
-    const dx = e.clientX - start.x
-    const dy = e.clientY - start.y
-    if (!moved.current && Math.hypot(dx, dy) < THRESHOLD) return
-    moved.current = true
-    last.current = { x: start.left + dx, y: start.top + dy }
-    setAt({ left: start.left + dx, top: start.top + dy })
-  }, [])
+  const onPointerMove = useCallback(
+    (e: PointerEvent) => {
+      const start = press.current
+      if (!start) return
+      const dx = e.clientX - start.x
+      const dy = e.clientY - start.y
+      if (!moved.current && Math.hypot(dx, dy) < THRESHOLD) return
+      moved.current = true
+      const left = start.left + dx
+      const top = start.top + dy
+      last.current = { x: left, y: top }
+      setAt({ left, top, target: cornerFor({ x: left, y: top }, box.current) })
+    },
+    [box]
+  )
 
   const onPointerUp = useCallback(() => {
     const where = last.current
@@ -89,13 +111,7 @@ export function useDrag(
     setTimeout(() => {
       moved.current = false
     }, 0)
-    const { width, height } = box.current.getBoundingClientRect()
-    onDrop(
-      nearestCorner(
-        { x: where.x + width / 2, y: where.y + height / 2 },
-        { width: window.innerWidth, height: window.innerHeight }
-      )
-    )
+    onDrop(cornerFor(where, box.current))
     setAt(undefined)
   }, [box, onDrop])
 

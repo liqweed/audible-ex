@@ -68,11 +68,37 @@ export function counts(view: Extract<PanelView, { kind: 'progress' }>): string {
     .join(' · ')
 }
 
+/**
+ * The second level of the lookups: a rated book's genres, year and overview come from its Goodreads
+ * page, after every rating (the queue's `details` lane runs last). `total` is the books that have a
+ * rating; `done` the ones whose page has been read. A book whose page could not be read keeps the
+ * rating and stays unread, so the bar can stop short of full; the store cannot tell that from waiting.
+ */
+export function detailsProgress(books: ReadonlyMap<string, BookView>): {
+  readonly done: number
+  readonly total: number
+} {
+  let done = 0
+  let total = 0
+  for (const view of books.values()) {
+    if (view.status !== 'ready' || !view.rating) continue
+    total++
+    if (view.details) done++
+  }
+  return { done, total }
+}
+
 /** The text of the collapsed pill: `34/60`, or a short alarm when Goodreads' pages changed. */
 export const pillText = (
-  view: Exclude<PanelView, { kind: 'hidden' }>
-): string =>
-  view.kind === 'formatChanged' ? 'Update needed' : `${view.done}/${view.total}`
+  view: Exclude<PanelView, { kind: 'hidden' }>,
+  details: { readonly done: number; readonly total: number }
+): string => {
+  if (view.kind === 'formatChanged') return 'Update needed'
+  // Once every rating is in, the pill follows the slower second level instead of sitting at 60/60.
+  if (view.finished && details.done < details.total)
+    return `details ${details.done}/${details.total}`
+  return `${view.done}/${view.total}`
+}
 
 /** Whole seconds until `until`, at least 1 while the pause is still ahead. */
 export const secondsLeft = (until: number, now: number): number =>

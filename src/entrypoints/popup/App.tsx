@@ -1,5 +1,6 @@
 import * as Switch from '@radix-ui/react-switch'
 import { useCallback, useEffect, useState } from 'react'
+import { PRIVACY_URL, SOURCE_URL } from '@/lib/links'
 import type { ClearScope, Stats } from '@/schema/popup'
 import { readPanel, updatePanel, watchPanel } from '@/storage/panel'
 import { readPrefs, updatePrefs, watchPrefs } from '@/storage/prefs'
@@ -8,9 +9,6 @@ import { books, formatBytes } from './format'
 
 const button =
   'rounded-md border border-border bg-secondary px-3 py-1.5 text-left text-sm hover:bg-accent disabled:opacity-50'
-
-const SOURCE_URL = 'https://github.com/liqweed/audible-ex'
-const PRIVACY_URL = `${SOURCE_URL}/blob/main/PRIVACY.md`
 
 const messageOf = (error: unknown) =>
   error instanceof Error ? error.message : String(error)

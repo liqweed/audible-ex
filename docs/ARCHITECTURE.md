@@ -269,6 +269,17 @@ progress bar appears, which is the one thing `bun test` cannot prove about the s
   panel draws nothing until it has read the item, so it never flashes at the wrong corner. "Hide on
   this site" adds the host name to `hiddenHosts`; the popup shows "Show the panel again" while any
   host is hidden and clears the list, and the panel, which watches the item, reappears at once.
+  Affordances: the title is a grip (six dots, grab cursor, hover highlight) and, while dragging,
+  four dashed markers show the corners with the nearest one lit. The extension's logo (the small
+  variant, bundled as text with `?raw` and passed in as a data URL, so no web-accessible resource)
+  marks the pill and the header, where it links to the project page; opening the popup from the page
+  would need a message to the background (`action.openPopup`) and is not done.
+- Two levels of lookups: the ratings bar is the background's `Progress` counters. The second bar
+  ("Genres, year & overview") is derived in the content store: of the books that are `ready` with a
+  rating, how many have `details` (`detailsProgress`, `src/panel/summary.ts`), because the queue reads
+  a book's Goodreads page after every rating. A book whose page could not be read keeps its rating and
+  never gets details, so the bar can stop short of full; the store cannot tell that from waiting. Once
+  every rating is in, the collapsed pill shows `details 12/34` instead of `60/60`.
 - Progress: bar plus `34/60 · 18 cached · 2 not found · 1 failed`; "Paused — Goodreads is rate
   limiting (12 s)"; "Retry failed".
 - Filters: rating slider, minimum ratings, hidden-labels picker (autocomplete from genres seen in

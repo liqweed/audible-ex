@@ -303,4 +303,136 @@ describe('the shell', () => {
       expect(current().collapsed).toBe(true)
     })
   })
+
+  describe('the two levels of lookups', () => {
+    const rating = { r: 4.2, n: 100, url: 'https://example.test', loose: false }
+    const details = { genres: ['Fantasy'], year: 2001, desc: 'x' }
+    /** Three books are rated; `read` of them have had their Goodreads page read. */
+    function rated(books: BookStore, read: number) {
+      act(() => {
+        books.setProgress(counters({ done: 3, queued: 2 }))
+        ;['B000000001', 'B000000002', 'B000000003'].forEach((asin, i) => {
+          books.set(asin, {
+            status: 'ready',
+            rating,
+            ...(i < read ? { details } : {}),
+          })
+        })
+      })
+    }
+
+    test('shows a second bar for genres, year and overview once a book is rated', async () => {
+      const { books, handle } = setup()
+      await show(<Panel handle={handle} storage={memoryStorage().storage} />)
+      act(() => books.setProgress(counters({ done: 0, queued: 5 })))
+      expect(
+        screen.queryByRole('progressbar', { name: 'Genres and details read' })
+      ).toBeNull()
+
+      rated(books, 1)
+      const bar = screen.getByRole('progressbar', {
+        name: 'Genres and details read',
+      })
+      expect(bar.getAttribute('aria-valuenow')).toBe('1')
+      expect(bar.getAttribute('aria-valuemax')).toBe('3')
+      expect(screen.getByText('1/3')).toBeTruthy()
+      expect(screen.getByText('Genres, year & overview')).toBeTruthy()
+      // The ratings bar is a different one and counts the lookups.
+      expect(
+        screen
+          .getByRole('progressbar', { name: 'Ratings looked up' })
+          .getAttribute('aria-valuenow')
+      ).toBe('3')
+    })
+
+    test('the collapsed pill follows the details once every rating is in', async () => {
+      const { books, handle } = setup()
+      await show(
+        <Panel
+          handle={handle}
+          storage={memoryStorage({ collapsed: true }).storage}
+        />
+      )
+      act(() => books.setProgress(counters({ done: 3, queued: 2 })))
+      rated(books, 1)
+      expect(screen.getByRole('button', { name: /expand/i }).textContent).toBe(
+        '3/5'
+      )
+      act(() => books.setProgress(counters({ done: 3 })))
+      expect(screen.getByRole('button', { name: /expand/i }).textContent).toBe(
+        'details 1/3'
+      )
+      rated(books, 3)
+      act(() => books.setProgress(counters({ done: 3 })))
+      expect(screen.getByRole('button', { name: /expand/i }).textContent).toBe(
+        '3/3'
+      )
+    })
+  })
+
+  describe('the extension mark', () => {
+    test('links the logo to the project page, and shows it on the pill', async () => {
+      const { books, handle } = setup()
+      act(() => books.setProgress(counters({ done: 1, queued: 1 })))
+      const memory = memoryStorage()
+      await show(
+        <Panel handle={handle} storage={memory.storage} logoSrc='data:,logo' />
+      )
+      const link = screen.getByRole('link', { name: /open the project page/ })
+      expect(link.getAttribute('href')).toBe(
+        'https://github.com/liqweed/audible-ex'
+      )
+      expect(link.getAttribute('target')).toBe('_blank')
+      expect(link.querySelector('img')?.getAttribute('src')).toBe('data:,logo')
+
+      fireEvent.click(screen.getByRole('button', { name: 'Collapse' }))
+      const pill = screen.getByRole('button', { name: /expand/i })
+      expect(pill.querySelector('img')?.getAttribute('src')).toBe('data:,logo')
+    })
+
+    test('has no link without a logo', async () => {
+      const { books, handle } = setup()
+      act(() => books.setProgress(counters({ done: 1, queued: 1 })))
+      await show(<Panel handle={handle} storage={memoryStorage().storage} />)
+      expect(screen.queryByRole('link')).toBeNull()
+    })
+  })
+
+  describe('the drag affordance', () => {
+    test('says the title can be dragged', async () => {
+      await open()
+      const grip = screen.getByText('Goodreads ratings')
+      const zone = grip.parentElement as HTMLElement
+      expect(zone.title).toMatch(/drag/i)
+      expect(zone.className).toContain('cursor-grab')
+      expect(zone.querySelector('svg')).toBeTruthy()
+    })
+
+    test('lights the corner it would dock to while it is dragged, then goes away', async () => {
+      await open()
+      const grip = screen.getByText('Goodreads ratings')
+      const wrapper = grip.closest('div[class*="fixed"]') as HTMLElement
+      wrapper.getBoundingClientRect = () =>
+        ({ left: 700, top: 600, width: 288, height: 80 }) as DOMRect
+      expect(
+        wrapper.parentElement?.querySelectorAll('[aria-hidden] > div')
+      ).toHaveLength(0)
+
+      fireEvent.pointerDown(grip, { clientX: 710, clientY: 610, button: 0 })
+      fireEvent.pointerMove(grip, { clientX: 20, clientY: 20 })
+      const targets = [
+        ...(wrapper.parentElement?.querySelectorAll('[aria-hidden] > div') ??
+          []),
+      ]
+      expect(targets).toHaveLength(4)
+      const lit = targets.filter(t => t.className.includes('border-indigo-600'))
+      expect(lit).toHaveLength(1)
+      expect(lit[0]?.className).toContain('top-4 left-4')
+
+      fireEvent.pointerUp(grip, { clientX: 20, clientY: 20 })
+      expect(
+        wrapper.parentElement?.querySelectorAll('[aria-hidden] > div')
+      ).toHaveLength(0)
+    })
+  })
 })
