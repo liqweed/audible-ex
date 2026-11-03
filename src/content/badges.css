@@ -57,6 +57,7 @@
   padding: 0 2px;
 }
 .agx-label {
+  cursor: pointer;
   display: inline-block;
   padding: 0 6px;
   border-radius: 9px;
@@ -67,4 +68,33 @@
   color: #5c4a3a;
   border: 1px solid #e2dacb;
   white-space: nowrap;
+}
+
+/* Filtered cards (filter.ts): `hide` removes the card, `dim` fades it and keeps its place. Carousel
+   slides and the books shown while peeking are dimmed, never removed. */
+[data-agx-filter='hide'] {
+  /* biome-ignore lint/complexity/noImportantStyles: Audible's own display rules must not win over the user's filter */
+  display: none !important;
+}
+[data-agx-filter='dim'] {
+  /* biome-ignore lint/complexity/noImportantStyles: as above */
+  opacity: 0.3 !important;
+  filter: grayscale(0.7);
+  transition: opacity 0.15s;
+}
+[data-agx-filter='dim']:hover {
+  /* biome-ignore lint/complexity/noImportantStyles: as above */
+  opacity: 0.9 !important;
+}
+
+/* A label pill is a button for the label popover; one the user filters on is struck through. */
+.agx-label:hover,
+.agx-label:focus-visible {
+  border-color: #b9ab94;
+}
+.agx-label.agx-filtered {
+  background: #f8e5e1;
+  border-color: #e0b0a6;
+  color: #8a3b2c;
+  text-decoration: line-through;
 }

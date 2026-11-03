@@ -7,9 +7,9 @@ import { startContent } from '@/content/main'
 import overviewCss from '@/content/overview.css?inline'
 import { timeout } from '@/content/schedule'
 import { contentScriptMatches } from '@/core/regions'
-import { readPrefs, watchPrefs } from '@/storage/prefs'
+import { readPrefs, updateFilters, watchPrefs } from '@/storage/prefs'
 
-// Badges and the hover overview on Audible cards (ARCHITECTURE.md §6). The panel and the filters arrive in later phases.
+// Badges and the hover overview on Audible cards (ARCHITECTURE.md §6). The panel is its own script (panel.content).
 export default defineContentScript({
   matches: contentScriptMatches(),
   allFrames: false,
@@ -27,6 +27,11 @@ export default defineContentScript({
           createIntersectionObserver: (callback, rootMargin) =>
             new IntersectionObserver(callback, { rootMargin }),
           schedule: timeout,
+          filters: {
+            read: async () => (await readPrefs()).filters,
+            watch: listener => watchPrefs(prefs => listener(prefs.filters)),
+            update: change => updateFilters(change),
+          },
           css,
           overviewCss,
         }),

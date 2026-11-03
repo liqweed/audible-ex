@@ -54,7 +54,7 @@ same command on every pull request:
 ```sh
 bun check   # biome ci → effect-tsgo tsc --noEmit → bun test
 bun run build   # wxt build; also run it when you touch wxt.config.ts or entrypoints
-bun scripts/check-content-size.ts   # after the build: gzipped size budgets of content.js (50 KB) and panel.js (100 KB)
+bun scripts/check-content-size.ts   # after the build: gzipped size budgets of content.js (50 KB) and panel.js (120 KB)
 ```
 
 Run these yourself before pushing; CI repeats them (and builds Firefox) and uploads the unpacked

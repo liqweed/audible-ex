@@ -245,8 +245,21 @@ attribute; nothing is torn down and rebuilt.
 on the document finds the badge (its `data-asin` names the book, read from the store when the
 pointer arrives, so a year that came later shows), and a capturing `scroll` listener hides the box.
 The box is `position: fixed` inside a shadow root on an `agx-overview-host` element (ignored by the
-scanner), so Audible's CSS can't reach it. The host and its root are made by hand for now; the
-panel will take over the same root.
+scanner), so Audible's CSS can't reach it. The host and its root are made by hand, on the first
+show; the panel is another script with a root of its own.
+
+**Label popover.** `src/content/labels.ts`, plain DOM, in a shadow root of its own (`agx-label-host`,
+also ignored by the scanner) that uses the overview's stylesheet. Each genre label after a badge is a
+focusable pill. Resting the pointer on one for 200 ms (or focusing it; Enter opens the popover and
+moves focus into it, Escape closes it) opens a popover with the label, how many books on the page
+carry it, and one button: "Hide books labelled “X”", or "Stop hiding “X”" when the label is already
+filtered on. Unlike the overview it takes the pointer, so it stays while the pointer is on the label
+or on it and closes 250 ms after the pointer leaves both, or on scroll. A click saves through
+`filters.update` (`updateFilters` with a function, so it adds to the stored list and not to the one
+the tab last saw), switches the filters on if they were off (the popover says so first), and shows
+how it went, with the same button as the undo; a failed save is shown and can be retried. The pills
+of a hidden genre are marked by the filter applier (`agx-filtered`: struck through, with an
+`aria-label` saying they are hidden), so the mark follows every change of the filters, in every tab.
 
 **Floating panel.** A second content script, `src/entrypoints/panel.content/` (DECISIONS.md D19), so
 React stays out of `content.js`. It draws React in a shadow root made by WXT's `createShadowRootUi`
@@ -263,12 +276,31 @@ there is a handle and unmounts when it is withdrawn (the extension was switched 
 shows nothing until the tab has asked for a book. `bun e2e` checks on live Audible that the panel's
 progress bar appears, which is the one thing `bun test` cannot prove about the shared world.
 
-- Shell: drag to a corner, collapse to a pill (rating icon + `34/60`), hide for this site. Hidden
-  state is restored from the popup.
+- Shell: drag to a corner, collapse to a pill (`34/60`), hide for this site. The state is the
+  `local:panel` item (§8). Dragging follows the pointer and, on release, docks to the viewport corner
+  nearest the panel's centre (`src/panel/drag.ts`); a press that moves under 4 px is a click. The
+  panel draws nothing until it has read the item, so it never flashes at the wrong corner. "Hide on
+  this site" adds the host name to `hiddenHosts`; the popup shows "Show the panel again" while any
+  host is hidden and clears the list, and the panel, which watches the item, reappears at once.
+  Affordances: the title is a grip (six dots, grab cursor, hover highlight) and, while dragging,
+  four dashed markers show the corners with the nearest one lit. The extension's logo (the small
+  variant, bundled as text with `?raw` and passed in as a data URL, so no web-accessible resource)
+  marks the pill and the header, where it links to the project page; opening the popup from the page
+  would need a message to the background (`action.openPopup`) and is not done.
+- Two levels of lookups: the ratings bar is the background's `Progress` counters. The second bar
+  ("Genres, year & overview") is derived in the content store: of the books that are `ready` with a
+  rating, how many have `details` (`detailsProgress`, `src/panel/summary.ts`), because the queue reads
+  a book's Goodreads page after every rating. A book whose page could not be read keeps its rating and
+  never gets details, so the bar can stop short of full; the store cannot tell that from waiting. Once
+  every rating is in, the collapsed pill shows `details 12/34` instead of `60/60`.
 - Progress: bar plus `34/60 · 18 cached · 2 not found · 1 failed`; "Paused — Goodreads is rate
   limiting (12 s)"; "Retry failed".
-- Filters: rating slider, minimum ratings, hidden-labels picker (autocomplete from genres seen in
-  the cache), "not found" policy, dim/hide mode, master on/off.
+- Filters (`src/panel/Filters.tsx`, built, below the progress): the master switch and `12 hidden ·
+  Show` always; a "Filter settings" area opens the rating slider (3.0–5.0, step 0.1), the minimum
+  number of ratings, the hidden labels, and the two policies. A change shows at once and is saved
+  300 ms after the user stops (Pacer's debouncer, flushed if the panel goes away), through
+  `updateFilters`, whose writes run in order. The label picker suggests the genres the page's books
+  carry, most common first (`genres.ts`), not genres from the whole cache.
 - Counter: `12 hidden · Show` — **Show** toggles `peek`, which reveals hidden cards (dimmed)
   without changing preferences.
 
@@ -283,7 +315,7 @@ share (`src/schema`, `src/storage`).
 
 Verdict for one card (pure function in `src/core/filter.ts`):
 
-1. Filters off, or `peek` on → `show` (hidden cards render dimmed while peeking).
+1. Filters off → `show`.
 2. Book not loaded yet (`queued`/`loading`/`failed`) → `show`. Hiding before data arrives makes the
    page jump.
 3. `notFound` → the `notFound` policy (default `show`).
@@ -292,8 +324,25 @@ Verdict for one card (pure function in `src/core/filter.ts`):
 5. Price above `maxPrice[region]` (phase 3b) → the miss mode.
 6. Otherwise `show`.
 
-Cards inside carousels and sliders get `dim` instead of `hide`; removing slides breaks Audible's
-carousel layout. Which containers count as carousels is settled with fixtures during phase 3.
+Two adjustments follow the verdict: a card inside a carousel gets `dim` for `hide`, and so does every
+card while `peek` is on (the `12 hidden · Show` counter reveals the hidden books, dimmed, without
+touching the filters). `judge` gives the verdict before the adjustments and is what the counter
+counts; `place` applies them; `verdict` is both (`src/core/filter.ts`, inputs are structural so the
+module needs nothing from the content script or storage). A rating filter acts as soon as the rating
+arrives; a hidden-label filter acts once the details have.
+
+Cards inside carousels get `dim` instead of `hide`; removing slides breaks Audible's carousel
+layout. From the saved pages, a carousel is `adbl-product-carousel`, `adbl-product-featured-carousel`
+(the US home page's featured row), a not yet loaded `.adbl-carousel`, or anything with
+`aria-roledescription="carousel"` (`CAROUSEL` in `src/content/cards.ts`). Search results, deals and
+the library's own rows are in none; the search, category and home pages mix both kinds.
+
+The applier (`src/content/filter.ts`) sets `data-agx-filter="hide|dim"` on each card and counts the
+hidden ones. Everything that can change a verdict (a book arriving, a card being attached, the
+settings, peeking) ends in one pass over the page's cards, which is a few hundred. The settings come
+from `sync:prefs` through a watcher, so every open tab applies a change at once. Until the settings
+have been read nothing is filtered. The panel reads `hidden` and `peek` from the `PanelHandle` and
+calls `setPeek`.
 
 Label filtering needs genres, which come from the Goodreads book page (~400 KB), not the cheap
 autocomplete call. Details are fetched for every visible book by default (they also drive the labels
@@ -313,13 +362,19 @@ Every reader (content scripts, popup, options) watches `sync:prefs`, so a change
 everywhere at once. Prefs are decoded with an Effect Schema that supplies defaults, so a missing or
 older field never crashes the UI.
 
-Only `enabled` is implemented so far (`src/storage/prefs.ts`; the popup's master switch). The
-content script runs only while it is on (`src/content/lifecycle.ts`): turning it off removes the
-badges, the overview and the stylesheet and closes the port, which ends this tab's lookups; turning
-it on starts the script again. The rest of the shape below arrives in phase 3.
+The panel's own state (`src/storage/panel.ts`: `corner`, `collapsed`, `hiddenHosts`) is the
+`local:panel` item, version 1, decoded with defaults like the prefs.
+
+`src/storage/prefs.ts` holds `enabled` (the popup's master switch) and `filters`, version 2; the
+display options arrive with the options page (phase 4) and `maxPrice` in phase 3b, each with a
+default, so neither needs more than a version bump. WXT runs the version 1 → 2 migration when the
+module loads (it was `enabled` alone; the migrated record has the filters at their defaults). The
+content script runs only while the extension is on (`src/content/lifecycle.ts`): turning it off
+removes the badges, the overview and the stylesheet and closes the port, which ends this tab's
+lookups; turning it on starts the script again.
 
 ```ts
-// Prefs v1, defaults shown
+// Prefs v2, defaults shown
 {
   enabled: true,
   filters: {

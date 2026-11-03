@@ -19,6 +19,8 @@ export const SKIP_GENRES: ReadonlySet<string> = new Set([
 ])
 
 export const BADGE = 'agx-badge'
+/** A genre label after the badge; hovering it offers to filter on it (labels.ts). */
+export const LABEL = 'agx-label'
 const STYLE_ID = 'agx-style'
 
 /** The labels to show: the first genres that are not in `SKIP_GENRES`. */
@@ -135,7 +137,7 @@ export function decorate(
 ): void {
   const wrap = badge.parentElement
   if (!wrap) return
-  for (const old of wrap.querySelectorAll('.agx-label, .agx-year')) old.remove()
+  for (const old of wrap.querySelectorAll(`.${LABEL}, .agx-year`)) old.remove()
   // 0 is "Goodreads has no date"; a negative year is a real one (The Iliad).
   if (details?.year) {
     const year = badge.ownerDocument.createElement('span')
@@ -146,8 +148,11 @@ export function decorate(
   }
   for (const genre of visibleGenres(details?.genres)) {
     const label = badge.ownerDocument.createElement('span')
-    label.className = 'agx-label'
+    label.className = LABEL
     label.textContent = genre
+    // Focusable, so the label's popover can be opened from the keyboard too.
+    label.tabIndex = 0
+    label.setAttribute('aria-haspopup', 'dialog')
     wrap.appendChild(label)
   }
 }

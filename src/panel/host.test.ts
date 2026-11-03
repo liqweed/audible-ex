@@ -1,11 +1,15 @@
 import { describe, expect, test } from 'bun:test'
+import { createStore } from '@tanstack/store'
 import { createBookStore } from '@/content/books'
+import type { FilterState } from '@/content/filter'
 import type { PanelHandle } from '@/content/shared'
 import { type MountedPanel, runPanel } from './host'
 
 const handle = (): PanelHandle => ({
   state: createBookStore().state,
+  filter: createStore<FilterState>({ hidden: 0, peek: false }),
   retryFailed: () => {},
+  setPeek: () => {},
 })
 
 /** A watcher the test drives, and a mount it can finish by hand. */

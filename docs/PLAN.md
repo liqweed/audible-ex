@@ -132,15 +132,14 @@ one queue. Release 0.1.
 
 - [x] `ProgressHub` in the background; `Progress` messages per tab.
 - [x] TanStack Store for `books` and `progress` in the content script.
-- [ ] Panel in a shadow root (`createShadowRootUi`), React + Tailwind + Radix:
+- [x] Panel in a shadow root (`createShadowRootUi`), React + Tailwind + Radix:
       drag to a corner, collapse to a pill, hide on this site; placement saved in
       `storage.local`; show again from the popup.
 - [x] Progress: bar and counters, rate-limit pause with countdown, "Retry
       failed", and a distinct "page format changed" error. (The panel is a
-      second content script, D19; it is fixed at the bottom right until the
-      shell lands.)
-- [ ] Component tests for each panel state. (Done for the progress states; the
-      shell's drag, collapsed and hidden states come with it.)
+      second content script, D19.)
+- [x] Component tests for each panel state: progress, docked corner, drag,
+      collapsed and hidden.
 
 Exit: on a deals page with 60+ books the panel shows progress to completion;
 collapsing, moving and hiding survive a reload. Release 0.2.
@@ -149,17 +148,20 @@ collapsing, moving and hiding survive a reload. Release 0.2.
 
 3a. Rating, count and labels
 
-- [ ] `sync:prefs` storage item with version and migrations; Schema defaults
+- [x] `sync:prefs` storage item with version and migrations; Schema defaults
       (ARCHITECTURE.md §8).
-- [ ] `src/core/filter.ts` verdicts (ARCHITECTURE.md §7), fully unit-tested.
-- [ ] Filter applier: derived verdict store → `data-agx-filter` attributes;
-      CSS hide/dim.
-- [ ] Carousel detection from fixtures; carousels dim instead of hide.
-- [ ] Panel controls: master switch, rating slider (default 4.0,
+- [x] `src/core/filter.ts` verdicts (ARCHITECTURE.md §7), fully unit-tested.
+- [x] Filter applier: derived verdict store → `data-agx-filter` attributes;
+      CSS hide/dim. (`src/content/filter.ts`: it recomputes all cards on each
+      change instead of keeping a derived store.)
+- [x] Carousel detection from fixtures; carousels dim instead of hide.
+- [x] Panel controls: master switch, rating slider (default 4.0,
       Pacer-debounced), minimum ratings, hidden-labels picker with autocomplete
-      from cached genres, not-found policy, hide/dim mode.
-- [ ] `12 hidden · Show` counter and peek.
-- [ ] Changes in one tab apply in all open Audible tabs (storage watch).
+      from the genres of the books on the page, not-found policy, hide/dim mode.
+- [x] `12 hidden · Show` counter and peek.
+- [x] Label pills: hovering or focusing one opens a popover to hide books with
+      that label, or to stop; a label that is filtered on is struck through.
+- [x] Changes in one tab apply in all open Audible tabs (storage watch).
 
 Release 0.3.
 
@@ -266,7 +268,7 @@ Added later:
 | Phase | Addition                                                                                                             |
 | ----- | -------------------------------------------------------------------------------------------------------------------- |
 | 1     | Content-script size budget: `scripts/check-content-size.ts` fails when `content-scripts/content.js` passes 50 KB gzipped (set from a 36 KB build). |
-| 2     | The same script also fails when `content-scripts/panel.js` passes 100 KB gzipped (set from a 64 KB build, room for the Radix controls). |
+| 2     | The same script also fails when `content-scripts/panel.js` passes 120 KB gzipped (a 64 KB build; raised in phase 3 for the Schema-decoded prefs and the Radix filter controls, 104.7 KB). |
 | 1     | `bun run build` for Firefox as a second step, so a Chrome-only API is caught early.                                  |
 | 5     | `release.yml` on `v*` tags: build Chrome and Firefox zips, attach to a GitHub release; Jig's changelog check on PRs. |
 | Later | Nightly (not per-PR) Playwright smoke run against live Audible, reporting to an issue on failure.                    |

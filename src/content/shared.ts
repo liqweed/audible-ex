@@ -12,13 +12,18 @@
  */
 import type { Store } from '@tanstack/store'
 import type { ContentState } from './books'
+import type { FilterState } from './filter'
 
 /** What the panel may read and ask of the badge script. */
 export interface PanelHandle {
   /** Books and progress; the panel selects from it (read only). */
   readonly state: Store<ContentState>
+  /** How many cards the filters hide, and whether they are being shown (read only). */
+  readonly filter: Store<FilterState>
   /** Looks up again every book whose lookup failed. */
   retryFailed(): void
+  /** Shows the hidden cards, dimmed, or hides them again; the filters themselves stay as they are. */
+  setPeek(peek: boolean): void
 }
 
 const KEY = Symbol.for('audible-ex.panel-handle')

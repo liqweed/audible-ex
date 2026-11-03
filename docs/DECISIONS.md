@@ -287,3 +287,12 @@ Follow-ups, each in the pull request that needs it: the second budget in
 (the entrypoint and the shared store); the "no React for badges" guardrail in
 AGENTS.md, which stays true of `content.js` and gains "the panel is
 `panel.content`".
+
+Budget, as built (2026-11-03). `panel.js` was 64 KB gzipped with the progress view,
+92 KB once the panel's stored state brought in `effect/Schema` (to decode it, as
+every stored record is), and 104.7 KB with the filter controls (Radix switch and
+slider, Pacer's debouncer, the label picker). The 100 KB budget became 120 KB in
+the pull request that added the controls. Measured against alternatives: a
+hand-written debounce saves 3.5 KB; decoding without Schema would save about
+23 KB (the measure above) but leave the panel's records unchecked, which the rest of the code base
+does not do. The content script stays at 38 KB of 50.
