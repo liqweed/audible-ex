@@ -131,7 +131,7 @@ one queue. Release 0.1.
 ## Phase 2 — Floating panel and progress (M)
 
 - [x] `ProgressHub` in the background; `Progress` messages per tab.
-- [ ] TanStack Store for `books` and `progress` in the content script.
+- [x] TanStack Store for `books` and `progress` in the content script.
 - [ ] Panel in a shadow root (`createShadowRootUi`), React + Tailwind + Radix:
       drag to a corner, collapse to a pill, hide on this site; placement saved in
       `storage.local`; show again from the popup.

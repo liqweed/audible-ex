@@ -208,8 +208,14 @@ else (cards linked from the cover only) the cover's `alt` text. The element sear
 userscript's. On the saved pages this places every badge where the userscript did
 (`src/content/fixtures.test.ts` compares each card with a copy of the userscript's code).
 
-**Book store (TanStack Store in phase 2).** Until then `src/content/books.ts` is a `Map` with
-`get`, `set` and `subscribe`, holding the same `BookView`s, so the swap touches that module only.
+**Book store (TanStack Store).** `src/content/books.ts` holds the tab's state in a TanStack `Store`
+(`BookStore.state`) and keeps the small interface the DOM code uses: `get`, `set`, `entries` and
+`subscribe`, whose listener hears which book changed. The panel reads `state` with selectors
+(`useStore`); the badges and the hover overview do not need React or a selector, and redrawing one
+book's cards when one book changes is cheaper than diffing the page. Each change replaces the
+`books` map, so a selector sees a new value; the background's `Progress` goes in through
+`setProgress` and does not call the per-book listeners. `prefs` and `peek` join the state in
+phase 3.
 
 ```ts
 type BookView = {
@@ -219,10 +225,10 @@ type BookView = {
   price?: { amount: number; currency: string }
 }
 type ContentState = {
-  books: Map<string, BookView>
-  progress: Progress
-  prefs: Prefs
-  peek: boolean
+  books: ReadonlyMap<string, BookView>
+  progress: Progress | undefined // until the background has sent any
+  prefs: Prefs // phase 3
+  peek: boolean // phase 3
 }
 ```
 

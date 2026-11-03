@@ -84,9 +84,12 @@ export function startContent(deps: ContentDeps): Content | undefined {
         .filter(([, view]) => isUnresolved(view))
         .map(([asin]) => ({ asin, pinned: pinnedSent.has(asin) })),
     onMessage(message) {
-      // `Progress` belongs to the panel (phase 2).
-      if (message._tag === 'BookUpdate')
+      if (message._tag === 'BookUpdate') {
         books.set(message.asin, viewOf(message))
+      } else {
+        const { _tag, ...progress } = message
+        books.setProgress(progress)
+      }
     },
     schedule: deps.schedule,
     now: deps.now,

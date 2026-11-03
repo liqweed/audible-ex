@@ -156,19 +156,28 @@ describe('looking up what comes into view', () => {
     expect(badge.href).toBe('https://www.goodreads.com/search?q=The%20Hobbit')
   })
 
-  test('ignores a Progress message and an update for a book it has no card for', () => {
+  test('keeps a Progress message in the store and draws nothing for it', () => {
     loadBody(`<main>${card(A)}</main>`)
     const world = startWorld()
     world.io.intersect()
-    world.port.receive({
-      _tag: 'Progress',
+    const progress = {
       queued: 1,
       active: 0,
       done: 0,
       cached: 0,
       notFound: 0,
       failed: 0,
-    })
+      pausedUntil: 5_000,
+    }
+    world.port.receive({ _tag: 'Progress', ...progress })
+    expect(world.content?.books.state.get().progress).toEqual(progress)
+    expect(texts(A)).toEqual(['GR …'])
+  })
+
+  test('ignores an update for a book it has no card for', () => {
+    loadBody(`<main>${card(A)}</main>`)
+    const world = startWorld()
+    world.io.intersect()
     world.port.receive(ready('B0ZZZZZZZZ', { r: 4, n: 1 }))
     expect(texts(A)).toEqual(['GR …'])
   })
