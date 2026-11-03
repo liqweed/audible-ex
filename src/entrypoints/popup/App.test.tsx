@@ -9,6 +9,7 @@ import {
 } from '@testing-library/react'
 import { fakeBrowser } from 'wxt/testing/fake-browser'
 import type { ClearScope, Stats } from '@/schema/popup'
+import { readPanel, updatePanel } from '@/storage/panel'
 import { readPrefs, updatePrefs } from '@/storage/prefs'
 import { App } from './App'
 import type { Backend } from './backend'
@@ -79,6 +80,41 @@ describe('the master switch', () => {
     await waitFor(() =>
       expect(toggle.getAttribute('aria-checked')).toBe('false')
     )
+  })
+})
+
+describe('the panel', () => {
+  test('offers nothing while the panel is hidden nowhere', async () => {
+    render(<App backend={fakeBackend(0, 0).backend} />)
+    await screen.findByRole('switch')
+    expect(
+      screen.queryByRole('button', { name: 'Show the panel again' })
+    ).toBeNull()
+  })
+
+  test('brings the panel back on the sites where it was hidden', async () => {
+    await updatePanel({ hiddenHosts: ['www.audible.com', 'www.audible.co.uk'] })
+    render(<App backend={fakeBackend(0, 0).backend} />)
+    expect(
+      await screen.findByText('Hidden on www.audible.com, www.audible.co.uk.')
+    ).toBeDefined()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Show the panel again' })
+    )
+    await waitFor(async () =>
+      expect((await readPanel()).hiddenHosts).toEqual([])
+    )
+    expect(
+      screen.queryByRole('button', { name: 'Show the panel again' })
+    ).toBeNull()
+  })
+
+  test('notices a site hidden while the popup is open', async () => {
+    render(<App backend={fakeBackend(0, 0).backend} />)
+    await screen.findByRole('switch')
+    await act(() => updatePanel({ hiddenHosts: ['www.audible.de'] }))
+    expect(await screen.findByText('Hidden on www.audible.de.')).toBeDefined()
   })
 })
 

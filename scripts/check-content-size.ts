@@ -14,8 +14,10 @@
  *
  * The content budget is gzipped bytes of `content-scripts/content.js`. It was set from the first
  * real build (36 KB with badges, overview, popup switch and prefs) with room to grow. The panel
- * budget was set from the first panel build (64 KB: React and the shell, before the Radix controls
- * of the filters, which add about 12 KB). Raise either in the pull request that needs the room,
+ * budget was set from the first panel build (64 KB: React and the progress view, before the Radix
+ * controls of the filters, which add about 12 KB). The shell's stored state brought `effect/Schema`
+ * into the panel (92 KB), and the filters' prefs will use it too, so the filters' pull request
+ * must raise this budget or trim the panel. Raise either in the pull request that needs the room,
  * and say why.
  */
 import { readFileSync } from 'node:fs'

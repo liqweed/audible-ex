@@ -132,15 +132,14 @@ one queue. Release 0.1.
 
 - [x] `ProgressHub` in the background; `Progress` messages per tab.
 - [x] TanStack Store for `books` and `progress` in the content script.
-- [ ] Panel in a shadow root (`createShadowRootUi`), React + Tailwind + Radix:
+- [x] Panel in a shadow root (`createShadowRootUi`), React + Tailwind + Radix:
       drag to a corner, collapse to a pill, hide on this site; placement saved in
       `storage.local`; show again from the popup.
 - [x] Progress: bar and counters, rate-limit pause with countdown, "Retry
       failed", and a distinct "page format changed" error. (The panel is a
-      second content script, D19; it is fixed at the bottom right until the
-      shell lands.)
-- [ ] Component tests for each panel state. (Done for the progress states; the
-      shell's drag, collapsed and hidden states come with it.)
+      second content script, D19.)
+- [x] Component tests for each panel state: progress, docked corner, drag,
+      collapsed and hidden.
 
 Exit: on a deals page with 60+ books the panel shows progress to completion;
 collapsing, moving and hiding survive a reload. Release 0.2.

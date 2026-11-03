@@ -1,6 +1,7 @@
 import * as Switch from '@radix-ui/react-switch'
 import { useCallback, useEffect, useState } from 'react'
 import type { ClearScope, Stats } from '@/schema/popup'
+import { readPanel, updatePanel, watchPanel } from '@/storage/panel'
 import { readPrefs, updatePrefs, watchPrefs } from '@/storage/prefs'
 import { type Backend, extensionBackend } from './backend'
 import { books, formatBytes } from './format'
@@ -35,6 +36,29 @@ function useEnabled() {
     updatePrefs({ enabled: value }).catch(e => setError(messageOf(e)))
   }, [])
   return { enabled, change, error }
+}
+
+/** The Audible sites where the user hid the panel, kept in step with the panel's own storage. */
+function useHiddenSites() {
+  const [hosts, setHosts] = useState<readonly string[]>([])
+  const [error, setError] = useState<string>()
+  useEffect(() => {
+    let current = true
+    readPanel().then(
+      panel => current && setHosts(panel.hiddenHosts),
+      e => current && setError(messageOf(e))
+    )
+    const stop = watchPanel(panel => setHosts(panel.hiddenHosts))
+    return () => {
+      current = false
+      stop()
+    }
+  }, [])
+  const showAgain = useCallback(() => {
+    setHosts([])
+    updatePanel({ hiddenHosts: [] }).catch(e => setError(messageOf(e)))
+  }, [])
+  return { hosts, showAgain, error }
 }
 
 type CacheState =
@@ -147,6 +171,7 @@ function Cache({ backend }: { backend: Backend }) {
 
 export function App({ backend = extensionBackend }: { backend?: Backend }) {
   const { enabled, change, error } = useEnabled()
+  const hidden = useHiddenSites()
   return (
     <main className='w-80 space-y-4 p-4'>
       <header>
@@ -169,9 +194,19 @@ export function App({ backend = extensionBackend }: { backend?: Backend }) {
           <Switch.Thumb className='block h-4 w-4 translate-x-0.5 rounded-full bg-background shadow transition-transform data-[state=checked]:translate-x-[18px]' />
         </Switch.Root>
       </div>
-      {error && (
+      {hidden.hosts.length > 0 && (
+        <div className='space-y-1'>
+          <button type='button' className={button} onClick={hidden.showAgain}>
+            Show the panel again
+          </button>
+          <p className='text-xs text-muted-foreground'>
+            Hidden on {hidden.hosts.join(', ')}.
+          </p>
+        </div>
+      )}
+      {(error ?? hidden.error) && (
         <p className='text-sm text-destructive' role='alert'>
-          Could not use the settings: {error}
+          Could not use the settings: {error ?? hidden.error}
         </p>
       )}
       <Cache backend={backend} />

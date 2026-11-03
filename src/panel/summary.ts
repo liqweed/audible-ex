@@ -68,6 +68,12 @@ export function counts(view: Extract<PanelView, { kind: 'progress' }>): string {
     .join(' · ')
 }
 
+/** The text of the collapsed pill: `34/60`, or a short alarm when Goodreads' pages changed. */
+export const pillText = (
+  view: Exclude<PanelView, { kind: 'hidden' }>
+): string =>
+  view.kind === 'formatChanged' ? 'Update needed' : `${view.done}/${view.total}`
+
 /** Whole seconds until `until`, at least 1 while the pause is still ahead. */
 export const secondsLeft = (until: number, now: number): number =>
   Math.max(1, Math.ceil((until - now) / 1000))

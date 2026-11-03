@@ -263,8 +263,12 @@ there is a handle and unmounts when it is withdrawn (the extension was switched 
 shows nothing until the tab has asked for a book. `bun e2e` checks on live Audible that the panel's
 progress bar appears, which is the one thing `bun test` cannot prove about the shared world.
 
-- Shell: drag to a corner, collapse to a pill (rating icon + `34/60`), hide for this site. Hidden
-  state is restored from the popup.
+- Shell: drag to a corner, collapse to a pill (`34/60`), hide for this site. The state is the
+  `local:panel` item (§8). Dragging follows the pointer and, on release, docks to the viewport corner
+  nearest the panel's centre (`src/panel/drag.ts`); a press that moves under 4 px is a click. The
+  panel draws nothing until it has read the item, so it never flashes at the wrong corner. "Hide on
+  this site" adds the host name to `hiddenHosts`; the popup shows "Show the panel again" while any
+  host is hidden and clears the list, and the panel, which watches the item, reappears at once.
 - Progress: bar plus `34/60 · 18 cached · 2 not found · 1 failed`; "Paused — Goodreads is rate
   limiting (12 s)"; "Retry failed".
 - Filters: rating slider, minimum ratings, hidden-labels picker (autocomplete from genres seen in
@@ -312,6 +316,9 @@ filter can't apply to it and the card stays visible.
 Every reader (content scripts, popup, options) watches `sync:prefs`, so a change in one tab applies
 everywhere at once. Prefs are decoded with an Effect Schema that supplies defaults, so a missing or
 older field never crashes the UI.
+
+The panel's own state (`src/storage/panel.ts`: `corner`, `collapsed`, `hiddenHosts`) is the
+`local:panel` item, version 1, decoded with defaults like the prefs.
 
 Only `enabled` is implemented so far (`src/storage/prefs.ts`; the popup's master switch). The
 content script runs only while it is on (`src/content/lifecycle.ts`): turning it off removes the
