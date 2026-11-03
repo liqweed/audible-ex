@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+import { loadBody } from '../../test/content-harness'
 import type { BookView } from './books'
 import { OVERVIEW_HOST } from './cards'
 import {
@@ -99,10 +100,10 @@ describe('the overview on the page', () => {
     )
 
   beforeEach(() => {
-    document.documentElement.innerHTML = `<head></head><body>
+    loadBody(`
       <span class="agx-wrap"><a class="agx-badge" data-asin="B000000001">★ <span class="agx-n">(12k)</span></a></span>
       <span class="agx-wrap"><a class="agx-badge" data-asin="B000000002">GR …</a></span>
-      <p id="elsewhere">text</p></body>`
+      <p id="elsewhere">text</p>`)
     books = new Map([['B000000001', view()]])
     overview = createOverview({
       doc: document,

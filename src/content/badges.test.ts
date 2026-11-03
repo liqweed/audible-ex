@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
+import { loadBody } from '../../test/content-harness'
 import {
   decorate,
   fmtN,
@@ -210,7 +211,7 @@ test('visibleGenres is case-insensitive about the skipped ones', () => {
 
 describe('injectStyles', () => {
   test('adds one style element, however often it is called', () => {
-    document.documentElement.innerHTML = '<head></head><body></body>'
+    loadBody('')
     injectStyles(document, '.agx-badge{color:red}')
     injectStyles(document, '.agx-badge{color:red}')
     injectStyles(document, '.other{}')
