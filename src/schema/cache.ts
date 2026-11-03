@@ -50,3 +50,10 @@ export const HousekeepingRecord = Schema.Struct({
   name: Schema.Literal('lastPurge'),
   at: EpochMs,
 })
+
+/** Manual selection survives expiry and purge; its rating still refreshes normally. */
+export const OverrideRecord = Schema.Struct({
+  asin: Asin,
+  bookId: GoodreadsId,
+  savedAt: EpochMs,
+})

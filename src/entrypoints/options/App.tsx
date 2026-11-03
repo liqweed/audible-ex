@@ -2,6 +2,7 @@ import { useForm } from '@tanstack/react-form'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { REGIONS, type RegionCode } from '@/core/regions'
 import { PRIVACY_URL, SOURCE_URL } from '@/lib/links'
+import { CacheInspector } from '@/options/CacheInspector'
 import {
   draftFromPrefs,
   exportPrefs,
@@ -514,6 +515,7 @@ export function App({
 }: {
   download?: (text: string) => void
 }) {
+  const [inspect, setInspect] = useState(false)
   const [initial, setInitial] = useState<Prefs>()
   const [error, setError] = useState('')
   useEffect(() => {
@@ -559,6 +561,17 @@ export function App({
         </p>
       )}
       {initial && <Settings initial={initial} download={download} />}
+      {inspect ? (
+        <CacheInspector />
+      ) : (
+        <button
+          type='button'
+          className={button}
+          onClick={() => setInspect(true)}
+        >
+          Open cache inspector
+        </button>
+      )}
       <footer className='space-y-2 border-t border-slate-200 pt-6 text-xs text-slate-500'>
         <h2 className='text-sm font-semibold text-slate-800'>About</h2>
         <p>

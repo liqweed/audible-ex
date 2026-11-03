@@ -1,5 +1,6 @@
 import { browser } from 'wxt/browser'
 import { defineBackground } from 'wxt/utils/define-background'
+import { handleInspectorMessage } from '../background/inspector'
 import { PortServer } from '../background/PortServer'
 import { handlePopupMessage } from '../background/popup'
 import { buffered, PORT_NAME } from '../background/port'
@@ -25,13 +26,21 @@ export default defineBackground(() => {
   })
 
   // The popup's cache size and clear requests (ARCHITECTURE.md §5).
-  browser.runtime.onMessage.addListener((message, sender, respond) =>
-    handlePopupMessage(
-      effect => runtime.runPromise(effect),
-      message,
-      sender,
-      browser.runtime.getURL('/'),
-      respond
-    )
+  browser.runtime.onMessage.addListener(
+    (message, sender, respond) =>
+      handleInspectorMessage(
+        effect => runtime.runPromise(effect),
+        message,
+        sender,
+        browser.runtime.getURL('/'),
+        respond
+      ) ||
+      handlePopupMessage(
+        effect => runtime.runPromise(effect),
+        message,
+        sender,
+        browser.runtime.getURL('/'),
+        respond
+      )
   )
 })

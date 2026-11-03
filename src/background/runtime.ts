@@ -32,11 +32,10 @@ export const liveLayer = (
   )
   const cache = BookCache.layer(indexedDB)
   const lookups = ProgressHub.layer.pipe(Layer.provideMerge(LookupQueue.layer))
-  const server = PortServer.layer.pipe(
-    Layer.provide(lookups),
-    Layer.provide(Layer.mergeAll(network, cache))
+  const services = lookups.pipe(
+    Layer.provideMerge(Layer.mergeAll(network, cache))
   )
-  return Layer.mergeAll(server, cache)
+  return PortServer.layer.pipe(Layer.provideMerge(services))
 }
 
 /** The runtime the worker serves ports on. It builds the layer on first use, not here. */

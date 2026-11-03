@@ -393,3 +393,26 @@ a typed currency and amount), persisting prices with metadata (30-day prices
 would be stale), and treating an absent price as zero (it could hide a book
 for a price we never learned). Fixture, filter and queue tests cover these
 constraints; no separate ADR rules catalog is used (D8).
+
+## D24 — Cache inspector and persistent manual matches (2026-11-04)
+
+The options page adds `@tanstack/react-table` 8.21.3 and
+`@tanstack/react-virtual` 3.14.26, pinned, as D2 planned. Only the options
+entrypoint imports them. It lists local cached books, searches title, author
+and ASIN, sorts by rating or saved time, and deletes individual books.
+
+A correction accepts an HTTPS Goodreads book URL, extracts its numeric id and
+reads that exact book through the existing `LookupQueue`, with the same pacing,
+backoff and circuit breaker as automatic matches. Only a successful, validated
+book-page read replaces the match. IndexedDB version 2 adds `overrides`, keyed
+by ASIN: the chosen Goodreads id and the time of the correction. Automatic
+writes cannot replace a different manual match. Ratings still expire normally;
+refreshes read the chosen book instead of searching again. Daily purge and
+clear-unpinned keep overrides and their associated entries; delete-book and
+clear-all remove them. Deleting shared details keeps them while another cached
+rating or override refers to them. Reload an Audible page to see a correction.
+
+Rejected: fetching from options (bypasses the shared queue), treating a correction
+as an ordinary cache write (expiry would lose it), and exporting cached ratings
+(against R5). Schema, queue and IndexedDB tests enforce these rules. As D8
+specifies, this repository has no separate ADR rules catalog.

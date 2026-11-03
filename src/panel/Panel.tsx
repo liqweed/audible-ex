@@ -315,7 +315,7 @@ export function Panel({
                     </div>
                   </div>
                 )}
-                <Filters handle={handle} />
+                <Filters handle={handle} panelRef={box} />
               </>
             )}
           </section>

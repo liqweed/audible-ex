@@ -152,12 +152,12 @@ describe('the cache', () => {
     await screen.findByText(/10 books cached/)
     fireEvent.click(
       screen.getByRole('button', {
-        name: 'Clear, keeping Library and Wish List',
+        name: 'Clear, keeping Library, Wish List and manual matches',
       })
     )
     expect(
       await screen.findByText(
-        'Cleared 7 entries. Library and Wish List books were kept.'
+        'Cleared 7 entries. Library, Wish List and manual matches were kept.'
       )
     ).toBeDefined()
     expect(calls).toEqual(['unpinned'])
@@ -199,7 +199,7 @@ describe('the cache', () => {
     await screen.findByText(/5 books cached/)
     fireEvent.click(
       screen.getByRole('button', {
-        name: 'Clear, keeping Library and Wish List',
+        name: 'Clear, keeping Library, Wish List and manual matches',
       })
     )
     expect(

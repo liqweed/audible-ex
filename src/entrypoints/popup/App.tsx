@@ -93,7 +93,7 @@ function Cache({ backend }: { backend: Backend }) {
       setResult(
         `Cleared ${deleted} ${deleted === 1 ? 'entry' : 'entries'}.` +
           (scope === 'unpinned'
-            ? ' Library and Wish List books were kept.'
+            ? ' Library, Wish List and manual matches were kept.'
             : '')
       )
     } catch (e) {
@@ -123,12 +123,13 @@ function Cache({ backend }: { backend: Backend }) {
           disabled={busy}
           onClick={() => clear('unpinned')}
         >
-          Clear, keeping Library and Wish List
+          Clear, keeping Library, Wish List and manual matches
         </button>
         {confirming ? (
           <div className='space-y-2 rounded-md border border-destructive p-2'>
             <p className='text-sm'>
-              This also forgets the books of your Library and Wish List.
+              This also forgets manual matches and the books of your Library and
+              Wish List.
             </p>
             <div className='flex gap-2'>
               <button

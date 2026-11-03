@@ -2,7 +2,7 @@ import * as Slider from '@radix-ui/react-slider'
 import * as Switch from '@radix-ui/react-switch'
 import { Debouncer } from '@tanstack/pacer/debouncer'
 import { useStore } from '@tanstack/react-store'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { type RefObject, useEffect, useMemo, useRef, useState } from 'react'
 import type { PanelHandle } from '@/content/shared'
 import { type Region, regionFromHost } from '@/core/regions'
 import {
@@ -318,9 +318,12 @@ function LabelPicker({
  */
 export function Filters({
   handle,
+  panelRef,
   region = regionFromHost(location.hostname),
 }: {
   handle: PanelHandle
+  /** The entire panel is inside the click boundary, including its header and progress. */
+  panelRef?: RefObject<HTMLElement | null>
   region?: Region | undefined
 }) {
   const { filters, change } = useFilterPrefs()
@@ -328,6 +331,20 @@ export function Filters({
   const peek = useStore(handle.filter, s => s.peek)
   const seen = useStore(handle.state, s => genresSeen(s.books))
   const [open, setOpen] = useState(false)
+  const section = useRef<HTMLElement>(null)
+  useEffect(() => {
+    if (!open || !filters?.enabled) return
+    const boundary = panelRef?.current ?? section.current
+    if (!boundary) return
+    const outsideClick = (event: MouseEvent) => {
+      // Clicks are retargeted to the host outside a shadow root; the composed path
+      // still tells an interaction inside the panel from one on the Audible page.
+      if (!event.composedPath().includes(boundary)) setOpen(false)
+    }
+    const doc = boundary.ownerDocument
+    doc.addEventListener('click', outsideClick, true)
+    return () => doc.removeEventListener('click', outsideClick, true)
+  }, [open, filters?.enabled, panelRef])
   const [rating, setRating] = useDebouncedValue(filters?.minRating ?? 4, v =>
     change({ minRating: v })
   )
@@ -338,6 +355,7 @@ export function Filters({
 
   return (
     <section
+      ref={section}
       aria-label='Filters'
       className='mt-3 border-t border-slate-200 pt-2'
     >

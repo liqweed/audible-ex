@@ -104,7 +104,7 @@ on it. Each service is a `Context` service with a live layer and a test layer.
 | `Http`           | `FetchHttpClient` layer. `httpGet.ts` makes every GET: `credentials: 'omit'` on each request (to Goodreads and Audible alike), so lookups aren't tied to the user's accounts; a 15 s limit; the status mapped to the errors below.                                                                                                                                                                                                  | `get()`                                                    |
 | `AudibleCatalog` | `lookup(region, asin)`: `title`, first `author` (and later price) for an ASIN, from the API host of the page's marketplace. Uses `Request`/`RequestResolver` (120 ms window, grouped by host, repeated ASINs merged) so concurrent lookups batch into one `catalog/products?asins=…` call of up to 40.                                                                                                                                                         | `getMeta`, `flushMeta`                                     |
 | `Goodreads`      | `search(meta)` via `book/auto_complete` (title only first, title and author when `needsAuthorSearch`) and the scoring rules, answering `Option<Match>`; `details(bookId)` from the book page's `__NEXT_DATA__` (genres, overview as text capped at 600 characters, first-published year). Responses are decoded with Schemas; a decode failure is a `FormatChanged` error, not a miss.                                                                      | `searchGoodreads`, `fetchDetails`                          |
-| `BookCache`      | IndexedDB stores `ratings` (by ASIN), `meta` (by ASIN), `details` (by Goodreads id), `pins` (ASIN → last seen) and `housekeeping` (last purge); layout in §8. Time limits: found 30 days, miss 7 days; failures are never stored. A fibre purges unpinned entries older than 32 days daily; pins expire 180 days after last seen in Library/Wish List. | `cacheGet/Set`, `pin`, `purge`                             |
+| `BookCache`      | IndexedDB stores `ratings` (by ASIN), `meta` (by ASIN), `details` (by Goodreads id), `pins` (ASIN → last seen), `overrides` (ASIN → manual Goodreads id) and `housekeeping` (last purge); layout in §8. Time limits: found 30 days, miss 7 days; failures are never stored. A fibre purges entries without a live pin or manual override older than 32 days daily; pins expire 180 days after last seen in Library/Wish List. | `cacheGet/Set`, `pin`, `purge`                             |
 | `LookupQueue`    | The one place a book is looked up, for every tab: cache, then Audible metadata, then the Goodreads search; details for a found book. Dedupes in-flight work per ASIN and per Goodreads id (the shared work runs in the layer's scope, so one tab leaving cancels nothing another waits for). Every Goodreads request is a job for 3 workers, each holding 250 ms after a job; ratings run before details. A `RateLimited` pauses all workers with exponential backoff (5 s → 2 min, raised to `Retry-After`, capped at 5 min) and the job runs again after the pause, up to 3 times. A circuit breaker opens after 5 failures in a row; see below. | `grQueued`, `pumpGr`, `ratingFor`, `detailsFor`, `addYear` |
 | `ProgressHub`    | `track(publish)` for one tab's port session: the session reports when a lookup begins and how its rating ended, and the hub turns that, with the queue's running searches and pause, into the tab's counters (`src/core/progress.ts`) and calls `publish` when they change, at most every 100 ms; a tab with lookups pending also looks every 500 ms. Nothing is sent for a tab that has asked for nothing. | — (new)                                                    |
 | `PortServer`     | Accepts `runtime.connect` from content scripts, decodes messages, routes to the queue, encodes updates back. (One-off popup messages arrive with the popup, phase 1.)                                                                                                                                                                                      | — (new)                                                    |
@@ -182,12 +182,30 @@ Popup / options → background (one-off `sendMessage`, schemas in `src/schema/po
 `ClearCache { scope: 'unpinned' | 'all' }`, answered with `Cleared { deleted }`; a cache that cannot
 be read or cleared is answered `Failed { message }`. These replace the userscript's
 `GM_registerMenuCommand` entries. `src/background/popup.ts` answers them from the same `BookCache`
-the port server uses (`liveLayer` builds it once and offers it next to `PortServer`). A message
+the port server uses (`liveLayer` builds it once and exposes the cache and queue beside `PortServer`). A message
 that does not decode is left unanswered, and one whose `sender.url` is not one of the extension's
 own pages (`runtime.getURL('/')`) is ignored: a content script's sender URL is the web page's, so a
 page cannot make the extension empty its cache. The URL decides rather than the absence of
 `sender.tab`, because extension pages opened in a tab (the options page, the popup in a test) have
 one too.
+
+The options inspector uses `src/schema/inspector.ts`: `ListCachedBooks` returns
+`CachedBooks { books }` (title, author, ASIN, saved time, optional rating and
+Goodreads id, manual-match and live-pin flags); `DeleteCachedBook { asin }` and
+`CorrectCachedBook { asin, url }` return `CacheChanged`, or `Failed { message }`.
+The same extension-page sender check protects all three. Listing joins a consistent
+snapshot of ratings, metadata, overrides and pins, including expired entries.
+Only summaries cross the message boundary; there is no cache export. The options
+entrypoint alone imports TanStack Table 8 and Virtual 3 for sorting and rendering
+visible rows; its inspector loads when opened and has an explicit refresh button.
+Corrections parse an HTTPS Goodreads book URL, rebuild the URL from its numeric id,
+and read that exact book through `LookupQueue`, sharing workers, backoff and the
+circuit breaker. A valid page supplies its work rating and details; a failed read
+leaves the old match intact. A single cache transaction writes the override,
+rating and details. The queue consults the override before searching, and automatic
+writes cannot replace a different chosen id, including an in-flight search.
+Changes affect subsequent lookups; existing Audible pages must reload. In-flight
+lookups may repopulate a deleted cache entry.
 
 ## 6. Content script
 
@@ -386,7 +404,7 @@ filter can't apply to it and the card stays visible.
 | ------------------------------------------------------ | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | Preferences: enabled, filters, display options         | `storage.sync` via WXT `storage.defineItem('sync:prefs', { version, migrations })` | Personal preference; follows the user across devices and Audible regions. Well within sync quotas. |
 | Panel placement, collapsed state, hidden-on-site flags | `storage.local`                                                                    | Specific to this screen and device.                                                                |
-| Cache: ratings, meta, details, pins, housekeeping      | IndexedDB in the background, through `idb` (DECISIONS.md D13)                      | Thousands of records; needs an index on timestamp for purging. `unlimitedStorage` permission.      |
+| Cache: ratings, meta, details, pins, overrides, housekeeping      | IndexedDB in the background, through `idb` (DECISIONS.md D13)                      | Thousands of records; needs an index on timestamp for purging. `unlimitedStorage` permission.      |
 | Peek, progress, book views                             | Memory (TanStack Store)                                                            | Per page.                                                                                          |
 
 Every reader (content scripts, popup, options) watches `sync:prefs`, so a change in one tab applies
@@ -437,7 +455,8 @@ same title can have a different ASIN on each marketplace (Project Hail Mary is `
 `.com` and `B08GBHW6J1` on `.ca`), so a book seen on two marketplaces is two `ratings` entries
 that share one `details` entry.
 
-Cache database `audible-ex-cache`, version 1. Object stores and keys: `ratings` and `meta` by
+Cache database `audible-ex-cache`, version 2 (D24). Version 1 → 2 adds
+`overrides` by `asin`, preserving every existing store. Object stores and keys: `ratings` and `meta` by
 `asin`, `details` by `bookId`, `pins` by `asin`, each with an index on `savedAt` (`pins`:
 `lastSeen`) that the purge walks oldest first; `housekeeping` by `name`, holding one record,
 `lastPurge`, so the once-a-day gate survives a worker restart. Every record read is decoded with
@@ -445,9 +464,9 @@ its Schema (`src/schema/cache.ts`); one that fails to decode is deleted and read
 service opens the database from the `IDBFactory` it is given (`self.indexedDB` in the worker).
 Pinned means: for `ratings` and `meta`, the ASIN has a live pin; for `details`, the book id is the
 `bookId` of a found rating of a pinned ASIN. The purge, and `clear`, run in one readwrite
-transaction over all stores. `clear('all')` deletes every entry and every pin (the userscript's
+transaction over all stores. `clear('all')` deletes every entry, manual override and pin (the userscript's
 "everything" left its pin list); it leaves `housekeeping`. `stats` counts entries (ratings, meta,
-details) and pins separately and sizes everything as the JSON of its records.
+details, overrides) and pins separately and sizes everything as the JSON of its records.
 
 ### Options settings
 
@@ -466,8 +485,16 @@ receive new field defaults. Import refuses invalid fields, unknown fields, unsup
 and files over 100 KB before a write. The decoded prefs can be reviewed before the confirming
 click replaces the entire prefs item and draft. Reset also requires confirmation. Both keep the
 book cache and device-local panel state; neither is included in exports. The About footer links
-the privacy statement and source and carries the affiliation notice. The cache inspector is the
-remaining phase 4 task (#42).
+the privacy statement and source and carries the affiliation notice. The cache inspector completes
+phase 4 (#42).
+
+Manual overrides store `{ asin, bookId, savedAt }`. They do not expire. Purge and
+clear-unpinned keep overrides, their ASINs' ratings/metadata and their Goodreads
+details, independently of Library/Wish List pins. The ratings and details still
+expire for reads and refresh through the queue, using the chosen id. Deleting a
+book removes its rating, metadata, pin and override; its details are deleted only
+when no remaining rating or override refers to them. Clear-all removes overrides
+too. Neither prefs backups nor sync storage contain overrides or cached ratings.
 
 ## 9. Regions
 

@@ -88,6 +88,10 @@ export const memoryCache = (
   const pins: string[] = []
   const unused = Effect.die('not used by the lookup tests')
   const service: BookCacheService = {
+    getOverride: () => Effect.succeedNone,
+    correct: () => unused,
+    list: unused,
+    deleteBook: () => unused,
     getRating: asin =>
       Effect.sync(() => Option.fromUndefinedOr(ratings.get(asin))),
     setRating: rating =>
@@ -184,6 +188,20 @@ export const fakes = (behaviour: Behaviour = {}): Fakes => {
     })
 
   const goodreads = Goodreads.of({
+    book: id =>
+      Effect.gen(function* () {
+        yield* record('details', id)
+        const match = matchFor(Number(id) - 1000)
+        return {
+          rating: {
+            r: match.rating,
+            n: match.count,
+            url: match.url,
+            loose: false,
+          },
+          details: detailsFor(Number(id) - 1000),
+        }
+      }),
     search: book =>
       Effect.gen(function* () {
         const nth = yield* record('search', book.title)

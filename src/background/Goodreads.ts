@@ -28,11 +28,17 @@ import {
   scoreCandidates,
   titleAuthorQuery,
 } from '../core/matching'
-import { DESCRIPTION_MAX, type Details, GENRES_MAX } from '../schema/common'
+import {
+  DESCRIPTION_MAX,
+  type Details,
+  GENRES_MAX,
+  type Rating,
+} from '../schema/common'
 import {
   AutocompleteResponse,
   type BookPageData,
   bookPageData,
+  bookPageRating,
 } from '../schema/goodreads'
 import {
   FormatChanged,
@@ -45,6 +51,12 @@ import { getText, type TextResponse } from './httpGet'
 export type GoodreadsError = HttpError | RateLimited | FormatChanged
 
 export interface GoodreadsService {
+  readonly book: (
+    bookId: string
+  ) => Effect.Effect<
+    { rating: typeof Rating.Type; details: typeof Details.Type },
+    GoodreadsError
+  >
   /**
    * The Goodreads book for an Audible book: the title-only search first, the title and author search
    * only when that has no exact match (`needsAuthorSearch`). `Option.none` is "not on Goodreads", a
@@ -153,28 +165,48 @@ export class Goodreads extends Context.Service<Goodreads, GoodreadsService>()(
             return Option.fromUndefinedOr(chooseMatch(first, second))
           }).pipe(Effect.provideContext(context))
 
-        const details: GoodreadsService['details'] = bookId =>
+        const page = (bookId: string) =>
           Effect.gen(function* () {
             const url = bookPageUrl(bookId)
             const response = yield* getText(url, 'text/html')
             yield* challenge(url, response)
-            const { text } = response
-            const json = nextDataJson(text)
-            if (json === undefined) {
-              return yield* new FormatChanged({
-                source: 'bookPage',
-                detail: 'The page has no __NEXT_DATA__ script',
-              })
-            }
+            const json = nextDataJson(response.text)
+            return yield* Effect.try({
+              try: () => {
+                if (json === undefined)
+                  throw new Error('The page has no __NEXT_DATA__ script')
+                return JSON.parse(json) as unknown
+              },
+              catch: error => formatChanged('bookPage', error),
+            })
+          })
+        const details: GoodreadsService['details'] = bookId =>
+          Effect.gen(function* () {
+            const data = yield* page(bookId)
             return yield* toDetails(
               yield* Effect.try({
-                try: () => bookPageData(JSON.parse(json), bookId),
+                try: () => bookPageData(data, bookId),
                 catch: error => formatChanged('bookPage', error),
               })
             )
           }).pipe(Effect.provideContext(context))
+        const book: GoodreadsService['book'] = bookId =>
+          Effect.gen(function* () {
+            const data = yield* page(bookId)
+            const rating = yield* Effect.try({
+              try: () => bookPageRating(data, bookId),
+              catch: error => formatChanged('bookPage', error),
+            })
+            const details = yield* toDetails(
+              yield* Effect.try({
+                try: () => bookPageData(data, bookId),
+                catch: error => formatChanged('bookPage', error),
+              })
+            )
+            return { rating, details }
+          }).pipe(Effect.provideContext(context))
 
-        return Goodreads.of({ search, details })
+        return Goodreads.of({ search, details, book })
       })
     )
 }

@@ -188,7 +188,7 @@ loaded.
       year, overview), reset to defaults, export/import prefs as JSON. Display
       edits update open Audible tabs; backups contain prefs only, with validation
       and confirmation before import or reset.
-- [ ] Cache inspector with TanStack Table + Virtual: search, sort by
+- [x] Cache inspector with TanStack Table + Virtual: search, sort by
       rating/age, delete entries, open on Goodreads, correct a wrong match by
       pasting a Goodreads URL (stored as a manual override that the cache purge
       keeps).

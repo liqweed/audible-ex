@@ -591,3 +591,49 @@ function userscriptDetails(slug: string, id: string) {
         : 0,
   }
 }
+
+describe('Goodreads.book manual selection', () => {
+  scenario(
+    'reads the exact book rating and details with one cookie-free request',
+    () => html(bookPage('project-hail-mary')),
+    (goodreads, requests) =>
+      Effect.gen(function* () {
+        const book = yield* goodreads.book('54493401')
+        expect(book.rating.r).toBeGreaterThan(4)
+        expect(book.rating.n).toBeGreaterThan(1000)
+        expect(book.rating.url).toBe(bookPageUrl('54493401'))
+        expect(book.details.year).toBe(2021)
+        expect(requests).toHaveLength(1)
+        expect(requests[0]?.credentials).toBe('omit')
+      })
+  )
+  scenario(
+    'rejects a page for a different id instead of accepting the fallback book',
+    () => html(bookPage('project-hail-mary')),
+    goodreads =>
+      Effect.gen(function* () {
+        expect(yield* errorOf(goodreads.book('99999'))).toBeInstanceOf(
+          FormatChanged
+        )
+      })
+  )
+  scenario(
+    'rejects missing rating stats',
+    () =>
+      html(
+        pageWith(
+          renameKey(
+            pageData('project-hail-mary'),
+            'averageRating',
+            'changedRating'
+          )
+        )
+      ),
+    goodreads =>
+      Effect.gen(function* () {
+        expect(yield* errorOf(goodreads.book('54493401'))).toBeInstanceOf(
+          FormatChanged
+        )
+      })
+  )
+})
