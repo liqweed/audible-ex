@@ -100,11 +100,18 @@ export const updatePrefs = (change: Partial<Prefs>): Promise<void> =>
     await item.setValue({ ...(await readPrefs()), ...change })
   })
 
-/** Changes some of the filters and keeps the rest of them, and the other prefs, as they are. */
-export const updateFilters = (change: Partial<Filters>): Promise<void> =>
+/**
+ * Changes some of the filters and keeps the rest of them, and the other prefs, as they are. A
+ * function gets the filters as stored when the write begins: adding a label to the list needs them,
+ * not the list its caller saw earlier.
+ */
+export const updateFilters = (
+  change: Partial<Filters> | ((current: Filters) => Partial<Filters>)
+): Promise<void> =>
   queue(async () => {
     const prefs = await readPrefs()
-    await item.setValue({ ...prefs, filters: { ...prefs.filters, ...change } })
+    const patch = typeof change === 'function' ? change(prefs.filters) : change
+    await item.setValue({ ...prefs, filters: { ...prefs.filters, ...patch } })
   })
 
 /** Calls `listener` with the new prefs after each change; returns the function that stops it. */

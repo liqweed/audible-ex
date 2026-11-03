@@ -8,7 +8,7 @@
  * ASIN, so a book shown on several cards updates them all, and a card scanned after the book is
  * known draws it at once, without a second lookup.
  */
-import type { FilterSettings } from '../core/filter'
+import { type FilterSettings, isHiddenLabel, labelKey } from '../core/filter'
 import { isLibraryPath, pageKind } from '../core/page'
 import { regionFromHost } from '../core/regions'
 import {
@@ -22,6 +22,7 @@ import {
 import { type BookStore, createBookStore, isUnresolved, viewOf } from './books'
 import { isKnownRow, titleOf } from './cards'
 import { createFilterApplier } from './filter'
+import { createLabelPopover } from './labels'
 import { createOverview } from './overview'
 import {
   type ClientPort,
@@ -52,6 +53,10 @@ export interface ContentDeps {
     read(): Promise<FilterSettings>
     /** Calls `listener` on each change; returns the function that stops listening. */
     watch(listener: (settings: FilterSettings) => void): () => void
+    /** Changes some of the settings, from the settings as stored when the write begins. */
+    update(
+      change: (current: FilterSettings) => Partial<FilterSettings>
+    ): Promise<void>
   }
   /** The badge stylesheet's text. */
   css: string
@@ -208,6 +213,40 @@ export function startContent(deps: ContentDeps): Content | undefined {
     viewOf: badge => books.get((badge as HTMLElement).dataset.asin ?? ''),
   })
 
+  const filters = deps.filters
+  const labels = createLabelPopover({
+    doc,
+    css: deps.overviewCss,
+    schedule: deps.schedule,
+    hiddenLabels: () => filter.settings().hiddenLabels,
+    filtersEnabled: () => filter.settings().enabled,
+    booksWith(label) {
+      let n = 0
+      for (const [, view] of books.entries()) {
+        if (view.details?.genres.some(g => labelKey(g) === labelKey(label))) n++
+      }
+      return n
+    },
+    // Without a way to save, a label offers nothing: the popover reports that it could not.
+    hide: label =>
+      filters
+        ? filters.update(current => ({
+            enabled: true,
+            hiddenLabels: isHiddenLabel(current.hiddenLabels, label)
+              ? current.hiddenLabels
+              : [...current.hiddenLabels, label],
+          }))
+        : Promise.reject(new Error('The filters cannot be saved here')),
+    unhide: label =>
+      filters
+        ? filters.update(current => ({
+            hiddenLabels: current.hiddenLabels.filter(
+              hidden => labelKey(hidden) !== labelKey(label)
+            ),
+          }))
+        : Promise.reject(new Error('The filters cannot be saved here')),
+  })
+
   const handle: PanelHandle = {
     state: books.state,
     filter: filter.state,
@@ -219,6 +258,7 @@ export function startContent(deps: ContentDeps): Content | undefined {
   function stop() {
     withdrawHandle(doc, handle)
     unwatchFilters?.()
+    labels.stop()
     overview.stop()
     scanner.stop()
     client.close()

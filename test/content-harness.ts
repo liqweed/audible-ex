@@ -183,6 +183,18 @@ export class FakeFilters {
     this.listeners.add(listener)
     return () => this.listeners.delete(listener)
   }
+  /** Set to make the next `update` fail, as a full or unreachable storage would. */
+  failNextUpdate = false
+  /** Like storage: applies the change to what is stored, then tells the watchers. */
+  update = async (
+    change: (current: FilterSettings) => Partial<FilterSettings>
+  ) => {
+    if (this.failNextUpdate) {
+      this.failNextUpdate = false
+      throw new Error('storage is full')
+    }
+    this.change({ ...this.current, ...change(this.current) })
+  }
   change(settings: FilterSettings) {
     this.current = settings
     for (const listener of this.listeners) listener(settings)

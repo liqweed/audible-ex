@@ -2,7 +2,9 @@ import { describe, expect, test } from 'bun:test'
 import {
   type FilterBook,
   type FilterSettings,
+  isHiddenLabel,
   judge,
+  labelKey,
   place,
   verdict,
 } from './filter'
@@ -112,5 +114,14 @@ describe('verdict', () => {
     expect(verdict(book, settings, { inCarousel: false, peek: true })).toBe(
       'dim'
     )
+  })
+})
+
+describe('labels', () => {
+  test('compare without regard to case or space', () => {
+    expect(labelKey('  Science Fiction ')).toBe('science fiction')
+    expect(isHiddenLabel([' romance'], 'Romance ')).toBe(true)
+    expect(isHiddenLabel(['Romance'], 'Historical Romance')).toBe(false)
+    expect(isHiddenLabel([], 'Romance')).toBe(false)
   })
 })

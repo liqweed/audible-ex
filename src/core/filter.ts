@@ -42,7 +42,14 @@ export interface Placement {
   readonly peek: boolean
 }
 
-const label = (s: string) => s.trim().toLowerCase()
+/** How labels are compared: without regard to case or surrounding space. */
+export const labelKey = (s: string): string => s.trim().toLowerCase()
+
+/** Is `genre` one of the labels the user hides? */
+export const isHiddenLabel = (
+  hiddenLabels: readonly string[],
+  genre: string
+): boolean => hiddenLabels.some(hidden => labelKey(hidden) === labelKey(genre))
 
 /**
  * The verdict before the card's place is considered: `show`, or what the book gets for failing a
@@ -60,8 +67,11 @@ export function judge(
   if (r < settings.minRating) return settings.mode
   if (settings.minRatings > 0 && n < settings.minRatings) return settings.mode
   if (settings.hiddenLabels.length > 0 && book.details) {
-    const hidden = new Set(settings.hiddenLabels.map(label))
-    if (book.details.genres.some(genre => hidden.has(label(genre))))
+    if (
+      book.details.genres.some(genre =>
+        isHiddenLabel(settings.hiddenLabels, genre)
+      )
+    )
       return settings.mode
   }
   return 'show'

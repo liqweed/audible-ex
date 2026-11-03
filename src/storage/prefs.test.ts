@@ -182,3 +182,24 @@ describe('quick updates', () => {
     })
   })
 })
+
+describe('updateFilters with a function', () => {
+  test('sees the filters as stored, not as the caller last saw them', async () => {
+    await updateFilters({ hiddenLabels: ['Romance'] })
+    await updateFilters(current => ({
+      hiddenLabels: [...current.hiddenLabels, 'Horror'],
+    }))
+    expect((await readPrefs()).filters.hiddenLabels).toEqual([
+      'Romance',
+      'Horror',
+    ])
+  })
+
+  test('started together with others, all land', async () => {
+    await Promise.all([
+      updateFilters(c => ({ hiddenLabels: [...c.hiddenLabels, 'A'] })),
+      updateFilters(c => ({ hiddenLabels: [...c.hiddenLabels, 'B'] })),
+    ])
+    expect((await readPrefs()).filters.hiddenLabels).toEqual(['A', 'B'])
+  })
+})

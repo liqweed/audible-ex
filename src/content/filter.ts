@@ -8,11 +8,19 @@
  * settings changing, peeking. Cards on a page are in the hundreds, so a refresh looks at all of them.
  */
 import { createStore, type Store } from '@tanstack/store'
-import { type FilterSettings, judge, place } from '../core/filter'
+import {
+  type FilterSettings,
+  isHiddenLabel,
+  judge,
+  place,
+} from '../core/filter'
+import { LABEL } from './badges'
 import type { BookView } from './books'
 import { isInCarousel } from './cards'
 
 export const ATTRIBUTE = 'data-agx-filter'
+/** On a label pill whose genre the user hides (struck through by badges.css). */
+export const FILTERED = 'agx-filtered'
 
 /** Filters off: what applies until the user's settings have been read. */
 export const NO_FILTERS: FilterSettings = {
@@ -34,6 +42,8 @@ export interface FilterState {
 
 export interface FilterApplier {
   readonly state: Store<FilterState>
+  /** The settings in force now. */
+  settings(): FilterSettings
   setSettings(settings: FilterSettings): void
   setPeek(peek: boolean): void
   /** Something changed that can change a verdict: a book, or a card that was just attached. */
@@ -61,6 +71,28 @@ export function createFilterApplier(options: {
     return known
   }
 
+  /** Some label pill carries the mark, so a pass that marks nothing still has to clear it. */
+  let pillsMarked = false
+
+  /** Marks the label pills in `card` whose genre is hidden, and clears the others. */
+  function markLabels(card: Element) {
+    const labels = settings.enabled ? settings.hiddenLabels : []
+    if (labels.length === 0 && !pillsMarked) return
+    for (const pill of card.querySelectorAll(`.${LABEL}`)) {
+      const filtered = isHiddenLabel(labels, pill.textContent ?? '')
+      pill.classList.toggle(FILTERED, filtered)
+      if (filtered) {
+        pill.setAttribute(
+          'aria-label',
+          `${pill.textContent}, hidden by your filters`
+        )
+        pillsMarked = true
+      } else if (pill.hasAttribute('aria-label')) {
+        pill.removeAttribute('aria-label')
+      }
+    }
+  }
+
   function refresh() {
     const { peek } = state.get()
     let hidden = 0
@@ -68,6 +100,7 @@ export function createFilterApplier(options: {
       const judged = judge(options.viewOf(asin), settings)
       for (const card of cards) {
         if (!card.isConnected) continue
+        markLabels(card)
         const slide = inCarousel(card)
         const verdict = place(judged, { inCarousel: slide, peek })
         if (verdict === 'show') card.removeAttribute(ATTRIBUTE)
@@ -83,6 +116,7 @@ export function createFilterApplier(options: {
 
   return {
     state,
+    settings: () => settings,
     setSettings(next) {
       settings = next
       refresh()
@@ -95,6 +129,10 @@ export function createFilterApplier(options: {
     remove() {
       for (const el of options.doc.querySelectorAll(`[${ATTRIBUTE}]`))
         el.removeAttribute(ATTRIBUTE)
+      for (const pill of options.doc.querySelectorAll(`.${FILTERED}`)) {
+        pill.classList.remove(FILTERED)
+        pill.removeAttribute('aria-label')
+      }
     },
   }
 }

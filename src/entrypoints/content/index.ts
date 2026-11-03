@@ -7,7 +7,7 @@ import { startContent } from '@/content/main'
 import overviewCss from '@/content/overview.css?inline'
 import { timeout } from '@/content/schedule'
 import { contentScriptMatches } from '@/core/regions'
-import { readPrefs, watchPrefs } from '@/storage/prefs'
+import { readPrefs, updateFilters, watchPrefs } from '@/storage/prefs'
 
 // Badges and the hover overview on Audible cards (ARCHITECTURE.md §6). The panel is its own script (panel.content).
 export default defineContentScript({
@@ -30,6 +30,7 @@ export default defineContentScript({
           filters: {
             read: async () => (await readPrefs()).filters,
             watch: listener => watchPrefs(prefs => listener(prefs.filters)),
+            update: change => updateFilters(change),
           },
           css,
           overviewCss,

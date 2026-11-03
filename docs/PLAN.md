@@ -159,6 +159,8 @@ collapsing, moving and hiding survive a reload. Release 0.2.
       Pacer-debounced), minimum ratings, hidden-labels picker with autocomplete
       from the genres of the books on the page, not-found policy, hide/dim mode.
 - [x] `12 hidden · Show` counter and peek.
+- [x] Label pills: hovering or focusing one opens a popover to hide books with
+      that label, or to stop; a label that is filtered on is struck through.
 - [x] Changes in one tab apply in all open Audible tabs (storage watch).
 
 Release 0.3.

@@ -245,8 +245,21 @@ attribute; nothing is torn down and rebuilt.
 on the document finds the badge (its `data-asin` names the book, read from the store when the
 pointer arrives, so a year that came later shows), and a capturing `scroll` listener hides the box.
 The box is `position: fixed` inside a shadow root on an `agx-overview-host` element (ignored by the
-scanner), so Audible's CSS can't reach it. The host and its root are made by hand for now; the
-panel will take over the same root.
+scanner), so Audible's CSS can't reach it. The host and its root are made by hand, on the first
+show; the panel is another script with a root of its own.
+
+**Label popover.** `src/content/labels.ts`, plain DOM, in a shadow root of its own (`agx-label-host`,
+also ignored by the scanner) that uses the overview's stylesheet. Each genre label after a badge is a
+focusable pill. Resting the pointer on one for 200 ms (or focusing it; Enter opens the popover and
+moves focus into it, Escape closes it) opens a popover with the label, how many books on the page
+carry it, and one button: "Hide books labelled “X”", or "Stop hiding “X”" when the label is already
+filtered on. Unlike the overview it takes the pointer, so it stays while the pointer is on the label
+or on it and closes 250 ms after the pointer leaves both, or on scroll. A click saves through
+`filters.update` (`updateFilters` with a function, so it adds to the stored list and not to the one
+the tab last saw), switches the filters on if they were off (the popover says so first), and shows
+how it went, with the same button as the undo; a failed save is shown and can be retried. The pills
+of a hidden genre are marked by the filter applier (`agx-filtered`: struck through, with an
+`aria-label` saying they are hidden), so the mark follows every change of the filters, in every tab.
 
 **Floating panel.** A second content script, `src/entrypoints/panel.content/` (DECISIONS.md D19), so
 React stays out of `content.js`. It draws React in a shadow root made by WXT's `createShadowRootUi`

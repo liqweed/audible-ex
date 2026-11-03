@@ -57,6 +57,7 @@
   padding: 0 2px;
 }
 .agx-label {
+  cursor: pointer;
   display: inline-block;
   padding: 0 6px;
   border-radius: 9px;
@@ -84,4 +85,16 @@
 [data-agx-filter='dim']:hover {
   /* biome-ignore lint/complexity/noImportantStyles: as above */
   opacity: 0.9 !important;
+}
+
+/* A label pill is a button for the label popover; one the user filters on is struck through. */
+.agx-label:hover,
+.agx-label:focus-visible {
+  border-color: #b9ab94;
+}
+.agx-label.agx-filtered {
+  background: #f8e5e1;
+  border-color: #e0b0a6;
+  color: #8a3b2c;
+  text-decoration: line-through;
 }
