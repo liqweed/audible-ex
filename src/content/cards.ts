@@ -24,6 +24,19 @@ export const PANEL_HOST = 'agx-panel'
 /** What the extension adds to the page, so its own changes are never scanned. */
 export const OUR_NODES = `.agx-wrap, .agx-li, .${OVERVIEW_HOST}, ${PANEL_HOST}`
 
+/**
+ * Audible's carousels: the components that lay books out in a sliding row. Taken from the saved
+ * pages: the home, category and search pages wrap their recommendation rows in `adbl-product-carousel`
+ * (the US home page's featured row in `adbl-product-featured-carousel`), and a carousel that has not
+ * loaded yet is a `div.adbl-carousel`. Search results, deals and the library's own rows are in none.
+ */
+export const CAROUSEL =
+  'adbl-product-carousel, adbl-product-featured-carousel, .adbl-carousel, [aria-roledescription="carousel" i]'
+
+/** Is this card a slide of a carousel? Removing one would break the carousel's layout. */
+export const isInCarousel = (card: Element): boolean =>
+  card.closest(CAROUSEL) !== null
+
 const PRODUCT_LINKS = 'a[href*="/pd/"]'
 const HEADINGS = 'h1,h2,h3,h4'
 /** How far up from a link the card search climbs before giving up (the userscript's limit). */

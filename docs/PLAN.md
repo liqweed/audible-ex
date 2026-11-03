@@ -151,14 +151,15 @@ collapsing, moving and hiding survive a reload. Release 0.2.
 - [x] `sync:prefs` storage item with version and migrations; Schema defaults
       (ARCHITECTURE.md §8).
 - [x] `src/core/filter.ts` verdicts (ARCHITECTURE.md §7), fully unit-tested.
-- [ ] Filter applier: derived verdict store → `data-agx-filter` attributes;
-      CSS hide/dim.
-- [ ] Carousel detection from fixtures; carousels dim instead of hide.
+- [x] Filter applier: derived verdict store → `data-agx-filter` attributes;
+      CSS hide/dim. (`src/content/filter.ts`: it recomputes all cards on each
+      change instead of keeping a derived store.)
+- [x] Carousel detection from fixtures; carousels dim instead of hide.
 - [ ] Panel controls: master switch, rating slider (default 4.0,
       Pacer-debounced), minimum ratings, hidden-labels picker with autocomplete
       from cached genres, not-found policy, hide/dim mode.
 - [ ] `12 hidden · Show` counter and peek.
-- [ ] Changes in one tab apply in all open Audible tabs (storage watch).
+- [x] Changes in one tab apply in all open Audible tabs (storage watch).
 
 Release 0.3.
 

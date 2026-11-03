@@ -12,6 +12,7 @@ import type {
   IntersectionEntryLike,
 } from '@/content/scanner'
 import type { Schedule } from '@/content/schedule'
+import type { FilterSettings } from '@/core/filter'
 import type { BackgroundMessage } from '@/schema/messages'
 
 const FIXTURES = join(import.meta.dir, 'fixtures/audible')
@@ -173,6 +174,21 @@ export class FakePort implements ClientPort {
   }
 }
 
+/** The user's filters, as the content script reads and watches them; a test changes them by hand. */
+export class FakeFilters {
+  private readonly listeners = new Set<(settings: FilterSettings) => void>()
+  constructor(public current: FilterSettings) {}
+  read = async () => this.current
+  watch = (listener: (settings: FilterSettings) => void) => {
+    this.listeners.add(listener)
+    return () => this.listeners.delete(listener)
+  }
+  change(settings: FilterSettings) {
+    this.current = settings
+    for (const listener of this.listeners) listener(settings)
+  }
+}
+
 export interface World {
   doc: Document
   io: FakeIntersection
@@ -190,6 +206,7 @@ export interface WorldOptions {
   /** Called for each `connect`; throw to simulate an unreachable background. */
   onConnect?: (attempt: number) => void
   now?: () => number
+  filters?: FakeFilters
 }
 
 /** The world started last; its listeners are on the shared test document until it is stopped. */
@@ -222,6 +239,7 @@ export function startWorld(options: WorldOptions = {}): World {
     css: '.agx-badge{}',
     overviewCss: '.tip{}',
     now: options.now,
+    filters: options.filters,
   }
   const world: World = {
     doc: document,

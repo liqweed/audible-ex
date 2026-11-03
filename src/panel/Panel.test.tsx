@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, test } from 'bun:test'
+import { createStore } from '@tanstack/store'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { type BookStore, createBookStore } from '@/content/books'
+import type { FilterState } from '@/content/filter'
 import type { PanelHandle } from '@/content/shared'
 import {
   DEFAULT_PANEL,
@@ -44,13 +46,16 @@ async function show(ui: React.ReactElement) {
 function setup() {
   const books: BookStore = createBookStore()
   let retries = 0
+  const filter = createStore<FilterState>({ hidden: 0, peek: false })
   const handle: PanelHandle = {
     state: books.state,
+    filter,
     retryFailed: () => {
       retries++
     },
+    setPeek: peek => filter.setState(prev => ({ ...prev, peek })),
   }
-  return { books, handle, retries: () => retries }
+  return { books, filter, handle, retries: () => retries }
 }
 
 const counters = (over = {}) => ({

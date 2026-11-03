@@ -8,6 +8,7 @@
  * ASIN, so a book shown on several cards updates them all, and a card scanned after the book is
  * known draws it at once, without a second lookup.
  */
+import type { FilterSettings } from '../core/filter'
 import { isLibraryPath, pageKind } from '../core/page'
 import { regionFromHost } from '../core/regions'
 import {
@@ -20,6 +21,7 @@ import {
 } from './badges'
 import { type BookStore, createBookStore, isUnresolved, viewOf } from './books'
 import { isKnownRow, titleOf } from './cards'
+import { createFilterApplier } from './filter'
 import { createOverview } from './overview'
 import {
   type ClientPort,
@@ -45,6 +47,12 @@ export interface ContentDeps {
     callback: (records: MutationRecord[]) => void
   ) => MutationObserverLike
   schedule: Schedule
+  /** The user's filters; without it nothing is filtered. */
+  filters?: {
+    read(): Promise<FilterSettings>
+    /** Calls `listener` on each change; returns the function that stops listening. */
+    watch(listener: (settings: FilterSettings) => void): () => void
+  }
   /** The badge stylesheet's text. */
   css: string
   /** The hover overview's stylesheet text; it goes inside the overview's shadow root. */
@@ -96,6 +104,26 @@ export function startContent(deps: ContentDeps): Content | undefined {
     now: deps.now,
   })
 
+  const filter = createFilterApplier({
+    doc,
+    cards: () => cardsByAsin,
+    viewOf: asin => books.get(asin),
+  })
+  /** A change that arrived before the first read finished is newer than that read. */
+  let settingsChanged = false
+  const unwatchFilters = deps.filters?.watch(settings => {
+    settingsChanged = true
+    filter.setSettings(settings)
+  })
+  deps.filters?.read().then(
+    settings => {
+      if (!settingsChanged) filter.setSettings(settings)
+    },
+    // Unreadable settings leave the page unfiltered, which is the safe side of the rule that a
+    // book is never hidden for a reason the user did not choose.
+    error => console.error('audible-ex: could not read the filters', error)
+  )
+
   function retry(card: Element, asin: string) {
     removeBadges(card)
     // Every badge of this book shows the wait again; this card gets a new one.
@@ -130,6 +158,7 @@ export function startContent(deps: ContentDeps): Content | undefined {
       if (!card.isConnected) cards.delete(card)
       else renderCard(card, view, { onRetry: () => retry(card, asin) })
     }
+    filter.refresh()
   })
 
   function onVisible(visible: ReadonlyArray<VisibleCard>) {
@@ -154,6 +183,8 @@ export function startContent(deps: ContentDeps): Content | undefined {
     for (const { asin, pinned } of lookups) if (pinned) pinnedSent.add(asin)
     // One message for all the cards that came into view together.
     client.lookup(lookups)
+    // A card for a book already known is judged at once.
+    filter.refresh()
   }
 
   const scanner = createScanner({
@@ -177,11 +208,17 @@ export function startContent(deps: ContentDeps): Content | undefined {
     viewOf: badge => books.get((badge as HTMLElement).dataset.asin ?? ''),
   })
 
-  const handle: PanelHandle = { state: books.state, retryFailed }
+  const handle: PanelHandle = {
+    state: books.state,
+    filter: filter.state,
+    retryFailed,
+    setPeek: filter.setPeek,
+  }
   publishHandle(doc, handle)
 
   function stop() {
     withdrawHandle(doc, handle)
+    unwatchFilters?.()
     overview.stop()
     scanner.stop()
     client.close()
@@ -192,6 +229,7 @@ export function startContent(deps: ContentDeps): Content | undefined {
     stop,
     remove() {
       stop()
+      filter.remove()
       removeAllBadges(doc)
     },
   }

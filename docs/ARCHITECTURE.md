@@ -314,8 +314,18 @@ counts; `place` applies them; `verdict` is both (`src/core/filter.ts`, inputs ar
 module needs nothing from the content script or storage). A rating filter acts as soon as the rating
 arrives; a hidden-label filter acts once the details have.
 
-Cards inside carousels and sliders get `dim` instead of `hide`; removing slides breaks Audible's
-carousel layout. Which containers count as carousels is settled with fixtures during phase 3.
+Cards inside carousels get `dim` instead of `hide`; removing slides breaks Audible's carousel
+layout. From the saved pages, a carousel is `adbl-product-carousel`, `adbl-product-featured-carousel`
+(the US home page's featured row), a not yet loaded `.adbl-carousel`, or anything with
+`aria-roledescription="carousel"` (`CAROUSEL` in `src/content/cards.ts`). Search results, deals and
+the library's own rows are in none; the search, category and home pages mix both kinds.
+
+The applier (`src/content/filter.ts`) sets `data-agx-filter="hide|dim"` on each card and counts the
+hidden ones. Everything that can change a verdict (a book arriving, a card being attached, the
+settings, peeking) ends in one pass over the page's cards, which is a few hundred. The settings come
+from `sync:prefs` through a watcher, so every open tab applies a change at once. Until the settings
+have been read nothing is filtered. The panel reads `hidden` and `peek` from the `PanelHandle` and
+calls `setPeek`.
 
 Label filtering needs genres, which come from the Goodreads book page (~400 KB), not the cheap
 autocomplete call. Details are fetched for every visible book by default (they also drive the labels
