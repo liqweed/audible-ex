@@ -27,9 +27,8 @@ issue_tracker:
 changelog:
   # Change notes per pull request (changes/README.md); the release step writes
   # them into CHANGELOG.md. The version is package.json's, which WXT copies into
-  # the manifest. Release automation (the release App and workflow) waits until
-  # the repository is public: GitHub Free has no rulesets or environments for a
-  # private repository to fence the App's key (DECISIONS.md D10).
+  # the manifest. The release App that would cut the release commit is not set
+  # up yet (DECISIONS.md D10); a tag publishes the release (D20, release.yml).
   file: CHANGELOG.md
   format: keep-a-changelog
   # What ships in the extension: a change here needs a note that asks for a
