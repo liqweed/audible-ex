@@ -75,7 +75,7 @@ catalogue goes unchecked.
 - Books not found on Goodreads: shown (default), dimmed or hidden.
 - A book whose data hasn't loaded is never hidden.
 - A counter, `12 hidden · Show`, reveals hidden books (dimmed) without changing
-  the filters.
+  the filters. It counts the books that are hidden, not those dimmed in carousels.
 - A master switch turns filtering off.
 - Filters are saved in browser sync storage: they persist across restarts,
   follow the user's Chrome profile to other devices, apply on every

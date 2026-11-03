@@ -148,9 +148,9 @@ collapsing, moving and hiding survive a reload. Release 0.2.
 
 3a. Rating, count and labels
 
-- [ ] `sync:prefs` storage item with version and migrations; Schema defaults
+- [x] `sync:prefs` storage item with version and migrations; Schema defaults
       (ARCHITECTURE.md §8).
-- [ ] `src/core/filter.ts` verdicts (ARCHITECTURE.md §7), fully unit-tested.
+- [x] `src/core/filter.ts` verdicts (ARCHITECTURE.md §7), fully unit-tested.
 - [ ] Filter applier: derived verdict store → `data-agx-filter` attributes;
       CSS hide/dim.
 - [ ] Carousel detection from fixtures; carousels dim instead of hide.

@@ -298,7 +298,7 @@ share (`src/schema`, `src/storage`).
 
 Verdict for one card (pure function in `src/core/filter.ts`):
 
-1. Filters off, or `peek` on → `show` (hidden cards render dimmed while peeking).
+1. Filters off → `show`.
 2. Book not loaded yet (`queued`/`loading`/`failed`) → `show`. Hiding before data arrives makes the
    page jump.
 3. `notFound` → the `notFound` policy (default `show`).
@@ -306,6 +306,13 @@ Verdict for one card (pure function in `src/core/filter.ts`):
    (case-insensitive) → the miss mode (`hide` by default, `dim` as an option).
 5. Price above `maxPrice[region]` (phase 3b) → the miss mode.
 6. Otherwise `show`.
+
+Two adjustments follow the verdict: a card inside a carousel gets `dim` for `hide`, and so does every
+card while `peek` is on (the `12 hidden · Show` counter reveals the hidden books, dimmed, without
+touching the filters). `judge` gives the verdict before the adjustments and is what the counter
+counts; `place` applies them; `verdict` is both (`src/core/filter.ts`, inputs are structural so the
+module needs nothing from the content script or storage). A rating filter acts as soon as the rating
+arrives; a hidden-label filter acts once the details have.
 
 Cards inside carousels and sliders get `dim` instead of `hide`; removing slides breaks Audible's
 carousel layout. Which containers count as carousels is settled with fixtures during phase 3.
@@ -331,13 +338,16 @@ older field never crashes the UI.
 The panel's own state (`src/storage/panel.ts`: `corner`, `collapsed`, `hiddenHosts`) is the
 `local:panel` item, version 1, decoded with defaults like the prefs.
 
-Only `enabled` is implemented so far (`src/storage/prefs.ts`; the popup's master switch). The
-content script runs only while it is on (`src/content/lifecycle.ts`): turning it off removes the
-badges, the overview and the stylesheet and closes the port, which ends this tab's lookups; turning
-it on starts the script again. The rest of the shape below arrives in phase 3.
+`src/storage/prefs.ts` holds `enabled` (the popup's master switch) and `filters`, version 2; the
+display options arrive with the options page (phase 4) and `maxPrice` in phase 3b, each with a
+default, so neither needs more than a version bump. WXT runs the version 1 → 2 migration when the
+module loads (it was `enabled` alone; the migrated record has the filters at their defaults). The
+content script runs only while the extension is on (`src/content/lifecycle.ts`): turning it off
+removes the badges, the overview and the stylesheet and closes the port, which ends this tab's
+lookups; turning it on starts the script again.
 
 ```ts
-// Prefs v1, defaults shown
+// Prefs v2, defaults shown
 {
   enabled: true,
   filters: {
