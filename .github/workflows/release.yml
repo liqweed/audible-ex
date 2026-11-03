@@ -77,7 +77,8 @@ jobs:
   sign:
     name: Sign — Chrome Web Store key
     needs: build
-    runs-on: ubuntu-latest
+    # Not ubuntu-latest (26.04 now): Playwright 1.55 has no Chromium for it.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     # Holds CWS_SIGNING_KEY; the environment allows only `v*` tags.
     environment: release-signing
