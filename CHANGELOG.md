@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-03
+
+### Added
+
+- Filter Audible cards by an inclusive first-published year range in the panel.
+  Leave either end blank for no limit, or use negative years for BCE. The range
+  syncs across tabs and devices; books with no known year stay visible unless
+  another filter applies.
+- Set a maximum public price for each Audible marketplace in the panel. Limits
+  sync across tabs and devices; blank turns the limit off and 0 means free only.
+  Books with no known price stay visible unless another filter applies. Public
+  catalogue prices can differ from member offers.
+- Open Settings from the popup to edit all preferences, choose the number of
+  labels, show or hide the year and hover overview, and reset or back up prefs
+  as JSON. Display edits update open Audible tabs; imports are validated and
+  confirmed before replacing preferences. Saved drafts preserve unrelated edits
+  made in other tabs. Cached books and panel placement are kept on the device.
+
 ## [0.2.0] - 2026-11-03
 
 ### Added
