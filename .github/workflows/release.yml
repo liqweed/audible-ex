@@ -64,10 +64,13 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      # upload-artifact skips hidden directories such as .output when the path is a glob.
+      - run: mkdir release-zips && cp .output/*.zip release-zips/
+
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-zips
-          path: .output/*.zip
+          path: release-zips/*.zip
           if-no-files-found: error
           retention-days: 30
 
@@ -110,10 +113,12 @@ jobs:
           trap 'rm -f "$key"' EXIT
           bun crx --key "$key"
 
+      - run: mkdir release-crx && cp .output/*.crx release-crx/
+
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-crx
-          path: .output/*.crx
+          path: release-crx/*.crx
           if-no-files-found: error
           retention-days: 30
 
