@@ -204,8 +204,9 @@ Release 0.1 (unlisted)
       another project), and a ruleset on `main` requiring the CI job.
 - [x] Cut release 0.1.0 by hand (`changes/README.md`), `bun zip`, register the
       developer account and upload as unlisted (STORE-LISTING.md, "Submitting a
-      release"). Submitted 2026-11-02 as item `kmmnfidbflcgfcbifjfakgnjppoflffo`.
-- [ ] After approval, install from the store link and check badges on two
+      release"). Submitted 2026-11-02 as item `kmmnfidbflcgfcbifjfakgnjppoflffo`;
+      approved and published unlisted 2026-11-03.
+- [x] After approval, install from the store link and check badges on two
       marketplaces.
 - [ ] Switch the listing to public after a week of use without reported
       breakage.

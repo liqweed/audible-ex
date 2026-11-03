@@ -8,12 +8,12 @@ this file in the same pull request (AGENTS.md, "Change together").
 Release 0.1 is published **unlisted** (DECISIONS.md D17); it switches to public
 after a week of use without reported breakage.
 
-| Item       | Value                                                                     |
-| ---------- | ------------------------------------------------------------------------- |
-| Item ID    | `kmmnfidbflcgfcbifjfakgnjppoflffo`                                        |
-| Store page | https://chromewebstore.google.com/detail/kmmnfidbflcgfcbifjfakgnjppoflffo |
-| Dashboard  | https://chrome.google.com/webstore/devconsole (the item, by its ID)       |
-| Submitted  | 0.1.0, 2026-11-02, unlisted; pending review                               |
+| Item       | Value                                                                                              |
+| ---------- | -------------------------------------------------------------------------------------------------- |
+| Item ID    | `kmmnfidbflcgfcbifjfakgnjppoflffo`                                                                 |
+| Store page | https://chromewebstore.google.com/detail/book-ratings-for-audible/kmmnfidbflcgfcbifjfakgnjppoflffo |
+| Dashboard  | https://chrome.google.com/webstore/devconsole (the item, by its ID)                                |
+| Status     | 0.1.0 submitted 2026-11-02, approved and published unlisted 2026-11-03                             |
 
 Later releases upload a new package to this item; they never create a new one.
 
@@ -131,8 +131,8 @@ update from anyone who takes over the developer account without the key
 - **Public key:** `.config/cws-signing-key.pub.pem`; `bun crx` refuses a key
   that doesn't match it. SHA-256 of its DER form: `074fa5ca29271270bde909744381e3e55218fbfdd17da3df5209309cb574c1d3`.
 - **Opt-in:** the item → **Package** → **Verified CRX Uploads** → **Opt In**,
-  then paste the public key below. Status: not yet opted in; do it once 0.1.0
-  is approved, before the listing goes public.
+  then paste the public key below. Status: opted in on 2026-11-03; every
+  upload since must be `bun crx`'s signed `.crx`.
 
 ```text
 -----BEGIN PUBLIC KEY-----
@@ -151,8 +151,8 @@ NQIDAQAB
 1. On an up-to-date `main` with the release commit tagged (`changes/README.md`),
    run `bun run build`, `bun e2e`, then `bun crx`, which signs the build with
    the key from 1Password; the upload is
-   `.output/audible-ex-<version>-chrome.crx`. (Before the opt-in, `bun zip`'s
-   `.output/audible-ex-<version>-chrome.zip` is accepted too.)
+   `.output/audible-ex-<version>-chrome.crx`. (The store has rejected
+   unsigned zips since the opt-in on 2026-11-03.)
 2. First release only: register at
    https://chrome.google.com/webstore/devconsole with a Google account that has
    2-step verification, pay the one-time US$5 fee, verify the contact email,
