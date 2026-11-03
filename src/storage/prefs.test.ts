@@ -31,6 +31,8 @@ describe('decodePrefs', () => {
       enabled: true,
       minRating: 4,
       minRatings: 50,
+      minYear: null,
+      maxYear: null,
       hiddenLabels: [],
       notFound: 'show',
       mode: 'hide',
@@ -53,6 +55,10 @@ describe('decodePrefs', () => {
     ['a negative count', { minRatings: -1 }],
     ['an unknown policy', { notFound: 'remove' }],
     ['a mode that is not a mode', { mode: 'show' }],
+    ['a fractional year', { minYear: 2000.5 }],
+    ['an unknown year as a bound', { maxYear: 0 }],
+    ['a year stored as a string', { minYear: '2000' }],
+    ['a reversed range', { minYear: 2020, maxYear: 2000 }],
   ])('%s gives the defaults', (_, filters) => {
     expect(decodePrefs({ enabled: false, filters })).toEqual(DEFAULT_PREFS)
   })
@@ -69,6 +75,18 @@ describe('decodePrefs', () => {
     expect(decodePrefs({ enabled: false, theme: 'dark' })).toEqual({
       enabled: false,
       filters: DEFAULT_FILTERS,
+    })
+  })
+
+  test.each([
+    { minYear: 2000, maxYear: null },
+    { minYear: null, maxYear: 2000 },
+    { minYear: -800, maxYear: -700 },
+    { minYear: 2000, maxYear: 2000 },
+  ])('keeps the year bounds %j', range => {
+    expect(decodePrefs({ filters: range }).filters).toEqual({
+      ...DEFAULT_FILTERS,
+      ...range,
     })
   })
 })
@@ -139,7 +157,7 @@ describe('the version 1 record', () => {
     })
   })
 
-  test('is rewritten as version 2 when the extension starts', async () => {
+  test('is rewritten as version 3 when the extension starts', async () => {
     await seedV1()
     // WXT migrates when the item is defined, which is when the module loads: load a fresh copy.
     const fresh = (await import(
@@ -154,12 +172,67 @@ describe('the version 1 record', () => {
       const meta = (await fakeBrowser.storage.sync.get('prefs$')).prefs$ as
         | { v?: number }
         | undefined
-      if (meta?.v === 2) break
+      if (meta?.v === 3) break
       await Bun.sleep(10)
     }
     const stored = await fakeBrowser.storage.sync.get(['prefs', 'prefs$'])
     expect(stored.prefs).toEqual({ enabled: false, filters: DEFAULT_FILTERS })
-    expect(stored.prefs$).toEqual({ v: 2 })
+    expect(stored.prefs$).toEqual({ v: 3 })
+  })
+})
+
+describe('the version 2 record', () => {
+  test('migrates without changing the existing choices, with year filtering off', async () => {
+    const filters = {
+      enabled: false,
+      minRating: 3.5,
+      minRatings: 100,
+      hiddenLabels: ['Romance'],
+      notFound: 'dim',
+      mode: 'dim',
+    } as const
+    await fakeBrowser.storage.sync.set({
+      prefs: { enabled: false, filters },
+      prefs$: { v: 2 },
+    })
+    const fresh = (await import(
+      `./prefs.ts?fresh=${Math.random()}`
+    )) as typeof import('./prefs')
+    const expected = {
+      enabled: false,
+      filters: { ...filters, minYear: null, maxYear: null },
+    }
+    expect(await fresh.readPrefs()).toEqual(expected)
+    for (let i = 0; i < 100; i++) {
+      const stored = await fakeBrowser.storage.sync.get(['prefs', 'prefs$'])
+      if ((stored.prefs$ as { v?: number } | undefined)?.v === 3) break
+      await Bun.sleep(10)
+    }
+    const stored = await fakeBrowser.storage.sync.get(['prefs', 'prefs$'])
+    expect(stored).toEqual({
+      prefs: expected,
+      prefs$: { v: 3 },
+    })
+  })
+
+  test('year edits keep the other filters and notify watchers', async () => {
+    await updateFilters({ minRating: 4.5 })
+    const seen: Array<[number | null, number | null]> = []
+    const stop = watchPrefs(prefs =>
+      seen.push([prefs.filters.minYear, prefs.filters.maxYear])
+    )
+    await updateFilters({ minYear: 2000, maxYear: 2020 })
+    await updateFilters({ minYear: null })
+    stop()
+    expect(seen).toEqual([
+      [2000, 2020],
+      [null, 2020],
+    ])
+    expect((await readPrefs()).filters).toEqual({
+      ...DEFAULT_FILTERS,
+      minRating: 4.5,
+      maxYear: 2020,
+    })
   })
 })
 

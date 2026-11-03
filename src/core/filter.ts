@@ -21,6 +21,9 @@ export interface FilterSettings {
   readonly minRating: number
   /** 0 turns the minimum number of ratings off. */
   readonly minRatings: number
+  /** Inclusive first-published year bounds; null leaves that end open. Negative years are BCE. */
+  readonly minYear: number | null
+  readonly maxYear: number | null
   /** Goodreads genre names, compared without regard to case. */
   readonly hiddenLabels: readonly string[]
   readonly notFound: NotFoundPolicy
@@ -32,7 +35,9 @@ export interface FilterSettings {
 export interface FilterBook {
   readonly status: 'queued' | 'loading' | 'ready' | 'notFound' | 'failed'
   readonly rating?: { readonly r: number; readonly n: number } | undefined
-  readonly details?: { readonly genres: readonly string[] } | undefined
+  readonly details?:
+    | { readonly genres: readonly string[]; readonly year?: number }
+    | undefined
 }
 
 export interface Placement {
@@ -66,6 +71,14 @@ export function judge(
   const { r, n } = book.rating
   if (r < settings.minRating) return settings.mode
   if (settings.minRatings > 0 && n < settings.minRatings) return settings.mode
+  const year = book.details?.year
+  // 0 means Goodreads has no year. A year filter cannot act until a known year arrives.
+  if (year !== undefined && year !== 0) {
+    if (settings.minYear !== null && year < settings.minYear)
+      return settings.mode
+    if (settings.maxYear !== null && year > settings.maxYear)
+      return settings.mode
+  }
   if (settings.hiddenLabels.length > 0 && book.details) {
     if (
       book.details.genres.some(genre =>

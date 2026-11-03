@@ -19,7 +19,7 @@ Goals
   every Audible card (search, category, deals, home daily deal, library, collections, wish list).
 - A floating panel on Audible pages: progress of the Goodreads loader, filter controls, show/hide.
 - Filters that reflect personal preference and persist: minimum rating (default 4.0), minimum
-  number of ratings, hidden labels, later price and year.
+  number of ratings, hidden labels, first-published year range, later price.
 - All 10 Audible marketplaces the userscript supports (`.co.uk .com .ca .com.au .de .fr .it .es
 .in .co.jp`). Matching quality is best for English titles; other languages are best effort.
 - Publishable on the Chrome Web Store (see §11). Firefox is a later target; WXT keeps that cheap.
@@ -297,8 +297,11 @@ progress bar appears, which is the one thing `bun test` cannot prove about the s
   limiting (12 s)"; "Retry failed".
 - Filters (`src/panel/Filters.tsx`, built, below the progress): the master switch and `12 hidden ·
   Show` always; a "Filter settings" area opens the rating slider (3.0–5.0, step 0.1), the minimum
-  number of ratings, the hidden labels, and the two policies. A change shows at once and is saved
-  300 ms after the user stops (Pacer's debouncer, flushed if the panel goes away), through
+  number of ratings, the hidden labels, the first-published year range, and the two policies.
+  Year bounds are text fields (blank for an open end, negative for BCE); the pair is saved together
+  only when both are whole nonzero years or blank, with the lower bound no later than the upper.
+  An invalid draft shows an error and leaves the saved range in force. A change shows at once and
+  is saved 300 ms after the user stops (Pacer's debouncer, flushed if the panel goes away), through
   `updateFilters`, whose writes run in order. The label picker suggests the genres the page's books
   carry, most common first (`genres.ts`), not genres from the whole cache.
 - Counter: `12 hidden · Show` — **Show** toggles `peek`, which reveals hidden cards (dimmed)
@@ -321,15 +324,18 @@ Verdict for one card (pure function in `src/core/filter.ts`):
 3. `notFound` → the `notFound` policy (default `show`).
 4. Rating below `minRating`, or count below `minRatings`, or any genre in `hiddenLabels`
    (case-insensitive) → the miss mode (`hide` by default, `dim` as an option).
-5. Price above `maxPrice[region]` (phase 3b) → the miss mode.
-6. Otherwise `show`.
+5. Known first-published year outside the inclusive `minYear` / `maxYear` range → the miss mode.
+   Either bound can be `null` (off). Negative years are BCE; year 0 means unknown and does not fail
+   this filter. Missing details do not fail it either; other filters still apply.
+6. Price above `maxPrice[region]` (remaining phase 3b work) → the miss mode.
+7. Otherwise `show`.
 
 Two adjustments follow the verdict: a card inside a carousel gets `dim` for `hide`, and so does every
 card while `peek` is on (the `12 hidden · Show` counter reveals the hidden books, dimmed, without
 touching the filters). `judge` gives the verdict before the adjustments and is what the counter
 counts; `place` applies them; `verdict` is both (`src/core/filter.ts`, inputs are structural so the
 module needs nothing from the content script or storage). A rating filter acts as soon as the rating
-arrives; a hidden-label filter acts once the details have.
+arrives; hidden-label and year filters act once the details have.
 
 Cards inside carousels get `dim` instead of `hide`; removing slides breaks Audible's carousel
 layout. From the saved pages, a carousel is `adbl-product-carousel`, `adbl-product-featured-carousel`
@@ -365,22 +371,27 @@ older field never crashes the UI.
 The panel's own state (`src/storage/panel.ts`: `corner`, `collapsed`, `hiddenHosts`) is the
 `local:panel` item, version 1, decoded with defaults like the prefs.
 
-`src/storage/prefs.ts` holds `enabled` (the popup's master switch) and `filters`, version 2; the
+`src/storage/prefs.ts` holds `enabled` (the popup's master switch) and `filters`, version 3; the
 display options arrive with the options page (phase 4) and `maxPrice` in phase 3b, each with a
 default, so neither needs more than a version bump. WXT runs the version 1 → 2 migration when the
-module loads (it was `enabled` alone; the migrated record has the filters at their defaults). The
-content script runs only while the extension is on (`src/content/lifecycle.ts`): turning it off
+module loads (it was `enabled` alone; the migrated record has the filters at their defaults).
+Version 2 → 3 adds `minYear` and `maxYear`, both `null`, preserving all existing choices; no year
+filter applies until the user sets a bound. The Schema rejects fractional or zero bounds and
+reversed ranges. The content script runs only while the extension is on
+(`src/content/lifecycle.ts`): turning it off
 removes the badges, the overview and the stylesheet and closes the port, which ends this tab's
 lookups; turning it on starts the script again.
 
 ```ts
-// Prefs v2, defaults shown
+// Prefs v3, defaults shown (maxPrice and display are still planned)
 {
   enabled: true,
   filters: {
     enabled: true,
     minRating: 4.0,          // slider 3.0–5.0, step 0.1
     minRatings: 50,          // 0 turns it off
+    minYear: null,           // inclusive; null is no lower bound, negative is BCE
+    maxYear: null,           // inclusive; null is no upper bound
     hiddenLabels: [],        // Goodreads genre names
     notFound: 'show',        // 'show' | 'dim' | 'hide'
     mode: 'hide',            // 'hide' | 'dim'

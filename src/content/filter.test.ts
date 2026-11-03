@@ -22,6 +22,8 @@ const FILTERS: FilterSettings = {
   enabled: true,
   minRating: 4,
   minRatings: 50,
+  minYear: null,
+  maxYear: null,
   hiddenLabels: [],
   notFound: 'show',
   mode: 'hide',
@@ -141,6 +143,57 @@ describe('filters on the com search fixture (list rows and carousels)', () => {
   test('turning the extension off takes the marks off the page', () => {
     world.content?.remove()
     expect(document.querySelectorAll('[data-agx-filter]')).toHaveLength(0)
+  })
+})
+
+describe('year filtering on the com search fixture', () => {
+  test('waits for known years, hides list cards, dims carousel slides and follows edits', async () => {
+    loadFixture('com', 'search')
+    const filters = new FakeFilters({
+      ...FILTERS,
+      minYear: 2000,
+      maxYear: 2020,
+    })
+    const world = startWorld({
+      hostname: 'www.audible.com',
+      pathname: '/search',
+      filters,
+    })
+    world.io.intersect()
+    const asins = [...new Set(world.port.lookups().flat())]
+    for (const asin of asins)
+      world.port.receive(ready(asin, { r: 4.5, n: 900 }))
+    await flush()
+    expect(document.querySelectorAll('[data-agx-filter]')).toHaveLength(0)
+
+    const outside = new Set<string>()
+    const years = [undefined, 0, 1999, 2000, 2020, 2021]
+    asins.forEach((asin, i) => {
+      const year = years[i % years.length]
+      if (year === undefined) return
+      if (year !== 0 && (year < 2000 || year > 2020)) outside.add(asin)
+      world.port.receive(ready(asin, { r: 4.5, n: 900 }, { genres: [], year }))
+    })
+    await flush()
+    const hidden = marked('hide').length
+    expect(hidden).toBeGreaterThan(0)
+    expect(marked('dim').length).toBeGreaterThan(0)
+    expect(handleOf(world).filter.get().hidden).toBe(hidden)
+    for (const badge of mainBadges()) {
+      const asin = (badge as HTMLElement).dataset.asin as string
+      const card = badge.closest('[data-agx-filter]')
+      expect(!!card, asin).toBe(outside.has(asin))
+      if (card)
+        expect(card.getAttribute('data-agx-filter')).toBe(
+          inCarousel(card) ? 'dim' : 'hide'
+        )
+    }
+    handleOf(world).setPeek(true)
+    expect(marked('hide')).toHaveLength(0)
+    expect(handleOf(world).filter.get().hidden).toBe(hidden)
+    filters.change({ ...FILTERS, minYear: null, maxYear: null })
+    expect(document.querySelectorAll('[data-agx-filter]')).toHaveLength(0)
+    expect(handleOf(world).filter.get().hidden).toBe(0)
   })
 })
 

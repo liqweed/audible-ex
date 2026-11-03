@@ -4,14 +4,23 @@
  * options) watches it, so a change in one place applies everywhere at once.
  *
  * Each field has a default, so a record written by an older version still decodes. Change the
- * shape → bump `version` and add a migration. Version 2 added `filters`; the display options join
- * them with the options page (phase 4), and the maximum price per marketplace in phase 3b.
+ * shape → bump `version` and add a migration. Version 2 added `filters`, version 3 the year bounds;
+ * display options join them with the options page (phase 4), and maximum price in phase 3b.
  */
 import * as Effect from 'effect/Effect'
 import * as Option from 'effect/Option'
 import * as Schema from 'effect/Schema'
 import { storage } from 'wxt/utils/storage'
 import { serial } from './serial'
+
+/** An open bound, or a whole first-published year (0 means unknown in book details). */
+const YearBound = Schema.NullOr(
+  Schema.Int.check(
+    Schema.makeFilter(year =>
+      year === 0 ? 'Year 0 is not a publication year' : undefined
+    )
+  )
+).pipe(Schema.withDecodingDefaultKey(Effect.succeed<number | null>(null)))
 
 /**
  * The filters (PRD R3, ARCHITECTURE.md §7; `src/core/filter.ts` reads them). The slider offers 3.0 to
@@ -29,6 +38,8 @@ export const Filters = Schema.Struct({
   minRatings: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)).pipe(
     Schema.withDecodingDefaultKey(Effect.succeed(50))
   ),
+  minYear: YearBound,
+  maxYear: YearBound,
   /** Goodreads genre names. */
   hiddenLabels: Schema.Array(Schema.String).pipe(
     Schema.withDecodingDefaultKey(Effect.succeed<readonly string[]>([]))
@@ -43,19 +54,29 @@ export const Filters = Schema.Struct({
   mode: Schema.Literals(['hide', 'dim']).pipe(
     Schema.withDecodingDefaultKey(Effect.succeed<'hide' | 'dim'>('hide'))
   ),
-})
+}).check(
+  Schema.makeFilter(filters =>
+    filters.minYear !== null &&
+    filters.maxYear !== null &&
+    filters.minYear > filters.maxYear
+      ? 'The first-published year range is reversed'
+      : undefined
+  )
+)
 export type Filters = typeof Filters.Type
 
 export const DEFAULT_FILTERS: Filters = {
   enabled: true,
   minRating: 4,
   minRatings: 50,
+  minYear: null,
+  maxYear: null,
   hiddenLabels: [],
   notFound: 'show',
   mode: 'hide',
 }
 
-/** Prefs v2. A key missing from the stored record takes its default. */
+/** Prefs v3. A key missing from the stored record takes its default. */
 export const Prefs = Schema.Struct({
   /** The extension's master switch: off removes the badges and stops the lookups. */
   enabled: Schema.Boolean.pipe(
@@ -81,10 +102,12 @@ export function decodePrefs(raw: unknown): Prefs {
 
 const item = storage.defineItem<unknown>('sync:prefs', {
   fallback: DEFAULT_PREFS,
-  version: 2,
+  version: 3,
   migrations: {
-    // v1 held `enabled` alone. The migrated record is the whole of v2, defaults filled in.
+    // v1 held `enabled` alone. Add the filters with defaults filled in.
     2: decodePrefs,
+    // v2 had no year bounds: keep every choice and leave both ends open.
+    3: decodePrefs,
   },
 })
 
