@@ -14,6 +14,7 @@ import {
   judge,
   place,
 } from '../core/filter'
+import type { RegionCode } from '../core/regions'
 import { LABEL } from './badges'
 import type { BookView } from './books'
 import { isInCarousel } from './cards'
@@ -29,6 +30,7 @@ export const NO_FILTERS: FilterSettings = {
   minRatings: 0,
   minYear: null,
   maxYear: null,
+  maxPrice: {},
   hiddenLabels: [],
   notFound: 'show',
   mode: 'hide',
@@ -56,6 +58,7 @@ export interface FilterApplier {
 
 export function createFilterApplier(options: {
   doc: Document
+  region?: RegionCode
   /** The cards on the page, by ASIN. */
   cards(): ReadonlyMap<string, ReadonlySet<Element>>
   viewOf(asin: string): BookView | undefined
@@ -99,7 +102,7 @@ export function createFilterApplier(options: {
     const { peek } = state.get()
     let hidden = 0
     for (const [asin, cards] of options.cards()) {
-      const judged = judge(options.viewOf(asin), settings)
+      const judged = judge(options.viewOf(asin), settings, options.region)
       for (const card of cards) {
         if (!card.isConnected) continue
         markLabels(card)

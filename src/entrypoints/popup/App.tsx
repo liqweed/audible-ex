@@ -1,5 +1,6 @@
 import * as Switch from '@radix-ui/react-switch'
 import { useCallback, useEffect, useState } from 'react'
+import { browser } from 'wxt/browser'
 import { PRIVACY_URL, SOURCE_URL } from '@/lib/links'
 import type { ClearScope, Stats } from '@/schema/popup'
 import { readPanel, updatePanel, watchPanel } from '@/storage/panel'
@@ -207,6 +208,13 @@ export function App({ backend = extensionBackend }: { backend?: Backend }) {
           Could not use the settings: {error ?? hidden.error}
         </p>
       )}
+      <button
+        type='button'
+        className={button}
+        onClick={() => browser.runtime.openOptionsPage()}
+      >
+        Settings
+      </button>
       <Cache backend={backend} />
       <footer className='space-y-1 border-t border-border pt-3 text-xs text-muted-foreground'>
         <p>Not affiliated with Audible, Amazon or Goodreads.</p>

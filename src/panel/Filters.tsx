@@ -4,6 +4,7 @@ import { Debouncer } from '@tanstack/pacer/debouncer'
 import { useStore } from '@tanstack/react-store'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { PanelHandle } from '@/content/shared'
+import { type Region, regionFromHost } from '@/core/regions'
 import {
   DEFAULT_FILTERS,
   type Filters as FilterPrefs,
@@ -16,6 +17,10 @@ import { genresSeen, suggestions } from './genres'
 const SAVE_WAIT_MS = 300
 const field =
   'rounded border border-slate-300 bg-white px-1.5 py-0.5 text-xs text-slate-900'
+type FilterChange =
+  | Partial<FilterPrefs>
+  | ((current: FilterPrefs) => Partial<FilterPrefs>)
+
 const quiet = 'text-xs text-slate-600'
 
 /** The filters pref, kept in step with storage; `change` shows the change now and saves it. */
@@ -37,8 +42,14 @@ function useFilterPrefs() {
     }
   }, [])
   const change = useMemo(
-    () => (patch: Partial<FilterPrefs>) => {
-      setFilters(known => known && { ...known, ...patch })
+    () => (patch: FilterChange) => {
+      setFilters(
+        known =>
+          known && {
+            ...known,
+            ...(typeof patch === 'function' ? patch(known) : patch),
+          }
+      )
       updateFilters(patch).catch(error =>
         console.error('audible-ex: could not save the filters', error)
       )
@@ -158,6 +169,60 @@ function YearRange({
   )
 }
 
+/** A cash ceiling for this marketplace; other marketplaces' limits are preserved atomically. */
+function PriceLimit({
+  filters,
+  change,
+  region,
+}: {
+  filters: FilterPrefs
+  change(patch: FilterChange): void
+  region: Region
+}) {
+  const outside = filters.maxPrice[region.code]?.toString() ?? ''
+  const [draft, setDraft] = useDebouncedValue(outside, text => {
+    const amount = text.trim() === '' ? undefined : Number(text)
+    if (amount !== undefined && (!Number.isFinite(amount) || amount < 0)) return
+    change(current => {
+      const maxPrice = { ...current.maxPrice }
+      if (amount === undefined) delete maxPrice[region.code]
+      else maxPrice[region.code] = amount
+      return { maxPrice }
+    })
+  })
+  const invalid =
+    draft.trim() !== '' &&
+    (!Number.isFinite(Number(draft)) || Number(draft) < 0)
+  return (
+    <div>
+      <label htmlFor='agx-max-price' className={quiet}>
+        Maximum public price ({region.currency})
+      </label>
+      <input
+        id='agx-max-price'
+        type='text'
+        inputMode='decimal'
+        value={draft}
+        placeholder='Any'
+        aria-invalid={invalid}
+        aria-describedby='agx-price-help'
+        onChange={e => setDraft(e.target.value)}
+        className={`${field} mt-0.5 w-full`}
+      />
+      <p id='agx-price-help' className='mt-1 text-[11px] text-slate-500'>
+        Blank is any price; 0 is free only. Uses public catalogue prices on this
+        marketplace; member offers may differ. Books with no price stay visible
+        unless another filter applies.
+      </p>
+      {invalid && (
+        <p role='alert' className='mt-1 text-xs text-red-700'>
+          Use a price of 0 or more.
+        </p>
+      )}
+    </div>
+  )
+}
+
 /** Hidden labels: chips, and an input that suggests the genres the page's books carry. */
 function LabelPicker({
   hidden,
@@ -251,7 +316,13 @@ function LabelPicker({
  * the rating slider, the minimum number of ratings, hidden labels and what to do with the rest.
  * They are the `filters` pref, shared by every Audible tab.
  */
-export function Filters({ handle }: { handle: PanelHandle }) {
+export function Filters({
+  handle,
+  region = regionFromHost(location.hostname),
+}: {
+  handle: PanelHandle
+  region?: Region | undefined
+}) {
   const { filters, change } = useFilterPrefs()
   const hidden = useStore(handle.filter, s => s.hidden)
   const peek = useStore(handle.filter, s => s.peek)
@@ -356,6 +427,14 @@ export function Filters({ handle }: { handle: PanelHandle }) {
               />
 
               <YearRange filters={filters} change={change} />
+              {region && (
+                <PriceLimit
+                  key={region.code}
+                  filters={filters}
+                  change={change}
+                  region={region}
+                />
+              )}
 
               <div className='flex items-center justify-between gap-2'>
                 <label htmlFor='agx-not-found' className={quiet}>

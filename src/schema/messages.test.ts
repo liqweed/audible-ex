@@ -16,6 +16,7 @@ const rating = {
 } as const
 
 const toBackground: Content[] = [
+  { _tag: 'PriceLookup', asins: ['B08G9PRS1K'] },
   { _tag: 'Hello', region: 'UK', page: 'search' },
   { _tag: 'Hello', region: 'JP', page: 'other' },
   { _tag: 'Lookup', items: [] },
@@ -30,6 +31,12 @@ const toBackground: Content[] = [
 ]
 
 const toContent: Background[] = [
+  {
+    _tag: 'PriceUpdate',
+    asin: 'B08G9PRS1K',
+    price: { amount: 0, currency: 'USD' },
+  },
+  { _tag: 'PriceUpdate', asin: 'B08G9PRS1K' },
   { _tag: 'BookUpdate', asin: 'B08G9PRS1K', status: 'loading' },
   {
     _tag: 'BookUpdate',
@@ -188,4 +195,14 @@ describe('background → content script', () => {
       Schema.decodeUnknownSync(BackgroundMessage)(toBackground[0])
     ).toThrow()
   })
+})
+
+test.each([-1, Infinity, NaN])('invalid price %s is refused', amount => {
+  expect(() =>
+    Schema.decodeSync(BackgroundMessage)({
+      _tag: 'PriceUpdate',
+      asin: 'B08G9PRS1K',
+      price: { amount, currency: 'USD' },
+    })
+  ).toThrow()
 })

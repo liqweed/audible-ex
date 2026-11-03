@@ -18,7 +18,7 @@ import * as Request from 'effect/Request'
 import * as RequestResolver from 'effect/RequestResolver'
 import * as Schema from 'effect/Schema'
 import { type RegionCode, regionByCode } from '../core/regions'
-import { CatalogResponse } from '../schema/audible'
+import { CatalogPrice, CatalogResponse } from '../schema/audible'
 import {
   FormatChanged,
   type HttpError,
@@ -31,6 +31,7 @@ import { getText } from './httpGet'
 export interface BookMeta {
   readonly title: string
   readonly author: string
+  readonly price?: { readonly amount: number; readonly currency: string }
 }
 
 export type AudibleCatalogError =
@@ -57,7 +58,7 @@ export const BATCH_MAX = 40
 export const BATCH_WINDOW = '120 millis'
 
 /** The `response_groups` the schema in `src/schema/audible.ts` is written for. */
-const RESPONSE_GROUPS = 'contributors,product_desc'
+const RESPONSE_GROUPS = 'contributors,product_desc,price'
 
 class LookupMeta extends Request.Class<
   { readonly apiHost: string; readonly asin: string },
@@ -67,6 +68,44 @@ class LookupMeta extends Request.Class<
 
 export const catalogUrl = (apiHost: string, asins: readonly string[]) =>
   `https://${apiHost}/1.0/catalog/products?asins=${asins.join(',')}&response_groups=${RESPONSE_GROUPS}`
+
+/** Catalogue amounts are floating-point cash values; compare at the currency's precision. */
+const priceOf = (
+  raw: unknown,
+  apiHost: string,
+  asin: string
+): Effect.Effect<Pick<BookMeta, 'price'>> => {
+  if (raw === undefined || raw === null) return Effect.succeed({})
+  return Schema.decodeUnknownEffect(CatalogPrice)(raw).pipe(
+    Effect.matchEffect({
+      onFailure: error =>
+        Effect.logWarning(
+          'Malformed public catalogue price',
+          { apiHost, asin },
+          error
+        ).pipe(Effect.as({})),
+      onSuccess: decoded =>
+        Effect.gen(function* () {
+          const { base, currency_code: currency } = decoded.lowest_price
+          const digits =
+            new Intl.NumberFormat('en', {
+              style: 'currency',
+              currency,
+            }).resolvedOptions().maximumFractionDigits ?? 2
+          const scale = 10 ** digits
+          const amount = Math.round(base * scale) / scale
+          if (!Number.isFinite(amount)) {
+            yield* Effect.logWarning(
+              'Public price exceeds the supported amount',
+              { apiHost, asin, base }
+            )
+            return {}
+          }
+          return { price: { amount, currency } }
+        }),
+    })
+  )
+}
 
 const chunks = <A>(items: readonly A[], size: number): A[][] => {
   const out: A[][] = []
@@ -115,11 +154,15 @@ export class AudibleCatalog extends Context.Service<
                     continue
                   }
                   const product = answer.value.get(entry.request.asin)
+                  const price = product?.title
+                    ? yield* priceOf(product.price, apiHost, entry.request.asin)
+                    : {}
                   entry.completeUnsafe(
                     product?.title
                       ? Exit.succeed({
                           title: product.title,
                           author: product.authors?.[0]?.name ?? '',
+                          ...price,
                         })
                       : Exit.fail(new NoMetadata({ asin: entry.request.asin }))
                   )

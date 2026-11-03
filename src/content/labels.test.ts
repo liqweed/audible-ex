@@ -20,6 +20,7 @@ const FILTERS: FilterSettings = {
   minRatings: 0,
   minYear: null,
   maxYear: null,
+  maxPrice: {},
   hiddenLabels: [],
   notFound: 'show',
   mode: 'hide',

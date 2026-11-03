@@ -19,6 +19,7 @@ export interface BookView {
     /** Plain text, 600 characters at most. Shown by the hover overview. */
     readonly desc: string
   }
+  readonly price?: { readonly amount: number; readonly currency: string }
   readonly error?: { reason: string; message: string }
 }
 

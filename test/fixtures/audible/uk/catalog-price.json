@@ -1,0 +1,106 @@
+{
+  "products": [
+    {
+      "asin": "B0721NKM4B",
+      "authors": [
+        {
+          "asin": "B00G0WYW92",
+          "name": "Andy Weir"
+        }
+      ],
+      "narrators": [
+        {
+          "asin": "B0C9M888W1",
+          "name": "Rosario Dawson"
+        }
+      ],
+      "price": {
+        "credit_price": 1.0,
+        "list_price": {
+          "base": 13.579999923706055,
+          "currency_code": "GBP",
+          "merchant_id": "A2YHV2RYTDNFG3",
+          "type": "list"
+        },
+        "lowest_price": {
+          "base": 13.579999923706055,
+          "currency_code": "GBP",
+          "merchant_id": "A2YHV2RYTDNFG3",
+          "type": "list"
+        }
+      },
+      "publisher_name": "Audible Studios",
+      "sku": "BK_ADBL_027881UK",
+      "sku_lite": "BK_ADBL_027881",
+      "title": "Artemis"
+    },
+    {
+      "asin": "B0HDF95QBD",
+      "authors": [
+        {
+          "asin": "B001JS311C",
+          "name": "Benjamin Percy"
+        },
+        {
+          "asin": "B00G0WYW92",
+          "name": "Andy Weir"
+        }
+      ],
+      "narrators": [
+        {
+          "name": "Anthony Mackie"
+        },
+        {
+          "name": "Ariana DeBose"
+        },
+        {
+          "name": "John Leguizamo"
+        },
+        {
+          "name": "Ray Porter"
+        },
+        {
+          "name": "Cherry Jones"
+        },
+        {
+          "name": "Aida Osman"
+        },
+        {
+          "name": "Charlie Plummer"
+        },
+        {
+          "name": "Sufe Bradshaw"
+        },
+        {
+          "name": "Full cast"
+        }
+      ],
+      "price": {
+        "credit_price": 1.0,
+        "list_price": {
+          "base": 16.06999969482422,
+          "currency_code": "GBP",
+          "merchant_id": "A2YHV2RYTDNFG3",
+          "type": "list"
+        },
+        "lowest_price": {
+          "base": 16.06999969482422,
+          "currency_code": "GBP",
+          "merchant_id": "A2YHV2RYTDNFG3",
+          "type": "list"
+        }
+      },
+      "publisher_name": "Audible Originals",
+      "sku": "OR_ORIG_002347UK",
+      "sku_lite": "OR_ORIG_002347",
+      "title": "Exoplanet"
+    }
+  ],
+  "response_groups": [
+    "product_desc",
+    "always-returned",
+    "contributors",
+    "price"
+  ],
+  "total_results": 2
+}

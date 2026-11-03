@@ -5,12 +5,14 @@
  *
  * Each field has a default, so a record written by an older version still decodes. Change the
  * shape → bump `version` and add a migration. Version 2 added `filters`, version 3 the year bounds;
- * display options join them with the options page (phase 4), and maximum price in phase 3b.
+ * version 4 adds marketplace price limits, version 5 the display settings.
  */
 import * as Effect from 'effect/Effect'
 import * as Option from 'effect/Option'
 import * as Schema from 'effect/Schema'
 import { storage } from 'wxt/utils/storage'
+import { DEFAULT_DISPLAY } from '../core/display'
+import { GENRES_MAX, Region } from '../schema/common'
 import { serial } from './serial'
 
 /** An open bound, or a whole first-published year (0 means unknown in book details). */
@@ -40,6 +42,11 @@ export const Filters = Schema.Struct({
   ),
   minYear: YearBound,
   maxYear: YearBound,
+  /** Inclusive cash-price ceiling in each marketplace's own currency; absent means off. */
+  maxPrice: Schema.Record(
+    Region,
+    Schema.optionalKey(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)))
+  ).pipe(Schema.withDecodingDefaultKey(Effect.succeed({}))),
   /** Goodreads genre names. */
   hiddenLabels: Schema.Array(Schema.String).pipe(
     Schema.withDecodingDefaultKey(Effect.succeed<readonly string[]>([]))
@@ -71,16 +78,35 @@ export const DEFAULT_FILTERS: Filters = {
   minRatings: 50,
   minYear: null,
   maxYear: null,
+  maxPrice: {},
   hiddenLabels: [],
   notFound: 'show',
   mode: 'hide',
 }
 
-/** Prefs v3. A key missing from the stored record takes its default. */
+export { DEFAULT_DISPLAY } from '../core/display'
+
+export const Display = Schema.Struct({
+  labels: Schema.Int.check(
+    Schema.isBetween({ minimum: 0, maximum: GENRES_MAX })
+  ).pipe(Schema.withDecodingDefaultKey(Effect.succeed(3))),
+  year: Schema.Boolean.pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed(true))
+  ),
+  overview: Schema.Boolean.pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed(true))
+  ),
+})
+export type Display = typeof Display.Type
+
+/** Prefs v5. A key missing from the stored record takes its default. */
 export const Prefs = Schema.Struct({
   /** The extension's master switch: off removes the badges and stops the lookups. */
   enabled: Schema.Boolean.pipe(
     Schema.withDecodingDefaultKey(Effect.succeed(true))
+  ),
+  display: Display.pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed(DEFAULT_DISPLAY))
   ),
   filters: Filters.pipe(
     Schema.withDecodingDefaultKey(Effect.succeed(DEFAULT_FILTERS))
@@ -88,7 +114,11 @@ export const Prefs = Schema.Struct({
 })
 export type Prefs = typeof Prefs.Type
 
-export const DEFAULT_PREFS: Prefs = { enabled: true, filters: DEFAULT_FILTERS }
+export const DEFAULT_PREFS: Prefs = {
+  enabled: true,
+  filters: DEFAULT_FILTERS,
+  display: DEFAULT_DISPLAY,
+}
 
 const decode = Schema.decodeUnknownOption(Prefs)
 
@@ -102,12 +132,16 @@ export function decodePrefs(raw: unknown): Prefs {
 
 const item = storage.defineItem<unknown>('sync:prefs', {
   fallback: DEFAULT_PREFS,
-  version: 3,
+  version: 5,
   migrations: {
     // v1 held `enabled` alone. Add the filters with defaults filled in.
     2: decodePrefs,
     // v2 had no year bounds: keep every choice and leave both ends open.
     3: decodePrefs,
+    // v3 had no marketplace price limits: all remain off.
+    4: decodePrefs,
+    // v4 display was fixed: preserve that appearance.
+    5: decodePrefs,
   },
 })
 
@@ -118,9 +152,13 @@ export const readPrefs = async (): Promise<Prefs> =>
 const queue = serial()
 
 /** Changes some prefs and keeps the rest as they are. */
-export const updatePrefs = (change: Partial<Prefs>): Promise<void> =>
+export const updatePrefs = (
+  change: Partial<Prefs> | ((current: Prefs) => Partial<Prefs>)
+): Promise<void> =>
   queue(async () => {
-    await item.setValue({ ...(await readPrefs()), ...change })
+    const current = await readPrefs()
+    const patch = typeof change === 'function' ? change(current) : change
+    await item.setValue({ ...current, ...patch })
   })
 
 /**

@@ -19,7 +19,7 @@ Goals
   every Audible card (search, category, deals, home daily deal, library, collections, wish list).
 - A floating panel on Audible pages: progress of the Goodreads loader, filter controls, show/hide.
 - Filters that reflect personal preference and persist: minimum rating (default 4.0), minimum
-  number of ratings, hidden labels, first-published year range, later price.
+  number of ratings, hidden labels, first-published year range and maximum public price.
 - All 10 Audible marketplaces the userscript supports (`.co.uk .com .ca .com.au .de .fr .it .es
 .in .co.jp`). Matching quality is best for English titles; other languages are best effort.
 - Publishable on the Chrome Web Store (see §11). Firefox is a later target; WXT keeps that cheap.
@@ -162,6 +162,7 @@ Content → background
 | -------- | --------------------------------------------------------------------------------------------------------- |
 | `Hello`  | `region` (a `RegionCode`), `page` (`home`, `search`, `category`, `deals`, `library`, `wishlist`, `other`) |
 | `Lookup` | `items: { asin, pinned }[]` — `pinned` on library/wish list rows                                          |
+| `PriceLookup` | `asins` — visible cards needing fresh public prices while a price limit is active |
 | `Retry`  | `asins`                                                                                                   |
 
 Background → content
@@ -169,6 +170,7 @@ Background → content
 | Message      | Fields                                                                                                                                                                                                                                              |
 | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `BookUpdate` | `asin`, `status` (`loading`, `ready`, `notFound`, `failed`), `rating?` (`{ r, n, url, loose }`), `details?` (`{ genres, year, desc }`), `error?` (`{ reason, message }`, `reason` one of `httpError`, `rateLimited`, `formatChanged`, `noMetadata`) |
+| `PriceUpdate` | `asin`, optional `price: { amount, currency }`; missing means unavailable |
 | `Progress`   | `queued`, `active`, `done`, `cached`, `notFound`, `failed` (counters of this tab) and `pausedUntil?` (epoch milliseconds)                                                                                                                           |
 
 `PortServer` serves each port in its own session. `Hello` records the tab's region, which `Lookup` and `Retry` need; a `Lookup` before `Hello` is dropped and logged. A message that does not decode is dropped and logged as a warning; the port stays open. For each ASIN the server sends `loading` when the cache did not have it, then `ready` with the rating, then `ready` again with the details; a cached book with its details is one `ready` and no `loading`. A book that is not on Goodreads is `notFound`; any lookup failure is `failed` with its reason. If only the details fail, the `ready` with the rating stands. An ASIN already being looked up for the same port is not started twice, so a repeated `Hello` or `Lookup` (the content script re-sending the ASINs that had no answer after a reconnect) is harmless; `Retry` is a lookup again, since failures are not cached. When the port disconnects, only the session's waiting fibres end; lookups other tabs share carry on. The worker buffers a port's early messages (`buffered` in `src/background/port.ts`) because the runtime opens IndexedDB after `onConnect` fires. The server sees the port through the small `PortLike` interface, so tests use a fake. The session reports each lookup to the `ProgressHub`, whose publisher sends the tab a `Progress` when its counters change. `done` counts every ASIN whose rating is settled, so the bar is `done / (done + queued + active)`; `cached`, `notFound` and `failed` are counted inside `done` and may overlap (a miss answered from the cache is both `cached` and `notFound`); of the ASINs still pending, `active` have a Goodreads search running (`LookupQueue.running`) and `queued` are the rest, waiting for the catalogue, a worker or a pause. A `Retry` takes the ASIN's earlier outcome back until it settles again. `pausedUntil` is set only while something is pending.
@@ -231,6 +233,23 @@ type ContentState = {
   peek: boolean // phase 3
 }
 ```
+
+**Prices.** While `filters.enabled` and `maxPrice[region]` are set, visible ASINs are asked for
+once per page through `PriceLookup`. `PortServer` calls the same batched `AudibleCatalog` directly,
+without waiting for Goodreads or reading the 30-day metadata cache. `PriceUpdate` updates the
+book's price independently; later rating and details updates preserve it. Pending price requests
+are re-sent after a worker restart, even if all ratings have resolved. Missing or malformed prices
+and catalogue failures settle as unavailable and leave the rating intact. Prices stay in page
+memory; reloading fetches them again. The public `lowest_price.base` is rounded to the currency's
+fraction digits, paired with `currency_code`; credit prices are never compared as money.
+
+**Display settings.** `display.labels` (0–10), `display.year` and `display.overview` are read and
+watched independently of filters. A changed display setting redraws loaded cards from their
+existing views and closes any open overview; unchanged values cause no redraw. New cards use the
+current settings. Hidden labels still filter by all the book's genres even when no labels are
+shown. With the overview off, the badge keeps its native rating tooltip. The year switch also
+applies to the overview's rating line. A watch event wins over a stale initial read; stopping the
+script removes the watcher and ignores late reads. No lookups are started or repeated by a display edit.
 
 **Badges.** Plain DOM, not React. Badges must sit inside Audible's own markup, there can be
 hundreds, and the userscript's placement code already handles Audible's layouts. Classes use an
@@ -297,10 +316,14 @@ progress bar appears, which is the one thing `bun test` cannot prove about the s
   limiting (12 s)"; "Retry failed".
 - Filters (`src/panel/Filters.tsx`, built, below the progress): the master switch and `12 hidden ·
   Show` always; a "Filter settings" area opens the rating slider (3.0–5.0, step 0.1), the minimum
-  number of ratings, the hidden labels, the first-published year range, and the two policies.
+  number of ratings, the hidden labels, the first-published year range, the marketplace public-price limit,
+  and the two policies.
   Year bounds are text fields (blank for an open end, negative for BCE); the pair is saved together
   only when both are whole nonzero years or blank, with the lower bound no later than the upper.
-  An invalid draft shows an error and leaves the saved range in force. A change shows at once and
+  An invalid draft shows an error and leaves the saved range in force. The price limit is labelled
+  with the marketplace currency; blank removes its limit and 0 means free only. Invalid prices
+  are not saved. Each edit merges with the stored map so another marketplace's limit survives.
+  A change shows at once and
   is saved 300 ms after the user stops (Pacer's debouncer, flushed if the panel goes away), through
   `updateFilters`, whose writes run in order. The label picker suggests the genres the page's books
   carry, most common first (`genres.ts`), not genres from the whole cache.
@@ -327,7 +350,9 @@ Verdict for one card (pure function in `src/core/filter.ts`):
 5. Known first-published year outside the inclusive `minYear` / `maxYear` range → the miss mode.
    Either bound can be `null` (off). Negative years are BCE; year 0 means unknown and does not fail
    this filter. Missing details do not fail it either; other filters still apply.
-6. Price above `maxPrice[region]` (remaining phase 3b work) → the miss mode.
+6. Known public cash price above the inclusive `maxPrice[region]` ceiling, with currency matching
+   the current marketplace → the miss mode. Absent limit means off; 0 means free only. Missing
+   prices and mismatched currencies do not fail this filter. The not-found policy in step 3 wins.
 7. Otherwise `show`.
 
 Two adjustments follow the verdict: a card inside a carousel gets `dim` for `hide`, and so does every
@@ -371,19 +396,24 @@ older field never crashes the UI.
 The panel's own state (`src/storage/panel.ts`: `corner`, `collapsed`, `hiddenHosts`) is the
 `local:panel` item, version 1, decoded with defaults like the prefs.
 
-`src/storage/prefs.ts` holds `enabled` (the popup's master switch) and `filters`, version 3; the
-display options arrive with the options page (phase 4) and `maxPrice` in phase 3b, each with a
-default, so neither needs more than a version bump. WXT runs the version 1 → 2 migration when the
+`src/storage/prefs.ts` holds `enabled` (the extension's master switch), `filters` and `display`,
+version 5. The options page edits all of them; the popup edits the master switch and the panel
+edits filters.
+WXT runs the version 1 → 2 migration when the
 module loads (it was `enabled` alone; the migrated record has the filters at their defaults).
 Version 2 → 3 adds `minYear` and `maxYear`, both `null`, preserving all existing choices; no year
 filter applies until the user sets a bound. The Schema rejects fractional or zero bounds and
-reversed ranges. The content script runs only while the extension is on
+reversed ranges. Version 3 → 4 adds `maxPrice: {}`, preserving every existing choice;
+all price limits start off. Each optional region value must be finite and nonnegative.
+Version 4 → 5 adds `display` with `labels: 3`, `year: true`, `overview: true`, preserving the
+existing appearance. Label count must be a whole number from 0 to 10.
+The content script runs only while the extension is on
 (`src/content/lifecycle.ts`): turning it off
 removes the badges, the overview and the stylesheet and closes the port, which ends this tab's
 lookups; turning it on starts the script again.
 
 ```ts
-// Prefs v3, defaults shown (maxPrice and display are still planned)
+// Prefs v5, defaults shown
 {
   enabled: true,
   filters: {
@@ -395,7 +425,7 @@ lookups; turning it on starts the script again.
     hiddenLabels: [],        // Goodreads genre names
     notFound: 'show',        // 'show' | 'dim' | 'hide'
     mode: 'hide',            // 'hide' | 'dim'
-    maxPrice: {},            // per region, phase 3b
+    maxPrice: {},            // optional ceilings by region, e.g. { UK: 10, US: 20 }
   },
   display: { labels: 3, year: true, overview: true },
 }
@@ -419,15 +449,38 @@ transaction over all stores. `clear('all')` deletes every entry and every pin (t
 "everything" left its pin list); it leaves `housekeeping`. `stats` counts entries (ratings, meta,
 details) and pins separately and sizes everything as the JSON of its records.
 
+### Options settings
+
+`src/entrypoints/options/` is a full-tab extension page (`options.html`, also opened by the popup's
+Settings button). TanStack Form owns a draft and validates it through the prefs Schema on Save
+(D22). `src/options/settings.ts` converts text drafts, including blank bounds and prices, to prefs.
+Only edited values are merged with the latest saved prefs through the same serial writer; each
+marketplace price is merged separately, and the year bounds are one edit. Clean forms follow
+storage changes; a dirty form keeps its draft, announces the external change and offers to reload.
+Save errors keep the draft and appear on the page. Display choices redraw badges through the
+content script's prefs watcher.
+
+Export downloads the saved prefs, rather than the draft, as `{ format: 'audible-ex-prefs',
+version: 1, prefs }`. The envelope is independent of the WXT storage version, so older backups
+receive new field defaults. Import refuses invalid fields, unknown fields, unsupported versions
+and files over 100 KB before a write. The decoded prefs can be reviewed before the confirming
+click replaces the entire prefs item and draft. Reset also requires confirmation. Both keep the
+book cache and device-local panel state; neither is included in exports. The About footer links
+the privacy statement and source and carries the affiliation notice. The cache inspector is the
+remaining phase 4 task (#42).
+
 ## 9. Regions
 
 `src/core/regions.ts` maps hostname → region code, Audible API host (`www.` → `api.`), currency and
 locale. The 10 marketplaces match the userscript's `@match` list. The content script's `matches` and
 the manifest's host permissions are generated from the same table, so they can't drift apart.
 
-Price, when added, comes from the Audible catalog API rather than from page text. Whether
-`catalog/products` returns price without signing in (via a price response group) is unverified; it
-is the first task of phase 3b, with page-text parsing as the fallback.
+Public cash prices come from `catalog/products` with `response_groups=contributors,product_desc,price`.
+Verified on 2026-11-03 without cookies on `.co.uk` (GBP) and `.com` (USD); the raw responses are
+`test/fixtures/audible/{uk,com}/catalog-price.json`. The API's public `lowest_price` can differ
+from signed-in member offers and deals shown on the page, so the panel calls it the maximum
+**public** price and explains that limitation. No cross-marketplace currency conversion is done;
+limits are keyed by region, even where several marketplaces share EUR.
 
 ## 10. Testing
 
@@ -475,7 +528,7 @@ Publishing constraints that shape the code:
 - The overview is capped at 600 characters, kept only as long as the cache entry, and never
   exported.
 - Name and icons don't use Audible, Amazon or Goodreads logos or trade dress. The listing and the
-  popup (the options page too, once it exists) carry "Not affiliated with Audible, Amazon or
+  popup and options page carry "Not affiliated with Audible, Amazon or
   Goodreads." The popup links to the privacy policy, `PRIVACY.md`; the listing's text and answers
   are in `docs/STORE-LISTING.md`.
 - Conservative request rate and caching, as in §4.

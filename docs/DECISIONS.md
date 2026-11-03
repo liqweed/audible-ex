@@ -352,3 +352,44 @@ when the listing is public. Rejected: keeping the approval as a safeguard agains
 mistaken tag (a tag can be deleted by the owner only, and a bad version is
 caught by the review or replaced by the next).
 
+
+## D22 — TanStack Form for the options settings (2026-11-03)
+
+The options page uses `@tanstack/react-form` 1.33.5, pinned, as D2 planned. It
+owns a draft that is validated with the existing prefs Schema and saved on
+submit; the panel keeps its live controls. Only dirty fields are merged into
+the latest stored prefs, so saving a display change does not overwrite a filter
+changed in another tab. External changes refresh a clean form; a dirty form
+keeps its draft and offers to reload the saved settings. Display prefs join
+`sync:prefs` at version 5 with defaults preserving today's appearance.
+
+JSON export/import is a versioned prefs-only envelope: no cached book data,
+ratings or device-local panel state. Invalid or newer-format backups are
+refused without changing storage. Import and reset require a second click
+after showing what will happen; ordinary Save applies the draft. Rejected:
+adding another validator (the shared Schema already owns the constraints),
+saving each options field immediately (a half-typed range is not a setting),
+and exporting the cache (against R5). Form is imported only by the options
+page, keeping both content-script budgets unchanged. These constraints are
+covered by storage, options and content-script tests; the repository has no
+separate ADR rules catalog (D8).
+
+## D23 — Public catalogue prices for marketplace limits (2026-11-03)
+
+Unauthenticated `catalog/products` requests with the `price` response group
+return cash prices: verified without cookies on `.co.uk` (GBP) and `.com`
+(USD), with raw responses saved as `test/fixtures/audible/{uk,com}/catalog-price.json`.
+Use `price.lowest_price.base` and `currency_code`, rounded to that currency's
+fraction digits; never treat `credit_price` as money. These are public prices,
+so the panel and options page explain that member offers can differ. Limits
+are inclusive and keyed by marketplace, with no currency conversion.
+
+Fetch prices for visible cards while a limit is active, through the existing
+background catalogue service and its batcher. Prices stay in page memory and
+are independent of the long-lived Goodreads and metadata caches. Missing or
+malformed prices and failed price requests leave the rating usable and do not
+fail the price filter. Rejected: parsing card text now (the catalogue supplies
+a typed currency and amount), persisting prices with metadata (30-day prices
+would be stale), and treating an absent price as zero (it could hide a book
+for a price we never learned). Fixture, filter and queue tests cover these
+constraints; no separate ADR rules catalog is used (D8).

@@ -50,13 +50,16 @@ export function placeOverview(
 }
 
 /** `★ 4.21 · 12,345 ratings · first published 2019 (approximate match)`. */
-export function ratingLine({ rating, details }: WithOverview): string {
+export function ratingLine(
+  { rating, details }: WithOverview,
+  showYear = true
+): string {
   const parts = [
     `★ ${rating.r.toFixed(2)}`,
     `${rating.n.toLocaleString()} ratings`,
   ]
   // 0 is "Goodreads has no date"; a negative year is a real one.
-  if (details.year) parts.push(`first published ${details.year}`)
+  if (showYear && details.year) parts.push(`first published ${details.year}`)
   return parts.join(' · ') + (rating.loose ? ' (approximate match)' : '')
 }
 
@@ -74,6 +77,8 @@ export interface OverviewOptions {
   doc: Document
   /** The overview's stylesheet text, applied inside the shadow root only. */
   css: string
+  enabled?(): boolean
+  showYear?(): boolean
   /** The book a badge shows, read when the pointer arrives. */
   viewOf(badge: Element): BookView | undefined
 }
@@ -107,13 +112,13 @@ export function createOverview(options: OverviewOptions): Overview {
 
   function show(badge: Element, view: BookView | undefined) {
     hide()
-    if (!hasOverview(view)) return
+    if (options.enabled?.() === false || !hasOverview(view)) return
     const box = doc.createElement('div')
     box.className = 'tip'
     box.setAttribute('role', 'tooltip')
     // Everything below is text from Goodreads: set as text, never as markup.
     const line = doc.createElement('b')
-    line.textContent = ratingLine(view)
+    line.textContent = ratingLine(view, options.showYear?.() ?? true)
     box.appendChild(line)
     const genres = view.details.genres.slice(0, OVERVIEW_GENRES)
     if (genres.length > 0) {

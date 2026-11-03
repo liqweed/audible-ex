@@ -799,3 +799,73 @@ describe('PortServer after a reconnect', () => {
     )
   })
 })
+
+describe('fresh prices', () => {
+  test('fetches a price even for a cached rating, without Goodreads traffic', () =>
+    harness({
+      catalog: () =>
+        Effect.succeed({
+          title: 'Book',
+          author: 'Author',
+          price: { amount: 12.5, currency: 'GBP' },
+        }),
+    }).run(h =>
+      Effect.gen(function* () {
+        h.cache.ratings.set(asin(1), {
+          _tag: 'Miss',
+          asin: asin(1),
+          savedAt: 0,
+        })
+        const port = yield* h.connect()
+        port.say({ ...hello, region: 'UK' })
+        port.say(lookup(1))
+        port.say({ _tag: 'PriceLookup', asins: [asin(1), asin(1)] })
+        yield* settle
+        expect(port.sent).toContainEqual({
+          _tag: 'PriceUpdate',
+          asin: asin(1),
+          price: { amount: 12.5, currency: 'GBP' },
+        })
+        expect(h.calls).toHaveLength(1)
+        expect(h.calls[0]).toMatchObject({ kind: 'catalog', key: asin(1) })
+      })
+    ))
+  test('price failure reports unavailable and preserves a cached rating', () =>
+    harness({ catalog: a => Effect.fail(new NoMetadata({ asin: a })) }).run(h =>
+      Effect.gen(function* () {
+        h.cache.ratings.set(asin(1), {
+          _tag: 'Miss',
+          asin: asin(1),
+          savedAt: 0,
+        })
+        const port = yield* h.connect()
+        port.say(hello)
+        port.say(lookup(1))
+        port.say({ _tag: 'PriceLookup', asins: [asin(1)] })
+        yield* settle
+        expect(port.sent).toContainEqual({ _tag: 'PriceUpdate', asin: asin(1) })
+        expect(port.sent).toContainEqual({
+          _tag: 'BookUpdate',
+          asin: asin(1),
+          status: 'notFound',
+        })
+        expect(port.sent.some(m => m.status === 'failed')).toBe(false)
+        expect(
+          h.logs.some(
+            log =>
+              log.level === 'Warn' &&
+              log.text.includes('Public price lookup failed')
+          )
+        ).toBe(true)
+      })
+    ))
+  test('ignores price requests before Hello', () =>
+    harness().run(h =>
+      Effect.gen(function* () {
+        const port = yield* h.connect()
+        port.say({ _tag: 'PriceLookup', asins: [asin(1)] })
+        yield* settle
+        expect(h.calls).toEqual([])
+      })
+    ))
+})

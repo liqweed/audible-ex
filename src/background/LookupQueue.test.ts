@@ -816,3 +816,25 @@ describe('LookupQueue circuit breaker', () => {
       })
   )
 })
+
+scenario(
+  'public prices never enter the long-lived metadata cache',
+  {
+    catalog: a =>
+      Effect.succeed({
+        title: `Title ${a}`,
+        author: 'Author',
+        price: { amount: 12.5, currency: 'USD' },
+      }),
+  },
+  s =>
+    Effect.gen(function* () {
+      yield* Fiber.join(yield* s.ask(1))
+      expect(s.cache.meta.get(asin(1))).toEqual({
+        asin: asin(1),
+        title: `Title ${asin(1)}`,
+        author: 'Author',
+        savedAt: 0,
+      })
+    })
+)

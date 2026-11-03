@@ -22,8 +22,11 @@ reads the gate from `gates.command` and the required check from
 `ci.required_checks` in `.config/jig.yaml`. The background worker serves the `agx`
 port (`LookupQueue`, `PortServer`) and the content script finds cards, shows badges
 and the hover overview (`src/content/`); the popup has the on/off switch and the
-cache size and clearing; a floating panel (its own content script, D19) shows lookup
-progress. Its drag, collapse and hide controls and the filters are later work.
+cache size and clearing. The floating panel (its own content script, D19) has
+progress, drag/collapse/hide controls, filters and marketplace public-price limits.
+The options page edits all prefs, controls badge display and imports/exports
+prefs-only backups; the cache inspector is tracked in #42. TanStack Form
+stays in the options entrypoint ([D22](docs/DECISIONS.md#d22--tanstack-form-for-the-options-settings-2026-11-03)).
 
 ## Non-negotiables
 

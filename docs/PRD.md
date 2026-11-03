@@ -9,7 +9,7 @@ audible-ex is a browser extension for Audible. On every book card it shows the
 book's Goodreads rating, number of ratings, first-published year and top genres,
 with the Goodreads overview on hover. A floating panel shows how far the lookups
 have got and holds personal filters (minimum rating, minimum number of ratings,
-hidden genres, first-published year, later price) that hide or dim the books that don't
+hidden genres, first-published year, maximum public price) that hide or dim the books that don't
 qualify. Filters persist and follow the user across devices and Audible
 regions.
 
@@ -84,15 +84,24 @@ catalogue goes unchecked.
   means no bound. Negative years represent BCE. Missing years stay visible
   unless another filter applies, including while details are still loading.
   Invalid years or reversed ranges are not saved.
-- Later in phase 3: maximum price per marketplace.
+- Maximum public cash price per marketplace, in its own currency: an optional
+  inclusive ceiling. Blank turns it off; 0 means free only. Unknown prices or
+  currencies other than the marketplace currency do not fail this filter.
+  Public catalogue prices can differ from signed-in member offers; the panel
+  explains this. The not-found policy still governs books not on Goodreads.
 
 ### R4 — Popup and options (phases 1 and 4)
 
 - Popup: turn the extension on or off, show the panel, cache size, clear the
   cache (keeping or including Library/Wish List books).
-- Options page: every setting; reset to defaults; export and import settings;
-  a cache browser to search cached books, delete entries and correct a wrong
-  Goodreads match.
+- Options page: every setting; display controls for label count (0–10), year
+  and overview; reset to defaults; export and import settings as versioned JSON.
+  Save validates the draft and preserves unrelated edits from other tabs.
+  Import and reset are confirmed before replacement; backups contain prefs only,
+  never cached book data or device-local panel placement. Display changes apply
+  to open Audible tabs without another lookup.
+- Next in phase 4 (#42): a cache browser to search cached books, delete entries and
+  correct a wrong Goodreads match.
 
 ### R5 — Respectful data use (all phases)
 

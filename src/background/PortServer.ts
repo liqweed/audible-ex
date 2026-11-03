@@ -30,9 +30,12 @@ import {
   type BookError,
   ContentMessage,
 } from '../schema/messages'
+import { AudibleCatalog } from './AudibleCatalog'
 import { type LookupError, LookupQueue, type RatingResult } from './LookupQueue'
 import { ProgressHub } from './ProgressHub'
 import type { PortLike } from './port'
+
+type PortServerDependencies = LookupQueue | ProgressHub | AudibleCatalog
 
 type FoundRating = Extract<RatingResult, { _tag: 'Found' }>
 
@@ -71,10 +74,11 @@ export class PortServer extends Context.Service<
   PortServer,
   PortServerService
 >()('audible-ex/PortServer') {
-  static layer: Layer.Layer<PortServer, never, LookupQueue | ProgressHub> =
+  static layer: Layer.Layer<PortServer, never, PortServerDependencies> =
     Layer.effect(
       PortServer,
       Effect.gen(function* () {
+        const catalog = yield* AudibleCatalog
         const queue = yield* LookupQueue
         const hub = yield* ProgressHub
         const scope = yield* Effect.scope
@@ -90,6 +94,7 @@ export class PortServer extends Context.Service<
               let region: RegionCode | undefined
               /** ASINs this port is waiting on, so a repeated `Lookup` starts nothing new. */
               const inFlight = new Set<string>()
+              const pricesInFlight = new Set<string>()
 
               const send = (update: BackgroundMessage) =>
                 encodeBackground(update).pipe(
@@ -228,6 +233,42 @@ export class PortServer extends Context.Service<
                     })
                   case 'Lookup':
                     return start(message.items)
+                  case 'PriceLookup': {
+                    const lookupRegion = region
+                    if (lookupRegion === undefined) return Effect.void
+                    return Effect.forEach(
+                      [...new Set(message.asins)],
+                      asin => {
+                        if (pricesInFlight.has(asin)) return Effect.void
+                        pricesInFlight.add(asin)
+                        return catalog.lookup(lookupRegion, asin).pipe(
+                          Effect.matchEffect({
+                            onSuccess: meta =>
+                              send({
+                                _tag: 'PriceUpdate',
+                                asin,
+                                ...(meta.price && { price: meta.price }),
+                              }),
+                            onFailure: error =>
+                              Effect.logWarning(
+                                'Public price lookup failed',
+                                { region: lookupRegion, asin },
+                                error
+                              ).pipe(
+                                Effect.andThen(
+                                  send({ _tag: 'PriceUpdate', asin })
+                                )
+                              ),
+                          }),
+                          Effect.ensuring(
+                            Effect.sync(() => pricesInFlight.delete(asin))
+                          ),
+                          Effect.forkScoped
+                        )
+                      },
+                      { discard: true }
+                    )
+                  }
                   case 'Retry':
                     // Failures are never cached, so looking up again is all a retry is.
                     return start(
