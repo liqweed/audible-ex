@@ -38,7 +38,7 @@ App that would do it is not set up yet); the tag then publishes it
 2. The same without `--dry-run`, then review the diff.
 3. Commit it as `chore(release): x.y.z`, push, and tag `vx.y.z` on that
    commit once CI has passed on it.
-4. Approve the `chrome-web-store` deployment in the tag's Actions run. It signs
-   the build and submits it to the store; until the one-time setup in
+4. Watch the tag's Actions run. It signs the build and submits it to the store
+   for review; read the review's result in the dashboard. Until the one-time setup in
    `docs/STORE-LISTING.md` ("Automated releases") is done, upload by hand as
    that file's "Submitting a release" says.
