@@ -167,8 +167,8 @@ NQIDAQAB
 
 `.github/workflows/release.yml` does steps 1 and 3–5 of "Submitting a release"
 for every release after the first (DECISIONS.md D20). A person runs the release
-commit (`changes/README.md`), pushes `vx.y.z`, and approves the
-`chrome-web-store` environment in the Actions run. The run checks that the tag
+commit (`changes/README.md`) and pushes `vx.y.z`; nothing else is asked of
+them (DECISIONS.md D21). The run checks that the tag
 matches `package.json` and is on `main`, gates, builds, signs (`sign` job),
 uploads and submits (`publish` job) and attaches the zips to a GitHub release.
 The store then reviews it as usual; read the result in the dashboard.
@@ -180,8 +180,7 @@ One-time setup, in this order (not yet done):
    under the `release-signing` environment, not the repository's secrets.
 2. **Environments** (Settings → Environments): `release-signing` and
    `chrome-web-store`, each with *Deployment branches and tags* limited to the
-   tag pattern `v*`; `chrome-web-store` with *Required reviewers* set to the
-   owner.
+   tag pattern `v*`, and no required reviewers.
 3. **A ruleset on `v*` tags** (Settings → Rules) that restricts who can create
    them to the owner.
 4. **Google Cloud**: a project with the Chrome Web Store API enabled; a service

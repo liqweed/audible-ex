@@ -241,6 +241,9 @@ Afterwards, before 1.0
 - Duration and narrator filters.
 - Rating distribution on hover (needs the book page's histogram; check it's in
   `__NEXT_DATA__`).
+- Staged publishing (DECISIONS.md D21): `publishType: STAGED_PUBLISH` in
+  `scripts/upload-cws.ts`, so an approved version waits for one click in the
+  dashboard before users get it. Decide when the listing is public.
 
 ## CI
 

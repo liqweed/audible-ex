@@ -128,7 +128,7 @@ jobs:
     needs: sign
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # Reviewers and the `v*` tag rule are set on this environment (docs/STORE-LISTING.md).
+    # The `v*` tag rule is set on this environment (docs/STORE-LISTING.md); no reviewer (D21).
     environment: chrome-web-store
     permissions:
       contents: read

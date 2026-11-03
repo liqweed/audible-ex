@@ -335,3 +335,20 @@ halves); leaving the key in 1Password only (every release stays a manual step
 for the sake of a risk the fences already cover). Not covered: a person with
 write access who can push a tag and approve the environment can release; make
 sure that is only the owner.
+
+## D21 — No approval step before the store upload (2026-11-03)
+
+D20 had the `chrome-web-store` environment ask the owner to approve each
+release before the upload. The first automated release (v0.2.0) showed it adds
+little: only the owner can create a `v*` tag (a ruleset), the tag already is the
+decision to release, and whoever could misuse the approval could also change the
+environment. The environment keeps its tag rule and loses its required
+reviewer; pushing the tag now signs, uploads and submits for review without a
+second step. The fences of D20 are unchanged, and Google's review still stands
+between a release and users. Staged publishing (`STAGED_PUBLISH`, one dashboard
+click after the review) is not used; it is the way to put a person's check after
+the review instead of before the upload, and is listed in PLAN.md "Later" for
+when the listing is public. Rejected: keeping the approval as a safeguard against a
+mistaken tag (a tag can be deleted by the owner only, and a bad version is
+caught by the review or replaced by the next).
+
