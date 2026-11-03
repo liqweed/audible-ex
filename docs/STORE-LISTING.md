@@ -197,15 +197,27 @@ One-time setup, in this order (not yet done):
 6. **Repository variables** (not secrets): `GCP_WORKLOAD_IDENTITY_PROVIDER`
    (`projects/…/locations/global/workloadIdentityPools/…/providers/…`),
    `GCP_SERVICE_ACCOUNT` (its email) and `CWS_PUBLISHER_ID`.
-7. **Try the credentials without releasing**: with a token for the same service
-   account (`gcloud auth print-access-token --impersonate-service-account=…`),
-   `CWS_ACCESS_TOKEN=… CWS_PUBLISHER_ID=… bun scripts/upload-cws.ts --dry-run <crx>`
-   checks the signature, the token and the item without uploading.
+7. **Try the credentials without releasing.** `gcloud auth print-access-token
+   --impersonate-service-account` drops the scope, so mint the token with the
+   scope the workflow asks for (needs *Service Account Token Creator* on the
+   service account for your own account):
 
-Not verified against the live store: the upload (`X-Goog-Upload-Protocol: raw`
-with a CRX under API v2), that Chrome's `--pack-extension` runs on the CI
-runner, and whether the dashboard step 5 is needed for a Workload Identity
-service account. Watch the first automated release and fix what it shows; the
-manual route above still works. A submission already in review makes the run
-stop with a message (cancel it in the dashboard, then re-run the job).
+   ```sh
+   SA=cws-publisher@audible-ex.iam.gserviceaccount.com
+   TOKEN=$(curl -s -X POST "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${SA}:generateAccessToken" \
+     -H "Authorization: Bearer $(gcloud auth print-access-token)" -H "Content-Type: application/json" \
+     -d '{"scope":["https://www.googleapis.com/auth/chromewebstore"]}' | jq -r .accessToken)
+   bun run build && bun crx
+   CWS_ACCESS_TOKEN=$TOKEN CWS_PUBLISHER_ID=<id> bun scripts/upload-cws.ts --dry-run .output/audible-ex-<version>-chrome.crx
+   ```
 
+   It checks the signature, the token and the item's state without uploading.
+   Done on 2026-11-03: the service account is accepted by the store (it was
+   added in the dashboard's Account tab) and the item reports `PUBLISHED`.
+
+Not verified against the live store: the upload itself (`X-Goog-Upload-Protocol:
+raw` with a CRX under API v2), the Workload Identity exchange from GitHub, and
+that Chrome's `--pack-extension` runs on the CI runner (it does on a Mac). Watch
+the first automated release and fix what it shows; the manual route above still
+works. A submission already in review makes the run stop with a message (cancel
+it in the dashboard, then re-run the job).
