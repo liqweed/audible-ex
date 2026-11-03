@@ -110,6 +110,15 @@ test('badges, labels and the overview appear on audible.co.uk; store screenshots
     .toBeGreaterThanOrEqual(2)
   await page.screenshot({ path: join(STORE, 'screenshot-1-search.png') })
 
+  // The floating panel is a second content script that gets the badge script's state through the
+  // isolated world they share (DECISIONS.md D18); if that did not work, nothing mounts. Playwright
+  // looks inside open shadow roots.
+  await expect(page.locator('agx-panel')).toBeAttached()
+  const bar = page.getByRole('progressbar', { name: 'Ratings looked up' })
+  await expect(bar).toBeVisible()
+  await expect(bar).toHaveAttribute('aria-valuenow', /^[1-9]\d*$/)
+  await page.screenshot({ path: join(STORE, 'panel-progress.png') })
+
   await ready.first().hover()
   await expect(page.locator('.agx-overview-host')).toBeAttached()
   await page.waitForTimeout(500)

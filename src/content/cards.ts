@@ -19,8 +19,10 @@ export const NAVIGATION = 'header, nav, footer, [role="navigation"]'
 export const POPOVER = '.bc-popover'
 /** The element that holds the hover overview's shadow root (overview.ts). */
 export const OVERVIEW_HOST = 'agx-overview-host'
+/** The element that holds the floating panel's shadow root (the panel content script). */
+export const PANEL_HOST = 'agx-panel'
 /** What the extension adds to the page, so its own changes are never scanned. */
-export const OUR_NODES = `.agx-wrap, .agx-li, .${OVERVIEW_HOST}`
+export const OUR_NODES = `.agx-wrap, .agx-li, .${OVERVIEW_HOST}, ${PANEL_HOST}`
 
 const PRODUCT_LINKS = 'a[href*="/pd/"]'
 const HEADINGS = 'h1,h2,h3,h4'

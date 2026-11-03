@@ -248,9 +248,20 @@ The box is `position: fixed` inside a shadow root on an `agx-overview-host` elem
 scanner), so Audible's CSS can't reach it. The host and its root are made by hand for now; the
 panel will take over the same root.
 
-**Floating panel.** React mounted with WXT's `createShadowRootUi` (`cssInjectionMode: 'ui'`), so
-Tailwind and Audible's CSS can't affect each other. The hover overview renders inside the same
-shadow root (`position: fixed`), which isolates it from page styles too.
+**Floating panel.** A second content script, `src/entrypoints/panel.content/` (DECISIONS.md D18), so
+React stays out of `content.js`. It draws React in a shadow root made by WXT's `createShadowRootUi`
+(host element `agx-panel`), so Tailwind and Audible's CSS can't affect each other. Its stylesheet is
+imported as text (`?inline`) and passed as the `css` option; `cssInjectionMode: 'ui'` would make WXT
+fetch the file from an extension URL and so list it in `web_accessible_resources`, which the manifest
+does not have. The hover overview keeps its own shadow root (`agx-overview-host`) in `content.js`.
+
+The two scripts share one isolated world, and meet through `src/content/shared.ts`: `content.js`
+publishes a `PanelHandle` (the book store's `state`, and `retryFailed()`) on `globalThis` and fires an
+`agx:panel-handle` event on the document; the panel script reads it with `watchHandle`, mounts when
+there is a handle and unmounts when it is withdrawn (the extension was switched off), through
+`runPanel` (`src/panel/host.ts`). There is one port per tab, and it is the badge script's. The panel
+shows nothing until the tab has asked for a book. `bun e2e` checks on live Audible that the panel's
+progress bar appears, which is the one thing `bun test` cannot prove about the shared world.
 
 - Shell: drag to a corner, collapse to a pill (rating icon + `34/60`), hide for this site. Hidden
   state is restored from the popup.
@@ -411,7 +422,8 @@ WXT `srcDir: 'src'`, so entrypoints live under `src/entrypoints` and the `@/` al
 src/
   entrypoints/
     background.ts            # builds the ManagedRuntime, starts PortServer
-    content/index.ts         # scanner, store, badges, filter applier, mounts the panel
+    content/index.ts         # scanner, store, badges, filter applier; publishes the panel handle (no React)
+    panel.content/index.tsx  # the floating panel: its own content script, React in a shadow root
     popup/                   # enable toggle, show panel, cache stats/clear
     options/                 # settings (TanStack Form), cache inspector (Table + Virtual)
   core/                      # pure TS, no DOM, no Effect: text.ts, matching.ts, filter.ts, regions.ts, asin.ts, page.ts,
@@ -420,9 +432,11 @@ src/
   background/                # Effect services: Goodreads.ts, AudibleCatalog.ts (with errors.ts, httpGet.ts), BookCache.ts,
                              #   BookCacheTest.ts (test layer over fake-indexeddb), HttpTest.ts (fake fetch for the network services' tests), LookupQueue.ts, ProgressHub.ts, PortServer.ts, layers.ts
   content/                   # main.ts (wires the parts below), scanner.ts, cards.ts, badges.ts, badges.css,
-                             #   books.ts (the book store, TanStack Store from phase 2), port-client.ts,
-                             #   schedule.ts; filter-applier.ts arrives with the filters
-  ui/                        # React: panel/, components/ (Radix-based), hooks/
+                             #   books.ts (the book store, a TanStack Store), shared.ts (the handle the panel reads),
+                             #   port-client.ts, schedule.ts; filter-applier.ts arrives with the filters
+  panel/                     # React, for the panel script only: Panel.tsx, host.ts (mounts it while the badge script
+                             #   has a handle), summary.ts (what to show for the counters), panel.css (Tailwind, as text)
+  ui/                        # React components shared with the popup and options page (Radix-based), hooks/
   storage/                   # WXT storage item definitions
   assets/                    # brand/ logo sources; icon.png (Conductor's repository icon)
   public/                    # icon/ PNGs, copied into the build as-is

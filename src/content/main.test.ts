@@ -4,7 +4,7 @@
  * The saved library and wish list pages are tested in library-fixtures.test.ts; the rows below are
  * small hand-written ones for cases those pages do not hold.
  */
-import { describe, expect, test } from 'bun:test'
+import { beforeEach, describe, expect, test } from 'bun:test'
 import {
   failed,
   loadBody,
@@ -14,6 +14,7 @@ import {
   ready,
   startWorld,
 } from '../../test/content-harness'
+import { currentHandle, watchHandle } from './shared'
 
 const A = 'B000000001'
 const B = 'B000000002'
@@ -611,5 +612,68 @@ describe('when the background worker stops', () => {
     expect(world.ports).toHaveLength(2)
     expect(world.port.sent.map(m => m._tag)).toEqual(['Hello', 'Lookup'])
     expect(world.port.lookups()).toEqual([[B]])
+  })
+})
+
+describe('the panel handle', () => {
+  // The harness leaves the last test's script running; starting on a site that is not Audible
+  // stops it and starts nothing.
+  beforeEach(() => {
+    startWorld({ hostname: 'www.example.com' })
+  })
+
+  test('is published when the script starts and withdrawn when it stops', () => {
+    loadBody(`<main>${card(A)}</main>`)
+    expect(currentHandle()).toBeUndefined()
+    const world = startWorld()
+    expect(currentHandle()?.state).toBe(world.content?.books.state)
+    world.content?.stop()
+    expect(currentHandle()).toBeUndefined()
+  })
+
+  test('is withdrawn when the extension is turned off, and a restart publishes a new one', () => {
+    loadBody(`<main>${card(A)}</main>`)
+    const first = startWorld()
+    const firstHandle = currentHandle()
+    first.content?.remove()
+    expect(currentHandle()).toBeUndefined()
+    startWorld()
+    expect(currentHandle()).toBeDefined()
+    expect(currentHandle()).not.toBe(firstHandle)
+  })
+
+  test('announces each change on the document', () => {
+    loadBody(`<main>${card(A)}</main>`)
+    const heard: Array<boolean> = []
+    const stop = watchHandle(document, handle => heard.push(!!handle))
+    const world = startWorld()
+    world.content?.stop()
+    stop()
+    expect(heard).toEqual([false, true, false])
+  })
+
+  test('retryFailed puts every failed book back to waiting and sends one Retry', () => {
+    loadBody(`<main>${card(A)}${card(B)}${card(C)}</main>`)
+    const world = startWorld()
+    world.io.intersect()
+    world.port.receive(failed(A))
+    world.port.receive(failed(B))
+    world.port.receive(ready(C, { r: 4, n: 9 }))
+    currentHandle()?.retryFailed()
+    expect(world.port.sent.at(-1)).toEqual({ _tag: 'Retry', asins: [A, B] })
+    expect(texts(A)).toEqual(['GR …'])
+    expect(texts(B)).toEqual(['GR …'])
+    expect(texts(C)).toEqual(['★ 4.00 (9)'])
+    world.port.receive(ready(A, { r: 4.5, n: 1 }))
+    expect(texts(A)).toEqual(['★ 4.50 (1)'])
+  })
+
+  test('retryFailed with nothing failed sends nothing', () => {
+    loadBody(`<main>${card(A)}</main>`)
+    const world = startWorld()
+    world.io.intersect()
+    const sent = world.port.sent.length
+    currentHandle()?.retryFailed()
+    expect(world.port.sent).toHaveLength(sent)
   })
 })

@@ -135,9 +135,12 @@ one queue. Release 0.1.
 - [ ] Panel in a shadow root (`createShadowRootUi`), React + Tailwind + Radix:
       drag to a corner, collapse to a pill, hide on this site; placement saved in
       `storage.local`; show again from the popup.
-- [ ] Progress: bar and counters, rate-limit pause with countdown, "Retry
-      failed", and a distinct "page format changed" error.
-- [ ] Component tests for each panel state.
+- [x] Progress: bar and counters, rate-limit pause with countdown, "Retry
+      failed", and a distinct "page format changed" error. (The panel is a
+      second content script, D18; it is fixed at the bottom right until the
+      shell lands.)
+- [ ] Component tests for each panel state. (Done for the progress states; the
+      shell's drag, collapsed and hidden states come with it.)
 
 Exit: on a deals page with 60+ books the panel shows progress to completion;
 collapsing, moving and hiding survive a reload. Release 0.2.
@@ -263,6 +266,7 @@ Added later:
 | Phase | Addition                                                                                                             |
 | ----- | -------------------------------------------------------------------------------------------------------------------- |
 | 1     | Content-script size budget: `scripts/check-content-size.ts` fails when `content-scripts/content.js` passes 50 KB gzipped (set from a 36 KB build). |
+| 2     | The same script also fails when `content-scripts/panel.js` passes 100 KB gzipped (set from a 64 KB build, room for the Radix controls). |
 | 1     | `bun run build` for Firefox as a second step, so a Chrome-only API is caught early.                                  |
 | 5     | `release.yml` on `v*` tags: build Chrome and Firefox zips, attach to a GitHub release; Jig's changelog check on PRs. |
 | Later | Nightly (not per-PR) Playwright smoke run against live Audible, reporting to an issue on failure.                    |

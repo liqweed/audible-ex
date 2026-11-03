@@ -33,6 +33,7 @@ import {
   type VisibleCard,
 } from './scanner'
 import type { Schedule } from './schedule'
+import { type PanelHandle, publishHandle, withdrawHandle } from './shared'
 
 export interface ContentDeps {
   doc: Document
@@ -103,6 +104,16 @@ export function startContent(deps: ContentDeps): Content | undefined {
     client.retry([asin])
   }
 
+  /** The panel's "Retry failed": every book whose lookup failed goes back to waiting and is asked for again. */
+  function retryFailed() {
+    const asins = [...books.entries()]
+      .filter(([, view]) => view.status === 'failed')
+      .map(([asin]) => asin)
+    if (asins.length === 0) return
+    for (const asin of asins) books.set(asin, { status: 'queued' })
+    client.retry(asins)
+  }
+
   function attach(card: Element, asin: string) {
     attachBadges(card, asin, titleOf(card, asin))
     const cards = cardsByAsin.get(asin) ?? new Set<Element>()
@@ -166,7 +177,11 @@ export function startContent(deps: ContentDeps): Content | undefined {
     viewOf: badge => books.get((badge as HTMLElement).dataset.asin ?? ''),
   })
 
+  const handle: PanelHandle = { state: books.state, retryFailed }
+  publishHandle(doc, handle)
+
   function stop() {
+    withdrawHandle(doc, handle)
     overview.stop()
     scanner.stop()
     client.close()
