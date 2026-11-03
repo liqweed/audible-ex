@@ -278,6 +278,36 @@ describe('from the keyboard', () => {
     expect(popover()).toBeNull()
     expect(document.activeElement).toBe(pill)
   })
+
+  test('Escape after Enter closes it, and the focus it returns does not reopen it', () => {
+    const pill = pills('Romance')[0] as HTMLElement
+    pill.focus()
+    pill.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })
+    )
+    expect(popover()).not.toBeNull()
+    // Focus is in the popover now, so returning it to the label is a real focus change.
+    pill.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })
+    )
+    // Booleans, not the elements: a failing comparison of two DOM nodes never finishes printing.
+    expect(popover() === null).toBe(true)
+    expect(document.activeElement === pill).toBe(true)
+  })
+
+  test('focusing the label again after Escape opens it again', () => {
+    const pill = pills('Romance')[0] as HTMLElement
+    pill.focus()
+    pill.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })
+    )
+    pill.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })
+    )
+    pill.blur()
+    pill.focus()
+    expect(popover()).not.toBeNull()
+  })
 })
 
 describe('turning the extension off', () => {

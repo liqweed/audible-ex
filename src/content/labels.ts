@@ -215,7 +215,11 @@ export function createLabelPopover(options: LabelPopoverOptions): LabelPopover {
     if (pop) scheduleHide()
   }
 
+  /** Set while Escape gives the focus back to the label, so that focus change does not reopen the popover. */
+  let returningFocus = false
+
   const onFocusIn = (event: Event) => {
+    if (returningFocus) return
     const label = labelOf(event.target)
     if (label) show(label)
   }
@@ -225,7 +229,12 @@ export function createLabelPopover(options: LabelPopoverOptions): LabelPopover {
     if (key === 'Escape' && pop) {
       const pill = current
       hide()
-      if (pill instanceof HTMLElement) pill.focus()
+      returningFocus = true
+      try {
+        if (pill instanceof HTMLElement) pill.focus()
+      } finally {
+        returningFocus = false
+      }
       return
     }
     const label = labelOf(event.target)
