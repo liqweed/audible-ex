@@ -10,6 +10,7 @@ import {
   panelStorage,
 } from '@/storage/panel'
 import { useDrag } from './drag'
+import { Filters } from './Filters'
 import {
   counts,
   detailsProgress,
@@ -197,7 +198,7 @@ export function Panel({
         ) : (
           <section
             aria-label='Goodreads ratings'
-            className='w-72 rounded-lg border border-slate-300 bg-white p-3 shadow-lg'
+            className='max-h-[calc(100vh-2rem)] w-72 overflow-y-auto rounded-lg border border-slate-300 bg-white p-3 shadow-lg'
           >
             <div className='mb-2 flex items-center gap-1.5'>
               {logoSrc && (
@@ -314,6 +315,7 @@ export function Panel({
                     </div>
                   </div>
                 )}
+                <Filters handle={handle} />
               </>
             )}
           </section>

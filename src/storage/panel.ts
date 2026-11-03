@@ -8,6 +8,7 @@ import * as Effect from 'effect/Effect'
 import * as Option from 'effect/Option'
 import * as Schema from 'effect/Schema'
 import { storage } from 'wxt/utils/storage'
+import { serial } from './serial'
 
 export const CORNERS = [
   'topLeft',
@@ -52,21 +53,25 @@ const item = storage.defineItem<unknown>('local:panel', {
   version: 1,
 })
 
+const queue = serial()
+
 export const readPanel = async (): Promise<PanelState> =>
   decodePanel(await item.getValue())
 
 /**
  * Changes some of the state and keeps the rest. A function gets the stored state as it is when the
- * write begins, not the state its caller last saw, so a site hidden in another tab is kept. Storage
- * has no transactions: two writes that overlap within the same few milliseconds can still lose one.
+ * write begins, not the state its caller last saw, so a site hidden in another tab is kept. Updates
+ * in one script run one after another (`serial`); storage has no transactions, so two tabs writing
+ * within the same few milliseconds can still lose one.
  */
-export async function updatePanel(
+export const updatePanel = (
   change: Partial<PanelState> | ((current: PanelState) => Partial<PanelState>)
-): Promise<void> {
-  const current = await readPanel()
-  const patch = typeof change === 'function' ? change(current) : change
-  await item.setValue({ ...current, ...patch })
-}
+): Promise<void> =>
+  queue(async () => {
+    const current = await readPanel()
+    const patch = typeof change === 'function' ? change(current) : change
+    await item.setValue({ ...current, ...patch })
+  })
 
 /** Calls `listener` with the new state after each change; returns the function that stops it. */
 export const watchPanel = (

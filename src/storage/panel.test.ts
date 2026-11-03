@@ -82,3 +82,17 @@ describe('the local:panel item', () => {
     expect(seen).toEqual([true, false])
   })
 })
+
+describe('quick updates', () => {
+  test('started together, they all land', async () => {
+    await Promise.all([
+      updatePanel(s => ({ hiddenHosts: [...s.hiddenHosts, 'a.example'] })),
+      updatePanel(s => ({ hiddenHosts: [...s.hiddenHosts, 'b.example'] })),
+      updatePanel({ collapsed: true }),
+    ])
+    expect(await readPanel()).toMatchObject({
+      hiddenHosts: ['a.example', 'b.example'],
+      collapsed: true,
+    })
+  })
+})

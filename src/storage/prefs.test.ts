@@ -162,3 +162,23 @@ describe('the version 1 record', () => {
     expect(stored.prefs$).toEqual({ v: 2 })
   })
 })
+
+describe('quick updates', () => {
+  test('started together, they all land', async () => {
+    await Promise.all([
+      updateFilters({ minRating: 4.5 }),
+      updateFilters({ mode: 'dim' }),
+      updatePrefs({ enabled: false }),
+      updateFilters({ hiddenLabels: ['Romance'] }),
+    ])
+    expect(await readPrefs()).toEqual({
+      enabled: false,
+      filters: {
+        ...DEFAULT_FILTERS,
+        minRating: 4.5,
+        mode: 'dim',
+        hiddenLabels: ['Romance'],
+      },
+    })
+  })
+})

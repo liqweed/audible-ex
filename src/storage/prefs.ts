@@ -11,6 +11,7 @@ import * as Effect from 'effect/Effect'
 import * as Option from 'effect/Option'
 import * as Schema from 'effect/Schema'
 import { storage } from 'wxt/utils/storage'
+import { serial } from './serial'
 
 /**
  * The filters (PRD R3, ARCHITECTURE.md §7; `src/core/filter.ts` reads them). The slider offers 3.0 to
@@ -90,16 +91,21 @@ const item = storage.defineItem<unknown>('sync:prefs', {
 export const readPrefs = async (): Promise<Prefs> =>
   decodePrefs(await item.getValue())
 
+/** Updates run one after another, so quick changes (a slider, then a switch) do not erase each other. */
+const queue = serial()
+
 /** Changes some prefs and keeps the rest as they are. */
-export async function updatePrefs(change: Partial<Prefs>): Promise<void> {
-  await item.setValue({ ...(await readPrefs()), ...change })
-}
+export const updatePrefs = (change: Partial<Prefs>): Promise<void> =>
+  queue(async () => {
+    await item.setValue({ ...(await readPrefs()), ...change })
+  })
 
 /** Changes some of the filters and keeps the rest of them, and the other prefs, as they are. */
-export async function updateFilters(change: Partial<Filters>): Promise<void> {
-  const prefs = await readPrefs()
-  await item.setValue({ ...prefs, filters: { ...prefs.filters, ...change } })
-}
+export const updateFilters = (change: Partial<Filters>): Promise<void> =>
+  queue(async () => {
+    const prefs = await readPrefs()
+    await item.setValue({ ...prefs, filters: { ...prefs.filters, ...change } })
+  })
 
 /** Calls `listener` with the new prefs after each change; returns the function that stops it. */
 export const watchPrefs = (listener: (prefs: Prefs) => void): (() => void) =>

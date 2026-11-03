@@ -80,7 +80,7 @@ describe('Panel', () => {
   test('shows a bar and the counts, and follows the store', async () => {
     const { books, handle } = setup()
     await show(<Panel handle={handle} storage={memoryStorage().storage} />)
-    act(() =>
+    await act(async () =>
       books.setProgress(
         counters({ done: 34, queued: 20, active: 6, cached: 18, notFound: 2 })
       )
@@ -91,7 +91,7 @@ describe('Panel', () => {
     expect(screen.getByRole('status').textContent).toBe(
       '34/60 · 18 cached · 2 not found'
     )
-    act(() =>
+    await act(async () =>
       books.setProgress(counters({ done: 60, cached: 18, notFound: 2 }))
     )
     expect(screen.getByRole('progressbar').getAttribute('aria-valuenow')).toBe(
@@ -105,9 +105,9 @@ describe('Panel', () => {
   test('offers Retry failed only when something failed, and asks the badge script', async () => {
     const { books, handle, retries } = setup()
     await show(<Panel handle={handle} storage={memoryStorage().storage} />)
-    act(() => books.setProgress(counters({ done: 5, queued: 1 })))
+    await act(async () => books.setProgress(counters({ done: 5, queued: 1 })))
     expect(screen.queryByRole('button', { name: 'Retry failed' })).toBeNull()
-    act(() => books.setProgress(counters({ done: 5, failed: 2 })))
+    await act(async () => books.setProgress(counters({ done: 5, failed: 2 })))
     fireEvent.click(screen.getByRole('button', { name: 'Retry failed' }))
     expect(retries()).toBe(1)
   })
@@ -121,13 +121,13 @@ describe('Panel', () => {
         storage={memoryStorage().storage}
       />
     )
-    act(() =>
+    await act(async () =>
       books.setProgress(counters({ queued: 4, done: 1, pausedUntil: 13_000 }))
     )
     expect(
       screen.getByText(/Paused — Goodreads is rate limiting \(12 s\)/)
     ).toBeTruthy()
-    act(() => books.setProgress(counters({ queued: 4, done: 1 })))
+    await act(async () => books.setProgress(counters({ queued: 4, done: 1 })))
     expect(screen.queryByText(/Paused/)).toBeNull()
   })
 
@@ -140,14 +140,16 @@ describe('Panel', () => {
         storage={memoryStorage().storage}
       />
     )
-    act(() => books.setProgress(counters({ queued: 1, pausedUntil: 13_000 })))
+    await act(async () =>
+      books.setProgress(counters({ queued: 1, pausedUntil: 13_000 }))
+    )
     expect(screen.queryByText(/Paused/)).toBeNull()
   })
 
   test('a changed Goodreads format gets its own message, not the progress', async () => {
     const { books, handle } = setup()
     await show(<Panel handle={handle} storage={memoryStorage().storage} />)
-    act(() => {
+    await act(async () => {
       books.setProgress(counters({ done: 3, failed: 1 }))
       books.set('B000000001', {
         status: 'failed',
@@ -163,7 +165,7 @@ describe('Panel', () => {
   test('a network failure stays an ordinary failure with a retry', async () => {
     const { books, handle } = setup()
     await show(<Panel handle={handle} storage={memoryStorage().storage} />)
-    act(() => {
+    await act(async () => {
       books.setProgress(counters({ done: 3, failed: 1 }))
       books.set('B000000001', {
         status: 'failed',
@@ -183,7 +185,7 @@ describe('the shell', () => {
   ) {
     const { books, handle } = setup()
     const memory = memoryStorage(stored)
-    act(() => books.setProgress(counters({ done: 34, queued: 26 })))
+    await act(async () => books.setProgress(counters({ done: 34, queued: 26 })))
     const view = await show(
       <Panel handle={handle} storage={memory.storage} host={host} />
     )
@@ -212,7 +214,10 @@ describe('the shell', () => {
     expect(pill.textContent).toBe('34/60')
     expect(current().collapsed).toBe(true)
 
-    fireEvent.click(pill)
+    // Opening mounts the filters, which read the prefs.
+    await act(async () => {
+      fireEvent.click(pill)
+    })
     expect(screen.getByRole('progressbar')).toBeTruthy()
     expect(saved.map(s => s.collapsed)).toEqual([true, false])
     expect(box(view)).toBeTruthy()
@@ -246,7 +251,7 @@ describe('the shell', () => {
 
   test('a changed format is still told when collapsed', async () => {
     const { books } = await open({ collapsed: true })
-    act(() =>
+    await act(async () =>
       books.set('B000000001', {
         status: 'failed',
         error: { reason: 'formatChanged', message: 'x' },
@@ -313,8 +318,8 @@ describe('the shell', () => {
     const rating = { r: 4.2, n: 100, url: 'https://example.test', loose: false }
     const details = { genres: ['Fantasy'], year: 2001, desc: 'x' }
     /** Three books are rated; `read` of them have had their Goodreads page read. */
-    function rated(books: BookStore, read: number) {
-      act(() => {
+    async function rated(books: BookStore, read: number) {
+      await act(async () => {
         books.setProgress(counters({ done: 3, queued: 2 }))
         ;['B000000001', 'B000000002', 'B000000003'].forEach((asin, i) => {
           books.set(asin, {
@@ -329,12 +334,12 @@ describe('the shell', () => {
     test('shows a second bar for genres, year and overview once a book is rated', async () => {
       const { books, handle } = setup()
       await show(<Panel handle={handle} storage={memoryStorage().storage} />)
-      act(() => books.setProgress(counters({ done: 0, queued: 5 })))
+      await act(async () => books.setProgress(counters({ done: 0, queued: 5 })))
       expect(
         screen.queryByRole('progressbar', { name: 'Genres and details read' })
       ).toBeNull()
 
-      rated(books, 1)
+      await rated(books, 1)
       const bar = screen.getByRole('progressbar', {
         name: 'Genres and details read',
       })
@@ -358,17 +363,17 @@ describe('the shell', () => {
           storage={memoryStorage({ collapsed: true }).storage}
         />
       )
-      act(() => books.setProgress(counters({ done: 3, queued: 2 })))
-      rated(books, 1)
+      await act(async () => books.setProgress(counters({ done: 3, queued: 2 })))
+      await rated(books, 1)
       expect(screen.getByRole('button', { name: /expand/i }).textContent).toBe(
         '3/5'
       )
-      act(() => books.setProgress(counters({ done: 3 })))
+      await act(async () => books.setProgress(counters({ done: 3 })))
       expect(screen.getByRole('button', { name: /expand/i }).textContent).toBe(
         'details 1/3'
       )
-      rated(books, 3)
-      act(() => books.setProgress(counters({ done: 3 })))
+      await rated(books, 3)
+      await act(async () => books.setProgress(counters({ done: 3 })))
       expect(screen.getByRole('button', { name: /expand/i }).textContent).toBe(
         '3/3'
       )
@@ -378,7 +383,7 @@ describe('the shell', () => {
   describe('the extension mark', () => {
     test('links the logo to the project page, and shows it on the pill', async () => {
       const { books, handle } = setup()
-      act(() => books.setProgress(counters({ done: 1, queued: 1 })))
+      await act(async () => books.setProgress(counters({ done: 1, queued: 1 })))
       const memory = memoryStorage()
       await show(
         <Panel handle={handle} storage={memory.storage} logoSrc='data:,logo' />
@@ -397,7 +402,7 @@ describe('the shell', () => {
 
     test('has no link without a logo', async () => {
       const { books, handle } = setup()
-      act(() => books.setProgress(counters({ done: 1, queued: 1 })))
+      await act(async () => books.setProgress(counters({ done: 1, queued: 1 })))
       await show(<Panel handle={handle} storage={memoryStorage().storage} />)
       expect(screen.queryByRole('link')).toBeNull()
     })

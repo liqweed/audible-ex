@@ -16,8 +16,9 @@
  * real build (36 KB with badges, overview, popup switch and prefs) with room to grow. The panel
  * budget was set from the first panel build (64 KB: React and the progress view, before the Radix
  * controls of the filters, which add about 12 KB). The shell's stored state brought `effect/Schema`
- * into the panel (92 KB), and the filters' prefs will use it too, so the filters' pull request
- * must raise this budget or trim the panel. Raise either in the pull request that needs the room,
+ * into the panel (92 KB). The filter controls (Radix switch and slider, Pacer's debouncer, the
+ * label picker) brought it to 104.7 KB, so the budget is now 120 KB; the options page (phase 4) is
+ * its own entrypoint and does not count against it. Raise either in the pull request that needs the room,
  * and say why.
  */
 import { readFileSync } from 'node:fs'
@@ -25,7 +26,7 @@ import { basename, join } from 'node:path'
 import { gzipSync } from 'node:zlib'
 
 export const BUDGET_BYTES = 50 * 1024
-export const PANEL_BUDGET_BYTES = 100 * 1024
+export const PANEL_BUDGET_BYTES = 120 * 1024
 
 const SCRIPTS = join(import.meta.dir, '../.output/chrome-mv3/content-scripts')
 const DEFAULT_PATHS = [join(SCRIPTS, 'content.js'), join(SCRIPTS, 'panel.js')]

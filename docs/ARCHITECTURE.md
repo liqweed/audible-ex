@@ -282,8 +282,12 @@ progress bar appears, which is the one thing `bun test` cannot prove about the s
   every rating is in, the collapsed pill shows `details 12/34` instead of `60/60`.
 - Progress: bar plus `34/60 · 18 cached · 2 not found · 1 failed`; "Paused — Goodreads is rate
   limiting (12 s)"; "Retry failed".
-- Filters: rating slider, minimum ratings, hidden-labels picker (autocomplete from genres seen in
-  the cache), "not found" policy, dim/hide mode, master on/off.
+- Filters (`src/panel/Filters.tsx`, built, below the progress): the master switch and `12 hidden ·
+  Show` always; a "Filter settings" area opens the rating slider (3.0–5.0, step 0.1), the minimum
+  number of ratings, the hidden labels, and the two policies. A change shows at once and is saved
+  300 ms after the user stops (Pacer's debouncer, flushed if the panel goes away), through
+  `updateFilters`, whose writes run in order. The label picker suggests the genres the page's books
+  carry, most common first (`genres.ts`), not genres from the whole cache.
 - Counter: `12 hidden · Show` — **Show** toggles `peek`, which reveals hidden cards (dimmed)
   without changing preferences.
 
