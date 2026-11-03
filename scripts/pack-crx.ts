@@ -163,11 +163,14 @@ async function main() {
     const { chromium } = await import('playwright')
     const packed = `${BUILD}.crx`
     rmSync(packed, { force: true })
+    // No sandbox: this run only packs a folder and opens no page, and a runner whose kernel
+    // restricts user namespaces (Ubuntu 24.04) would otherwise stop Chromium at startup.
     run([
       chromium.executablePath(),
       `--pack-extension=${BUILD}`,
       `--pack-extension-key=${keyPath}`,
       '--no-message-box',
+      '--no-sandbox',
     ])
     const crx = new Uint8Array(readFileSync(packed))
     if (!crxSignedBy(crx, expected))
