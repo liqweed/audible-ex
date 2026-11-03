@@ -7,6 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-03
+
+### Added
+
+- A small panel at the bottom right of Audible pages shows how far the rating
+  lookups are: a bar and counts such as `34/60 · 18 cached · 2 not found ·
+  1 failed`. When Goodreads is rate limiting it says so with a countdown, a
+  "Retry failed" button looks failed books up again, and a message tells you if
+  Goodreads has changed its pages so that ratings cannot be read. The panel
+  appears once a page has books to look up and is drawn apart from Audible's own
+  styles.
+- The panel can be moved: grab its title (it has a grip and a grab cursor) and
+  drag it; dashed markers show the four corners, the nearest one lit, and it
+  docks where you let go, remembered on this device. A `–` button collapses it
+  to a small pill showing the count (`34/60`); click the pill to open it
+  again. A `×` button hides the panel on that Audible site, and the toolbar
+  popup shows "Show the panel again" until you bring it back.
+- The panel shows the extension's logo, on the pill and in the header, where it
+  links to the project page.
+- The panel shows both steps of the lookups: the ratings, then a second bar for
+  genres, first-published year and overview, which are read from each book's
+  Goodreads page after the ratings. The collapsed pill follows the second step
+  once all ratings are in.
+- Filters. The panel on Audible pages hides books that do not fit what you
+  want to read: below a minimum rating (4.0 to start with), with too few
+  ratings (50), or carrying a genre you have chosen to hide. Open "Filter
+  settings" in the panel to change them; a switch turns filtering off.
+  A book is never hidden before its rating has loaded, and in carousels books
+  are dimmed instead, so the page keeps its layout. Books that are not on
+  Goodreads are shown unless you choose otherwise. "12 hidden · Show" reveals
+  the hidden books, dimmed, without changing the filters.
+- Hover a genre label under a book's rating (or tab to it and press Enter) to
+  hide every book with that genre, or to stop hiding it. Labels you hide are
+  struck through, so you can see what is being filtered, and the popover says
+  how many books on the page carry the label.
+- The settings are saved in your browser's synced storage, so they apply on
+  every Audible site and in every open tab at once, and follow your Chrome
+  profile to your other devices.
+
+### Changed
+
+- Internal: the page's lookup state now lives in a TanStack Store, ready for the
+  floating panel. Badges and the hover overview behave as before.
+- Internal: the background worker now tells each Audible tab how many of its
+  lookups are waiting, running, done, cached, not found or failed, and when
+  Goodreads has paused them. Nothing shows it yet; the floating panel will.
+- Settings are stored in a new version that holds the filters. Your on/off
+  switch carries over.
+
+### Fixed
+
+- On Library pages the Goodreads rating no longer appears inside the hidden
+  Download menu of each book; the badge stays after the title only.
+
 ## [0.1.0] - 2026-11-02
 
 ### Added
