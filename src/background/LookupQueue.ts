@@ -371,7 +371,9 @@ const make = Effect.gen(function* () {
         return { title: cached.value.title, author: cached.value.author }
       }
       const meta = yield* catalog.lookup(region, asin)
-      yield* soft('write', cache.setMeta({ asin, ...meta }), undefined)
+      // Public prices are page-local and must never take the metadata cache's 30-day lifetime.
+      const { title, author } = meta
+      yield* soft('write', cache.setMeta({ asin, title, author }), undefined)
       return meta
     })
 

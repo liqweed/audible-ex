@@ -4,7 +4,7 @@
  * popup's one-off `sendMessage` requests are not port messages and are not here.
  */
 import * as Schema from 'effect/Schema'
-import { Asin, Count, Details, EpochMs, Rating, Region } from './common'
+import { Asin, Count, Details, EpochMs, Price, Rating, Region } from './common'
 
 // ---------- content script → background ----------
 
@@ -35,7 +35,12 @@ export const Retry = Schema.TaggedStruct('Retry', {
   asins: Schema.Array(Asin),
 })
 
-export const ContentMessage = Schema.Union([Hello, Lookup, Retry])
+/** Fresh prices for visible ASINs, requested only while a price limit is active. */
+export const PriceLookup = Schema.TaggedStruct('PriceLookup', {
+  asins: Schema.Array(Asin),
+})
+
+export const ContentMessage = Schema.Union([Hello, Lookup, Retry, PriceLookup])
 export type ContentMessage = typeof ContentMessage.Type
 
 // ---------- background → content script ----------
@@ -86,5 +91,15 @@ export const Progress = Schema.TaggedStruct('Progress', {
   pausedUntil: Schema.optional(EpochMs),
 })
 
-export const BackgroundMessage = Schema.Union([BookUpdate, Progress])
+/** No price means unavailable (including request failure); ratings remain usable. */
+export const PriceUpdate = Schema.TaggedStruct('PriceUpdate', {
+  asin: Asin,
+  price: Schema.optional(Price),
+})
+
+export const BackgroundMessage = Schema.Union([
+  BookUpdate,
+  Progress,
+  PriceUpdate,
+])
 export type BackgroundMessage = typeof BackgroundMessage.Type

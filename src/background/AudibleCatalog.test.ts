@@ -117,7 +117,7 @@ describe('AudibleCatalog', () => {
   )
 
   scenario(
-    'asks the API host of the page’s marketplace with the userscript’s response groups',
+    'asks the API host of the page’s marketplace with metadata and price response groups',
     () => json(fixture('uk')),
     (catalog, requests) =>
       Effect.gen(function* () {
@@ -126,7 +126,7 @@ describe('AudibleCatalog', () => {
           ['UK', EXOPLANET],
         ])
         expect(requests.map(r => r.url)).toEqual([
-          `https://api.audible.co.uk/1.0/catalog/products?asins=${ARTEMIS},${EXOPLANET}&response_groups=contributors,product_desc`,
+          `https://api.audible.co.uk/1.0/catalog/products?asins=${ARTEMIS},${EXOPLANET}&response_groups=contributors,product_desc,price`,
         ])
         expect(requests[0]?.url).toBe(
           catalogUrl('api.audible.co.uk', [ARTEMIS, EXOPLANET])
@@ -376,3 +376,107 @@ describe('AudibleCatalog', () => {
       })
   )
 })
+
+describe('public catalogue prices', () => {
+  scenario(
+    'decodes the public GBP price fixture and rounds floating-point pennies',
+    () =>
+      json(
+        JSON.parse(
+          readFileSync(
+            join(
+              import.meta.dir,
+              '../../test/fixtures/audible/uk/catalog-price.json'
+            ),
+            'utf8'
+          )
+        )
+      ),
+    catalog =>
+      Effect.gen(function* () {
+        const [result] = yield* lookupAll(catalog, [['UK', ARTEMIS]])
+        expect(meta(result as Exit.Exit<BookMeta>).price).toEqual({
+          amount: 13.58,
+          currency: 'GBP',
+        })
+      })
+  )
+  for (const price of [
+    undefined,
+    null,
+    {},
+    { credit_price: 1 },
+    { lowest_price: { base: -1, currency_code: 'GBP' } },
+    { lowest_price: { base: '10', currency_code: 'GBP' } },
+  ]) {
+    scenario(
+      `invalid or unavailable price keeps the title: ${JSON.stringify(price)}`,
+      () => json({ products: [{ asin: ARTEMIS, title: 'Artemis', price }] }),
+      catalog =>
+        Effect.gen(function* () {
+          const [result] = yield* lookupAll(catalog, [['UK', ARTEMIS]])
+          expect(meta(result as Exit.Exit<BookMeta>)).toEqual({
+            title: 'Artemis',
+            author: '',
+          })
+        })
+    )
+  }
+  scenario(
+    'JPY uses whole yen and keeps free prices',
+    () =>
+      json({
+        products: [
+          {
+            asin: ARTEMIS,
+            title: 'Artemis',
+            price: { lowest_price: { base: 1234.00001, currency_code: 'JPY' } },
+          },
+          {
+            asin: EXOPLANET,
+            title: 'Exoplanet',
+            price: { lowest_price: { base: 0, currency_code: 'GBP' } },
+          },
+        ],
+      }),
+    catalog =>
+      Effect.gen(function* () {
+        const [yen, free] = yield* lookupAll(catalog, [
+          ['UK', ARTEMIS],
+          ['UK', EXOPLANET],
+        ])
+        expect(meta(yen as Exit.Exit<BookMeta>).price).toEqual({
+          amount: 1234,
+          currency: 'JPY',
+        })
+        expect(meta(free as Exit.Exit<BookMeta>).price).toEqual({
+          amount: 0,
+          currency: 'GBP',
+        })
+      })
+  )
+})
+
+scenario(
+  'decodes the public USD price fixture',
+  () =>
+    json(
+      JSON.parse(
+        readFileSync(
+          join(
+            import.meta.dir,
+            '../../test/fixtures/audible/com/catalog-price.json'
+          ),
+          'utf8'
+        )
+      )
+    ),
+  catalog =>
+    Effect.gen(function* () {
+      const [result] = yield* lookupAll(catalog, [['US', PHM_US]])
+      expect(meta(result as Exit.Exit<BookMeta>).price).toEqual({
+        amount: 25.22,
+        currency: 'USD',
+      })
+    })
+)

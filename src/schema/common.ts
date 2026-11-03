@@ -50,3 +50,9 @@ export const Details = Schema.Struct({
   year: Schema.Int,
   desc: Schema.String.check(Schema.isMaxLength(DESCRIPTION_MAX)),
 })
+
+/** Public cash price from Audible; credits are not cash prices. */
+export const Price = Schema.Struct({
+  amount: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)),
+  currency: Schema.String.check(Schema.isPattern(/^[A-Z]{3}$/)),
+})

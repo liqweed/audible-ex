@@ -219,6 +219,7 @@ export interface WorldOptions {
   onConnect?: (attempt: number) => void
   now?: () => number
   filters?: FakeFilters
+  display?: ContentDeps['display']
 }
 
 /** The world started last; its listeners are on the shared test document until it is stopped. */
@@ -252,6 +253,7 @@ export function startWorld(options: WorldOptions = {}): World {
     overviewCss: '.tip{}',
     now: options.now,
     filters: options.filters,
+    display: options.display,
   }
   const world: World = {
     doc: document,

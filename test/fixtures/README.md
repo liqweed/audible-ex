@@ -99,6 +99,12 @@ answers a bare `{ "asin": … }` for it, the "not carried" case that
 `AudibleCatalog` maps to `NoMetadata`. The response names only publicly listed
 authors and narrators.
 
+`audible/{uk,com}/catalog-price.json` was captured on 2026-11-03 without cookies,
+adding `price` to those response groups. The UK request asked for `B0721NKM4B`
+and `B0HDF95QBD`; the US request asked for `B08G9PRS1K`. Both returned
+`price.lowest_price` with `base` and `currency_code` (GBP and USD). These are
+public cash prices, not signed-in offers; `credit_price` is a separate field.
+
 ### Capturing library and wish list by hand
 
 Do this once per marketplace and page, in a browser you are signed in to.

@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, test } from 'bun:test'
 import type { FilterSettings } from '@/core/filter'
 import {
   FakeFilters,
+  loadBody,
   loadFixture,
   mainBadges,
   notFound,
@@ -24,6 +25,7 @@ const FILTERS: FilterSettings = {
   minRatings: 50,
   minYear: null,
   maxYear: null,
+  maxPrice: {},
   hiddenLabels: [],
   notFound: 'show',
   mode: 'hide',
@@ -265,3 +267,61 @@ function handleOf(_world: World) {
   if (!handle) throw new Error('the content script published no handle')
   return handle
 }
+
+describe('price filtering on cards', () => {
+  test('requests fresh prices only once a limit is active, and keeps them across rating/details updates', async () => {
+    loadBody(
+      '<article><h3><a href="/pd/Book/B000000001">Book</a></h3></article>'
+    )
+    const filters = new FakeFilters(FILTERS)
+    const world = startWorld({ hostname: 'www.audible.com', filters })
+    world.io.intersect()
+    world.port.receive(ready('B000000001', { r: 4.5, n: 100 }))
+    await flush()
+    expect(world.port.sent.some(m => m._tag === 'PriceLookup')).toBe(false)
+    filters.change({ ...FILTERS, maxPrice: { US: 10 } })
+    expect(world.port.sent.at(-1)).toEqual({
+      _tag: 'PriceLookup',
+      asins: ['B000000001'],
+    })
+    expect(marked('hide')).toHaveLength(0)
+    world.port.receive({
+      _tag: 'PriceUpdate',
+      asin: 'B000000001',
+      price: { amount: 15, currency: 'USD' },
+    })
+    expect(marked('hide')).toHaveLength(1)
+    world.port.receive(
+      ready(
+        'B000000001',
+        { r: 4.5, n: 100 },
+        { genres: [], year: 2000, desc: '' }
+      )
+    )
+    expect(marked('hide')).toHaveLength(1)
+    filters.change({ ...FILTERS, maxPrice: { US: 15 } })
+    expect(marked('hide')).toHaveLength(0)
+    expect(world.port.sent.filter(m => m._tag === 'PriceLookup')).toHaveLength(
+      1
+    )
+    world.content?.remove()
+  })
+  test('a price that arrives before the rating cannot hide a loading card', async () => {
+    loadBody(
+      '<article><h3><a href="/pd/Book/B000000001">Book</a></h3></article>'
+    )
+    const filters = new FakeFilters({ ...FILTERS, maxPrice: { US: 0 } })
+    const world = startWorld({ hostname: 'www.audible.com', filters })
+    await flush()
+    world.io.intersect()
+    world.port.receive({
+      _tag: 'PriceUpdate',
+      asin: 'B000000001',
+      price: { amount: 1, currency: 'USD' },
+    })
+    expect(marked('hide')).toHaveLength(0)
+    world.port.receive(ready('B000000001', { r: 4.5, n: 100 }))
+    expect(marked('hide')).toHaveLength(1)
+    world.content?.remove()
+  })
+})

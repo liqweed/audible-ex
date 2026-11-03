@@ -9,6 +9,8 @@
  * hidden-label filter cannot act on a book until its details have arrived either.
  */
 
+import { type RegionCode, regionByCode } from './regions'
+
 export type Verdict = 'show' | 'dim' | 'hide'
 
 /** What to do with a book that is not on Goodreads. */
@@ -24,6 +26,7 @@ export interface FilterSettings {
   /** Inclusive first-published year bounds; null leaves that end open. Negative years are BCE. */
   readonly minYear: number | null
   readonly maxYear: number | null
+  readonly maxPrice: Readonly<Partial<Record<RegionCode, number>>>
   /** Goodreads genre names, compared without regard to case. */
   readonly hiddenLabels: readonly string[]
   readonly notFound: NotFoundPolicy
@@ -34,6 +37,9 @@ export interface FilterSettings {
 /** The part of a book view the verdict reads. */
 export interface FilterBook {
   readonly status: 'queued' | 'loading' | 'ready' | 'notFound' | 'failed'
+  readonly price?:
+    | { readonly amount: number; readonly currency: string }
+    | undefined
   readonly rating?: { readonly r: number; readonly n: number } | undefined
   readonly details?:
     | { readonly genres: readonly string[]; readonly year?: number }
@@ -62,11 +68,22 @@ export const isHiddenLabel = (
  */
 export function judge(
   book: FilterBook | undefined,
-  settings: FilterSettings
+  settings: FilterSettings,
+  region?: RegionCode
 ): Verdict {
   if (!settings.enabled || !book) return 'show'
   if (book.status === 'notFound') return settings.notFound
   if (book.status !== 'ready' || !book.rating) return 'show'
+
+  const limit = region && settings.maxPrice[region]
+  if (
+    region &&
+    limit !== undefined &&
+    book.price &&
+    book.price.currency === regionByCode(region).currency &&
+    book.price.amount > limit
+  )
+    return settings.mode
 
   const { r, n } = book.rating
   if (r < settings.minRating) return settings.mode
@@ -100,5 +117,6 @@ export function place(verdict: Verdict, where: Placement): Verdict {
 export const verdict = (
   book: FilterBook | undefined,
   settings: FilterSettings,
-  where: Placement
-): Verdict => place(judge(book, settings), where)
+  where: Placement,
+  region?: RegionCode
+): Verdict => place(judge(book, settings, region), where)

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
 import { fakeBrowser } from 'wxt/testing/fake-browser'
 import {
+  DEFAULT_DISPLAY,
   DEFAULT_FILTERS,
   DEFAULT_PREFS,
   decodePrefs,
@@ -16,11 +17,12 @@ beforeEach(() => {
 
 describe('decodePrefs', () => {
   test('a missing key takes its default', () => {
-    expect(decodePrefs({})).toEqual({ enabled: true, filters: DEFAULT_FILTERS })
+    expect(decodePrefs({})).toEqual(DEFAULT_PREFS)
   })
 
   test('keeps what is stored', () => {
     expect(decodePrefs({ enabled: false })).toEqual({
+      display: DEFAULT_DISPLAY,
       enabled: false,
       filters: DEFAULT_FILTERS,
     })
@@ -33,6 +35,7 @@ describe('decodePrefs', () => {
       minRatings: 50,
       minYear: null,
       maxYear: null,
+      maxPrice: {},
       hiddenLabels: [],
       notFound: 'show',
       mode: 'hide',
@@ -73,6 +76,7 @@ describe('decodePrefs', () => {
 
   test('ignores keys a newer version added', () => {
     expect(decodePrefs({ enabled: false, theme: 'dark' })).toEqual({
+      display: DEFAULT_DISPLAY,
       enabled: false,
       filters: DEFAULT_FILTERS,
     })
@@ -123,6 +127,7 @@ describe('updateFilters', () => {
     await updateFilters({ minRating: 4.5 })
     await updateFilters({ hiddenLabels: ['Romance'] })
     expect(await readPrefs()).toEqual({
+      display: DEFAULT_DISPLAY,
       enabled: false,
       filters: {
         ...DEFAULT_FILTERS,
@@ -152,18 +157,20 @@ describe('the version 1 record', () => {
   test('is read with the filters at their defaults', async () => {
     await seedV1()
     expect(await readPrefs()).toEqual({
+      display: DEFAULT_DISPLAY,
       enabled: false,
       filters: DEFAULT_FILTERS,
     })
   })
 
-  test('is rewritten as version 3 when the extension starts', async () => {
+  test('is rewritten as version 5 when the extension starts', async () => {
     await seedV1()
     // WXT migrates when the item is defined, which is when the module loads: load a fresh copy.
     const fresh = (await import(
       `./prefs.ts?fresh=${Math.random()}`
     )) as typeof import('./prefs')
     expect(await fresh.readPrefs()).toEqual({
+      display: DEFAULT_DISPLAY,
       enabled: false,
       filters: DEFAULT_FILTERS,
     })
@@ -172,12 +179,16 @@ describe('the version 1 record', () => {
       const meta = (await fakeBrowser.storage.sync.get('prefs$')).prefs$ as
         | { v?: number }
         | undefined
-      if (meta?.v === 3) break
+      if (meta?.v === 5) break
       await Bun.sleep(10)
     }
     const stored = await fakeBrowser.storage.sync.get(['prefs', 'prefs$'])
-    expect(stored.prefs).toEqual({ enabled: false, filters: DEFAULT_FILTERS })
-    expect(stored.prefs$).toEqual({ v: 3 })
+    expect(stored.prefs).toEqual({
+      ...DEFAULT_PREFS,
+      enabled: false,
+      filters: DEFAULT_FILTERS,
+    })
+    expect(stored.prefs$).toEqual({ v: 5 })
   })
 })
 
@@ -199,19 +210,20 @@ describe('the version 2 record', () => {
       `./prefs.ts?fresh=${Math.random()}`
     )) as typeof import('./prefs')
     const expected = {
+      display: DEFAULT_DISPLAY,
       enabled: false,
-      filters: { ...filters, minYear: null, maxYear: null },
+      filters: { ...filters, minYear: null, maxYear: null, maxPrice: {} },
     }
     expect(await fresh.readPrefs()).toEqual(expected)
     for (let i = 0; i < 100; i++) {
       const stored = await fakeBrowser.storage.sync.get(['prefs', 'prefs$'])
-      if ((stored.prefs$ as { v?: number } | undefined)?.v === 3) break
+      if ((stored.prefs$ as { v?: number } | undefined)?.v === 5) break
       await Bun.sleep(10)
     }
     const stored = await fakeBrowser.storage.sync.get(['prefs', 'prefs$'])
     expect(stored).toEqual({
       prefs: expected,
-      prefs$: { v: 3 },
+      prefs$: { v: 5 },
     })
   })
 
@@ -245,6 +257,7 @@ describe('quick updates', () => {
       updateFilters({ hiddenLabels: ['Romance'] }),
     ])
     expect(await readPrefs()).toEqual({
+      display: DEFAULT_DISPLAY,
       enabled: false,
       filters: {
         ...DEFAULT_FILTERS,
@@ -274,5 +287,93 @@ describe('updateFilters with a function', () => {
       updateFilters(c => ({ hiddenLabels: [...c.hiddenLabels, 'B'] })),
     ])
     expect((await readPrefs()).filters.hiddenLabels).toEqual(['A', 'B'])
+  })
+})
+
+describe('marketplace price prefs', () => {
+  test.each([-1, Infinity, NaN, '10'])(
+    'invalid limit %s gives defaults',
+    limit => {
+      expect(decodePrefs({ filters: { maxPrice: { UK: limit } } })).toEqual(
+        DEFAULT_PREFS
+      )
+    }
+  )
+  test('version 3 migrates with all existing choices and price filtering off', async () => {
+    const { maxPrice: _, ...filters } = {
+      ...DEFAULT_FILTERS,
+      minYear: 1990,
+      maxYear: 2020,
+      minRating: 4.5,
+    }
+    await fakeBrowser.storage.sync.set({
+      prefs: { enabled: false, filters },
+      prefs$: { v: 3 },
+    })
+    const fresh = (await import(
+      `./prefs.ts?fresh=${Math.random()}`
+    )) as typeof import('./prefs')
+    const expected = {
+      display: DEFAULT_DISPLAY,
+      enabled: false,
+      filters: { ...filters, maxPrice: {} },
+    }
+    expect(await fresh.readPrefs()).toEqual(expected)
+    for (let i = 0; i < 100; i++) {
+      const meta = (await fakeBrowser.storage.sync.get('prefs$')).prefs$ as
+        | { v?: number }
+        | undefined
+      if (meta?.v === 5) break
+      await Bun.sleep(10)
+    }
+    const stored = await fakeBrowser.storage.sync.get(['prefs', 'prefs$'])
+    expect(stored).toEqual({
+      prefs: expected,
+      prefs$: { v: 5 },
+    })
+  })
+  test('simultaneous edits preserve limits in other marketplaces and notify tabs', async () => {
+    const seen: unknown[] = []
+    const stop = watchPrefs(prefs => seen.push(prefs.filters.maxPrice))
+    await Promise.all([
+      updateFilters(current => ({ maxPrice: { ...current.maxPrice, UK: 0 } })),
+      updateFilters(current => ({ maxPrice: { ...current.maxPrice, US: 20 } })),
+    ])
+    stop()
+    expect((await readPrefs()).filters.maxPrice).toEqual({ UK: 0, US: 20 })
+    expect(seen.at(-1)).toEqual({ UK: 0, US: 20 })
+  })
+})
+
+describe('display prefs', () => {
+  test('migrates version 4 without changing filters or the extension switch', async () => {
+    const filters = { ...DEFAULT_FILTERS, minRating: 4.5, maxPrice: { UK: 0 } }
+    await fakeBrowser.storage.sync.set({
+      prefs: { enabled: false, filters },
+      prefs$: { v: 4 },
+    })
+    const fresh = (await import(
+      `./prefs.ts?fresh=${Math.random()}`
+    )) as typeof import('./prefs')
+    expect(await fresh.readPrefs()).toEqual({
+      enabled: false,
+      filters,
+      display: DEFAULT_DISPLAY,
+    })
+    for (let i = 0; i < 100; i++) {
+      const meta = (await fakeBrowser.storage.sync.get('prefs$')).prefs$ as
+        | { v?: number }
+        | undefined
+      if (meta?.v === 5) break
+      await Bun.sleep(10)
+    }
+    const stored = await fakeBrowser.storage.sync.get(['prefs', 'prefs$'])
+    expect(stored).toEqual({
+      prefs: { enabled: false, filters, display: DEFAULT_DISPLAY },
+      prefs$: { v: 5 },
+    })
+  })
+  test.each([-1, 11, 1.5])('rejects label count %s', labels => {
+    expect(decodePrefs({ display: { labels } })).toEqual(DEFAULT_PREFS)
   })
 })

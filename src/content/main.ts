@@ -8,6 +8,7 @@
  * ASIN, so a book shown on several cards updates them all, and a card scanned after the book is
  * known draws it at once, without a second lookup.
  */
+import { DEFAULT_DISPLAY, type DisplaySettings } from '../core/display'
 import { type FilterSettings, isHiddenLabel, labelKey } from '../core/filter'
 import { isLibraryPath, pageKind } from '../core/page'
 import { regionFromHost } from '../core/regions'
@@ -58,6 +59,10 @@ export interface ContentDeps {
       change: (current: FilterSettings) => Partial<FilterSettings>
     ): Promise<void>
   }
+  display?: {
+    read(): Promise<DisplaySettings>
+    watch(listener: (display: DisplaySettings) => void): () => void
+  }
   /** The badge stylesheet's text. */
   css: string
   /** The hover overview's stylesheet text; it goes inside the overview's shadow root. */
@@ -81,6 +86,8 @@ export function startContent(deps: ContentDeps): Content | undefined {
 
   injectStyles(doc, deps.css)
 
+  let running = true
+  let display: DisplaySettings = DEFAULT_DISPLAY
   const books = createBookStore()
   /** Every card showing an ASIN, to redraw them all when the book changes. */
   const cardsByAsin = new Map<string, Set<Element>>()
@@ -99,7 +106,12 @@ export function startContent(deps: ContentDeps): Content | undefined {
         .map(([asin]) => ({ asin, pinned: pinnedSent.has(asin) })),
     onMessage(message) {
       if (message._tag === 'BookUpdate') {
-        books.set(message.asin, viewOf(message))
+        const price = books.get(message.asin)?.price
+        books.set(message.asin, { ...viewOf(message), ...(price && { price }) })
+      } else if (message._tag === 'PriceUpdate') {
+        const known = books.get(message.asin)
+        if (known && message.price)
+          books.set(message.asin, { ...known, price: message.price })
       } else {
         const { _tag, ...progress } = message
         books.setProgress(progress)
@@ -111,18 +123,34 @@ export function startContent(deps: ContentDeps): Content | undefined {
 
   const filter = createFilterApplier({
     doc,
+    region: region.code,
     cards: () => cardsByAsin,
     viewOf: asin => books.get(asin),
   })
+  const pricesAsked = new Set<string>()
+  const requestPrices = () => {
+    if (
+      !filter.settings().enabled ||
+      filter.settings().maxPrice[region.code] === undefined
+    )
+      return
+    const fresh = [...cardsByAsin.keys()].filter(asin => !pricesAsked.has(asin))
+    for (const asin of fresh) pricesAsked.add(asin)
+    client.prices(fresh)
+  }
   /** A change that arrived before the first read finished is newer than that read. */
   let settingsChanged = false
   const unwatchFilters = deps.filters?.watch(settings => {
     settingsChanged = true
     filter.setSettings(settings)
+    requestPrices()
   })
   deps.filters?.read().then(
     settings => {
-      if (!settingsChanged) filter.setSettings(settings)
+      if (!settingsChanged) {
+        filter.setSettings(settings)
+        requestPrices()
+      }
     },
     // Unreadable settings leave the page unfiltered, which is the safe side of the rule that a
     // book is never hidden for a reason the user did not choose.
@@ -132,7 +160,10 @@ export function startContent(deps: ContentDeps): Content | undefined {
   function retry(card: Element, asin: string) {
     removeBadges(card)
     // Every badge of this book shows the wait again; this card gets a new one.
-    books.set(asin, { status: 'queued' })
+    books.set(asin, {
+      status: 'queued',
+      ...(books.get(asin)?.price && { price: books.get(asin)?.price }),
+    })
     attach(card, asin)
     client.retry([asin])
   }
@@ -143,7 +174,11 @@ export function startContent(deps: ContentDeps): Content | undefined {
       .filter(([, view]) => view.status === 'failed')
       .map(([asin]) => asin)
     if (asins.length === 0) return
-    for (const asin of asins) books.set(asin, { status: 'queued' })
+    for (const asin of asins)
+      books.set(asin, {
+        status: 'queued',
+        ...(books.get(asin)?.price && { price: books.get(asin)?.price }),
+      })
     client.retry(asins)
   }
 
@@ -153,7 +188,8 @@ export function startContent(deps: ContentDeps): Content | undefined {
     cardsByAsin.set(asin, cards)
     cards.add(card)
     const view = books.get(asin)
-    if (view) renderCard(card, view, { onRetry: () => retry(card, asin) })
+    if (view)
+      renderCard(card, view, { onRetry: () => retry(card, asin), display })
   }
 
   books.subscribe((asin, view) => {
@@ -161,7 +197,7 @@ export function startContent(deps: ContentDeps): Content | undefined {
     if (!cards) return
     for (const card of cards) {
       if (!card.isConnected) cards.delete(card)
-      else renderCard(card, view, { onRetry: () => retry(card, asin) })
+      else renderCard(card, view, { onRetry: () => retry(card, asin), display })
     }
     filter.refresh()
   })
@@ -188,6 +224,7 @@ export function startContent(deps: ContentDeps): Content | undefined {
     for (const { asin, pinned } of lookups) if (pinned) pinnedSent.add(asin)
     // One message for all the cards that came into view together.
     client.lookup(lookups)
+    requestPrices()
     // A card for a book already known is judged at once.
     filter.refresh()
   }
@@ -210,8 +247,43 @@ export function startContent(deps: ContentDeps): Content | undefined {
   const overview = createOverview({
     doc,
     css: deps.overviewCss,
+    enabled: () => display.overview,
+    showYear: () => display.year,
     viewOf: badge => books.get((badge as HTMLElement).dataset.asin ?? ''),
   })
+
+  let displayChanged = false
+  const applyDisplay = (next: DisplaySettings) => {
+    if (
+      !running ||
+      (display.labels === next.labels &&
+        display.year === next.year &&
+        display.overview === next.overview)
+    )
+      return
+    display = next
+    overview.hide()
+    for (const [asin, cards] of cardsByAsin) {
+      const view = books.get(asin)
+      if (!view) continue
+      for (const card of cards) {
+        if (card.isConnected)
+          renderCard(card, view, { onRetry: () => retry(card, asin), display })
+      }
+    }
+    filter.refresh()
+  }
+  const unwatchDisplay = deps.display?.watch(next => {
+    displayChanged = true
+    applyDisplay(next)
+  })
+  deps.display?.read().then(
+    next => {
+      if (!displayChanged) applyDisplay(next)
+    },
+    error =>
+      console.error('audible-ex: could not read the display settings', error)
+  )
 
   const filters = deps.filters
   const labels = createLabelPopover({
@@ -256,8 +328,10 @@ export function startContent(deps: ContentDeps): Content | undefined {
   publishHandle(doc, handle)
 
   function stop() {
+    running = false
     withdrawHandle(doc, handle)
     unwatchFilters?.()
+    unwatchDisplay?.()
     labels.stop()
     overview.stop()
     scanner.stop()

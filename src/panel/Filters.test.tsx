@@ -12,6 +12,7 @@ import { fakeBrowser } from 'wxt/testing/fake-browser'
 import { type BookStore, createBookStore } from '@/content/books'
 import type { FilterState } from '@/content/filter'
 import type { PanelHandle } from '@/content/shared'
+import { regionByCode } from '@/core/regions'
 import { readPrefs, updateFilters } from '@/storage/prefs'
 import { Filters } from './Filters'
 import { genresSeen, suggestions } from './genres'
@@ -419,5 +420,50 @@ describe('genresSeen and suggestions', () => {
     expect(suggestions(seen, [], '')).toEqual(seen)
     expect(suggestions(seen, [], '', 2)).toEqual(['Science Fiction', 'Fantasy'])
     expect(suggestions(seen, [], 'zzz')).toEqual([])
+  })
+})
+
+describe('maximum public price', () => {
+  async function showPrice() {
+    await act(async () => {
+      render(<Filters handle={setup().handle} region={regionByCode('UK')} />)
+    })
+    openSettings()
+    return screen.getByLabelText(
+      'Maximum public price (GBP)'
+    ) as HTMLInputElement
+  }
+  test('saves zero, preserves other marketplaces, and blank removes the limit', async () => {
+    await updateFilters({ maxPrice: { US: 20 } })
+    const input = await showPrice()
+    expect(input.value).toBe('')
+    fireEvent.change(input, { target: { value: '0' } })
+    await waitFor(async () =>
+      expect((await saved()).maxPrice).toEqual({ UK: 0, US: 20 })
+    )
+    fireEvent.change(input, { target: { value: '' } })
+    await waitFor(async () =>
+      expect((await saved()).maxPrice).toEqual({ US: 20 })
+    )
+  })
+  test('invalid input leaves the saved price in force and an external edit updates the field', async () => {
+    await updateFilters({ maxPrice: { UK: 10 } })
+    const input = await showPrice()
+    fireEvent.change(input, { target: { value: '-1' } })
+    expect(screen.getByRole('alert').textContent).toContain('0 or more')
+    await act(async () => {
+      await Bun.sleep(350)
+    })
+    expect((await saved()).maxPrice).toEqual({ UK: 10 })
+    await act(() => updateFilters({ maxPrice: { UK: 15.5 } }))
+    await waitFor(() => expect(input.value).toBe('15.5'))
+  })
+  test('flushes the last edit when unmounted', async () => {
+    const input = await showPrice()
+    fireEvent.change(input, { target: { value: '12.5' } })
+    cleanup()
+    await waitFor(async () =>
+      expect((await saved()).maxPrice).toEqual({ UK: 12.5 })
+    )
   })
 })

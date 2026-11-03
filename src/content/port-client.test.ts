@@ -275,3 +275,19 @@ describe('port client', () => {
     expect(port.sent).toHaveLength(2)
   })
 })
+
+test('pending prices reconnect even when every rating has resolved, and stop once answered', () => {
+  const t = setup()
+  t.client.prices(['B000000001'])
+  expect(t.port.sent).toEqual([
+    { _tag: 'Hello', region: 'UK', page: 'search' },
+    { _tag: 'PriceLookup', asins: ['B000000001'] },
+  ])
+  t.port.drop()
+  t.timers.runNext()
+  expect(t.ports).toHaveLength(2)
+  expect(t.port.sent[1]).toEqual({ _tag: 'PriceLookup', asins: ['B000000001'] })
+  t.port.receive({ _tag: 'PriceUpdate', asin: 'B000000001' })
+  t.port.drop()
+  expect(t.timers.pending).toEqual([])
+})

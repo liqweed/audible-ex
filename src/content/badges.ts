@@ -4,6 +4,7 @@
  * Ported from the userscript's `newBadge`, `makeWrap`, `render`, `decorate` and `visibleGenres`.
  * The hover overview (`showTip`) is in overview.ts; a badge only carries its ASIN for it.
  */
+import { DEFAULT_DISPLAY, type DisplaySettings } from '../core/display'
 import { type BookView, hasOverview } from './books'
 import { POPOVER, placeAfterTitle } from './cards'
 
@@ -24,10 +25,11 @@ export const LABEL = 'agx-label'
 const STYLE_ID = 'agx-style'
 
 /** The labels to show: the first genres that are not in `SKIP_GENRES`. */
-export const visibleGenres = (genres: readonly string[] | undefined) =>
-  (genres ?? [])
-    .filter(g => !SKIP_GENRES.has(g.toLowerCase()))
-    .slice(0, MAX_LABELS)
+export const visibleGenres = (
+  genres: readonly string[] | undefined,
+  limit = MAX_LABELS
+) =>
+  (genres ?? []).filter(g => !SKIP_GENRES.has(g.toLowerCase())).slice(0, limit)
 
 /** `950`, `12k`, `1.3M`: rating counts the way the badge writes them. */
 export function fmtN(n: number): string {
@@ -78,13 +80,14 @@ function makeWrap(doc: Document, badge: Element): HTMLSpanElement {
 /** What a badge needs from its card to react to a click on `GR: retry`. */
 export interface BadgeContext {
   onRetry(): void
+  display?: DisplaySettings
 }
 
 /** Draws one badge for a book's current state, replacing whatever it showed. */
 export function renderBadge(
   badge: HTMLAnchorElement,
   view: BookView,
-  { onRetry }: BadgeContext
+  { onRetry, display = DEFAULT_DISPLAY }: BadgeContext
 ): void {
   badge.className = BADGE
   badge.onclick = null
@@ -123,8 +126,8 @@ export function renderBadge(
     badge.removeAttribute('title')
   }
   // The overview replaces the plain tooltip, so the two do not show together.
-  if (hasOverview(view)) badge.removeAttribute('title')
-  decorate(badge, view.details)
+  if (display.overview && hasOverview(view)) badge.removeAttribute('title')
+  decorate(badge, view.details, display)
 }
 
 /**
@@ -133,20 +136,21 @@ export function renderBadge(
  */
 export function decorate(
   badge: Element,
-  details: BookView['details'] | undefined
+  details: BookView['details'] | undefined,
+  display: DisplaySettings = DEFAULT_DISPLAY
 ): void {
   const wrap = badge.parentElement
   if (!wrap) return
   for (const old of wrap.querySelectorAll(`.${LABEL}, .agx-year`)) old.remove()
   // 0 is "Goodreads has no date"; a negative year is a real one (The Iliad).
-  if (details?.year) {
+  if (display.year && details?.year) {
     const year = badge.ownerDocument.createElement('span')
     year.className = 'agx-year'
     year.textContent = String(details.year)
     year.title = 'First published (Goodreads)'
     badge.insertAdjacentElement('afterend', year)
   }
-  for (const genre of visibleGenres(details?.genres)) {
+  for (const genre of visibleGenres(details?.genres, display.labels)) {
     const label = badge.ownerDocument.createElement('span')
     label.className = LABEL
     label.textContent = genre

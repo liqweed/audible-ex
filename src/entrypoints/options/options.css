@@ -1,0 +1,11 @@
+@reference '../../globals.css';
+
+.options-section {
+  @apply space-y-4 rounded-xl border border-slate-200 bg-white p-5;
+}
+.options-section h2 {
+  @apply text-lg font-semibold;
+}
+.options-hint {
+  @apply text-xs leading-relaxed text-slate-500;
+}

@@ -53,6 +53,7 @@ export interface PortClientOptions {
 export interface PortClient {
   lookup(items: ReadonlyArray<LookupItem>): void
   retry(asins: ReadonlyArray<string>): void
+  prices(asins: ReadonlyArray<string>): void
   /** Ends the connection for good; nothing is sent or reconnected after this. */
   close(): void
 }
@@ -66,6 +67,7 @@ const decode = Schema.decodeUnknownSync(BackgroundMessage)
 
 export function createPortClient(options: PortClientOptions): PortClient {
   const now = options.now ?? Date.now
+  const pendingPrices = new Set<string>()
   let port: ClientPort | undefined
   let closed = false
   let cancelReconnect: (() => void) | undefined
@@ -123,12 +125,15 @@ export function createPortClient(options: PortClientOptions): PortClient {
         )
         return
       }
+      if (message._tag === 'PriceUpdate') pendingPrices.delete(message.asin)
       options.onMessage(message)
     })
     opened.onDisconnect.addListener(() => lost(opened))
     post({ _tag: 'Hello', region: options.region, page: options.page })
     const resumed = options.unresolved()
     if (resumed.length > 0) post({ _tag: 'Lookup', items: resumed })
+    if (pendingPrices.size > 0)
+      post({ _tag: 'PriceLookup', asins: [...pendingPrices] })
     return resumed
   }
 
@@ -136,7 +141,8 @@ export function createPortClient(options: PortClientOptions): PortClient {
     if (!which || port !== which) return
     port = undefined
     if (heard || now() - connectedAt >= STABLE_MS) failures = 0
-    if (options.unresolved().length > 0) reconnectLater()
+    if (options.unresolved().length > 0 || pendingPrices.size > 0)
+      reconnectLater()
   }
 
   function reconnectLater() {
@@ -163,12 +169,20 @@ export function createPortClient(options: PortClientOptions): PortClient {
       )
       if (fresh.length > 0) post({ _tag: 'Lookup', items: dedupe(fresh) })
     },
+    prices(asins) {
+      if (closed || asins.length === 0) return
+      for (const asin of asins) pendingPrices.add(asin)
+      // A new connection re-sends all pending prices in ensure().
+      if (ensure() === 'open')
+        post({ _tag: 'PriceLookup', asins: [...new Set(asins)] })
+    },
     retry(asins) {
       if (asins.length === 0 || ensure() === undefined) return
       post({ _tag: 'Retry', asins: [...asins] })
     },
     close() {
       closed = true
+      pendingPrices.clear()
       cancelReconnect?.()
       cancelReconnect = undefined
       const closing = port

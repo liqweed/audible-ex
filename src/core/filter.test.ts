@@ -15,6 +15,7 @@ const settings: FilterSettings = {
   minRatings: 50,
   minYear: null,
   maxYear: null,
+  maxPrice: {},
   hiddenLabels: [],
   notFound: 'show',
   mode: 'hide',
@@ -188,5 +189,41 @@ describe('labels', () => {
     expect(isHiddenLabel([' romance'], 'Romance ')).toBe(true)
     expect(isHiddenLabel(['Romance'], 'Historical Romance')).toBe(false)
     expect(isHiddenLabel([], 'Romance')).toBe(false)
+  })
+})
+
+describe('maximum price per marketplace', () => {
+  const limits = with_({ maxPrice: { UK: 10, US: 20 } })
+  const book = (amount: number, currency = 'GBP'): FilterBook => ({
+    ...ready(4.5, 900),
+    price: { amount, currency },
+  })
+  test('uses the current marketplace and includes the ceiling itself', () => {
+    expect(judge(book(10), limits, 'UK')).toBe('show')
+    expect(judge(book(10.01), limits, 'UK')).toBe('hide')
+    expect(judge(book(15, 'USD'), limits, 'US')).toBe('show')
+    expect(judge(book(15, 'EUR'), limits, 'DE')).toBe('show')
+  })
+  test('unknown prices, mismatched currencies and unset limits do not fail', () => {
+    expect(judge(ready(4.5, 900), limits, 'UK')).toBe('show')
+    expect(judge(book(100, 'USD'), limits, 'UK')).toBe('show')
+    expect(judge(book(100), settings, 'UK')).toBe('show')
+    expect(judge(book(100), limits)).toBe('show')
+  })
+  test('zero means free only and the usual guardrails still apply', () => {
+    const free = with_({ maxPrice: { UK: 0 } })
+    expect(judge(book(0), free, 'UK')).toBe('show')
+    expect(judge(book(0.01), free, 'UK')).toBe('hide')
+    expect(judge(book(20), { ...limits, mode: 'dim' }, 'UK')).toBe('dim')
+    expect(judge(book(20), { ...limits, enabled: false }, 'UK')).toBe('show')
+    for (const status of ['queued', 'loading', 'failed'] as const) {
+      expect(judge({ ...book(20), status }, limits, 'UK')).toBe('show')
+    }
+    expect(
+      verdict(book(20), limits, { inCarousel: true, peek: false }, 'UK')
+    ).toBe('dim')
+    expect(
+      verdict(book(20), limits, { inCarousel: false, peek: true }, 'UK')
+    ).toBe('dim')
   })
 })

@@ -167,12 +167,16 @@ Release 0.3.
 
 3b. Price and year
 
-- [ ] Find out whether `catalog/products` returns price without signing in. If
-      yes, extend `AudibleCatalog`; if not, parse price from the card text per
-      region.
+- [x] Public `catalog/products` prices verified without signing in on `.co.uk`
+      and `.com` (2026-11-03); `AudibleCatalog` reads the `price` response group.
+      Saved responses: `test/fixtures/audible/{uk,com}/catalog-price.json`.
 - [x] First-published year range: inclusive optional bounds in the panel,
       synced across tabs; missing years stay visible unless another filter applies.
-- [ ] `maxPrice` per region.
+- [x] `maxPrice` per region: optional inclusive public cash-price ceiling in the
+      panel, in the marketplace currency, synced across tabs. Blank is off; 0 is
+      free only. Prices are fetched for visible cards while a limit is active,
+      independently of cached ratings; missing prices stay visible unless
+      another filter applies. Public prices can differ from member offers.
 
 Exit: preferences survive browser restart and sync to a second Chrome profile
 signed into the same account; filtering never hides a card whose data hasn't
@@ -180,13 +184,15 @@ loaded.
 
 ## Phase 4 — Options page (M)
 
-- [ ] Settings with TanStack Form: all prefs, display options (label count,
-      year, overview), reset to defaults, export/import prefs as JSON.
+- [x] Settings with TanStack Form: all prefs, display options (label count,
+      year, overview), reset to defaults, export/import prefs as JSON. Display
+      edits update open Audible tabs; backups contain prefs only, with validation
+      and confirmation before import or reset.
 - [ ] Cache inspector with TanStack Table + Virtual: search, sort by
       rating/age, delete entries, open on Goodreads, correct a wrong match by
       pasting a Goodreads URL (stored as a manual override that the cache purge
       keeps).
-- [ ] About: privacy statement, "not affiliated" notice, source link.
+- [x] About: privacy statement, "not affiliated" notice, source link.
 
 Release 0.4 (with 3b).
 

@@ -32,6 +32,10 @@ export default defineContentScript({
             watch: listener => watchPrefs(prefs => listener(prefs.filters)),
             update: change => updateFilters(change),
           },
+          display: {
+            read: async () => (await readPrefs()).display,
+            watch: listener => watchPrefs(prefs => listener(prefs.display)),
+          },
           css,
           overviewCss,
         }),
