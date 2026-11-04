@@ -249,7 +249,10 @@ Afterwards, before 1.0
 - [ ] Add an AI reviewer (CodeRabbit is free for public repositories) and set
       `review.*` in `.config/jig.yaml`, so `/jig:drive-pr` can run review
       rounds unattended.
-- [ ] Firefox: `bun zip:firefox`, source archive for AMO review. Optional.
+- [ ] Firefox on addons.mozilla.org (DECISIONS.md D29): the manifest's
+      Firefox settings and the build steps for reviewers are done; the first
+      submission is by hand (`docs/AMO-LISTING.md`), then `release.yml`
+      submits each release to AMO too.
 
 ## Later
 

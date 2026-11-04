@@ -27,6 +27,9 @@ background worker:
 | Audible's catalogue API (`api.audible.<marketplace>`, the site you are on) | The ASINs of the books on the page                                    | To get each book's title, author and public price                  |
 | Goodreads (`www.goodreads.com`)                                            | A book's title and author, then a request for the matched book's page | To find the book on Goodreads and read its rating, genres and year |
 
+In Firefox, the extension declares this as "website content" in Firefox's
+data-collection consent, which Firefox shows when you install it.
+
 Like any web request, these reach Goodreads and Audible from your IP address,
 so they can tell which books were looked up from it. The requests carry no
 cookies, so they are not tied to your Audible or Goodreads account. Nothing else
