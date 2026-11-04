@@ -7,6 +7,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react'
 import { fakeBrowser } from 'wxt/testing/fake-browser'
 import { type BookStore, createBookStore } from '@/content/books'
@@ -24,7 +25,13 @@ beforeEach(() => {
 
 function setup(filter: Partial<FilterState> = {}) {
   const books: BookStore = createBookStore()
-  const state = createStore<FilterState>({ hidden: 0, peek: false, ...filter })
+  const state = createStore<FilterState>({
+    hidden: 0,
+    dimmed: 0,
+    highlighted: 0,
+    peek: false,
+    ...filter,
+  })
   const peeks: boolean[] = []
   const handle: PanelHandle = {
     state: books.state,
@@ -38,11 +45,17 @@ function setup(filter: Partial<FilterState> = {}) {
   return { books, state, handle, peeks }
 }
 
-async function show(handle: PanelHandle) {
+async function show(handle: PanelHandle, openOptions?: () => void) {
   await act(async () => {
-    render(<Filters handle={handle} />)
+    render(<Filters handle={handle} openOptions={openOptions} />)
   })
 }
+
+/** The radio button `option` of the choice named `group`. */
+const radio = (group: string, option: string) =>
+  within(screen.getByRole('group', { name: group })).getByRole('radio', {
+    name: option,
+  }) as HTMLInputElement
 
 const saved = async () => (await readPrefs()).filters
 const openSettings = () =>
@@ -58,8 +71,8 @@ describe('the master switch and the counter', () => {
     fireEvent.click(toggle)
     await waitFor(async () => expect((await saved()).enabled).toBe(false))
     expect(toggle.getAttribute('aria-checked')).toBe('false')
-    // With the filters off there is nothing to configure.
-    expect(screen.queryByRole('button', { name: 'Filter settings' })).toBeNull()
+    // The settings stay reachable: highlighting works with the filters off.
+    expect(screen.getByRole('button', { name: 'Filter settings' })).toBeTruthy()
   })
 
   test('says how many are hidden and shows them, then hides them again', async () => {
@@ -110,17 +123,16 @@ describe('the settings', () => {
     expect(slider.getAttribute('aria-valuemin')).toBe('3')
     expect(slider.getAttribute('aria-valuemax')).toBe('5')
     expect(
-      (screen.getByLabelText(/Minimum number of ratings/) as HTMLInputElement)
-        .value
+      (screen.getByLabelText('Minimum ratings') as HTMLInputElement).value
     ).toBe('50')
-    expect(
-      (screen.getByLabelText('Books not on Goodreads') as HTMLSelectElement)
-        .value
-    ).toBe('show')
-    expect(
-      (screen.getByLabelText('Books that fail a filter') as HTMLSelectElement)
-        .value
-    ).toBe('hide')
+    expect(radio('Books not on Goodreads', 'Show').checked).toBe(true)
+    for (const group of [
+      'Books that fail the minimum rating',
+      'Books that fail the minimum ratings',
+      'Books that fail the year range',
+      'Books that fail the hidden labels',
+    ])
+      expect(radio(group, 'Hide').checked).toBe(true)
   })
 
   test('the slider moves in tenths and saves once the user pauses', async () => {
@@ -144,7 +156,7 @@ describe('the settings', () => {
     const { handle } = setup()
     await show(handle)
     openSettings()
-    fireEvent.change(screen.getByLabelText(/Minimum number of ratings/), {
+    fireEvent.change(screen.getByLabelText('Minimum ratings'), {
       target: { value: '0' },
     })
     await waitFor(async () => expect((await saved()).minRatings).toBe(0), {
@@ -156,7 +168,7 @@ describe('the settings', () => {
     const { handle } = setup()
     await show(handle)
     openSettings()
-    const input = screen.getByLabelText(/Minimum number of ratings/)
+    const input = screen.getByLabelText('Minimum ratings')
     fireEvent.change(input, { target: { value: '-5' } })
     fireEvent.change(input, { target: { value: '120.7' } })
     await waitFor(async () => expect((await saved()).minRatings).toBe(120), {
@@ -164,21 +176,89 @@ describe('the settings', () => {
     })
   })
 
-  test('the policies are saved', async () => {
+  test('the policy for books not on Goodreads is saved', async () => {
     const { handle } = setup()
     await show(handle)
     openSettings()
-    fireEvent.change(screen.getByLabelText('Books not on Goodreads'), {
-      target: { value: 'dim' },
+    fireEvent.click(radio('Books not on Goodreads', 'Dim'))
+    await waitFor(async () => expect((await saved()).notFound).toBe('dim'))
+  })
+
+  test('each filter hides or dims on its own', async () => {
+    const { handle } = setup()
+    await show(handle)
+    openSettings()
+    fireEvent.click(radio('Books that fail the minimum rating', 'Dim'))
+    await waitFor(async () => expect((await saved()).modes.rating).toBe('dim'))
+    fireEvent.click(radio('Books that fail the year range', 'Dim'))
+    await waitFor(async () =>
+      expect((await saved()).modes).toEqual({
+        rating: 'dim',
+        count: 'hide',
+        labels: 'hide',
+        year: 'dim',
+        price: 'hide',
+      })
+    )
+    expect(radio('Books that fail the minimum rating', 'Dim').checked).toBe(
+      true
+    )
+    expect(radio('Books that fail the minimum ratings', 'Hide').checked).toBe(
+      true
+    )
+  })
+
+  test('a mode changed in another tab is shown', async () => {
+    const { handle } = setup()
+    await show(handle)
+    openSettings()
+    await act(() =>
+      updateFilters(current => ({ modes: { ...current.modes, count: 'dim' } }))
+    )
+    await waitFor(() =>
+      expect(radio('Books that fail the minimum ratings', 'Dim').checked).toBe(
+        true
+      )
+    )
+  })
+
+  test('explanations show while their info button is hovered or focused', async () => {
+    const { handle } = setup()
+    await show(handle)
+    openSettings()
+    const info = screen.getByRole('button', {
+      name: 'About the minimum number of ratings',
     })
-    fireEvent.change(screen.getByLabelText('Books that fail a filter'), {
-      target: { value: 'dim' },
-    })
-    await waitFor(async () => {
-      const filters = await saved()
-      expect(filters.notFound).toBe('dim')
-      expect(filters.mode).toBe('dim')
-    })
+    expect(screen.queryByRole('tooltip')).toBeNull()
+    fireEvent.pointerEnter(info)
+    expect(screen.getByRole('tooltip').textContent).toContain(
+      '0 turns this off'
+    )
+    expect(info.getAttribute('aria-describedby')).toBe(
+      screen.getByRole('tooltip').id
+    )
+    fireEvent.pointerLeave(info)
+    expect(screen.queryByRole('tooltip')).toBeNull()
+    fireEvent.focus(info)
+    expect(screen.getByRole('tooltip')).toBeTruthy()
+    fireEvent.keyDown(info, { key: 'Escape' })
+    expect(screen.queryByRole('tooltip')).toBeNull()
+  })
+
+  test('link to the options page when they can', async () => {
+    const { handle } = setup()
+    let opened = 0
+    await show(handle, () => opened++)
+    openSettings()
+    fireEvent.click(screen.getByRole('button', { name: 'More settings' }))
+    expect(opened).toBe(1)
+  })
+
+  test('have no options link without a way to open the page', async () => {
+    const { handle } = setup()
+    await show(handle)
+    openSettings()
+    expect(screen.queryByRole('button', { name: 'More settings' })).toBeNull()
   })
 
   test('a change saved at the last moment is not lost when the panel goes away', async () => {
@@ -316,7 +396,7 @@ describe('hidden labels', () => {
     withGenres(books)
     await show(handle)
     openSettings()
-    fireEvent.focus(screen.getByLabelText('Hide books labelled'))
+    fireEvent.focus(screen.getByLabelText('Hide labels'))
     const options = screen
       .getAllByRole('button')
       .filter(b =>
@@ -334,7 +414,7 @@ describe('hidden labels', () => {
     withGenres(books)
     await show(handle)
     openSettings()
-    const input = screen.getByLabelText('Hide books labelled')
+    const input = screen.getByLabelText('Hide labels')
     fireEvent.focus(input)
     fireEvent.click(screen.getByRole('button', { name: 'Romance' }))
     await waitFor(async () =>
@@ -356,7 +436,7 @@ describe('hidden labels', () => {
     withGenres(books)
     await show(handle)
     openSettings()
-    const input = screen.getByLabelText('Hide books labelled')
+    const input = screen.getByLabelText('Hide labels')
     fireEvent.change(input, { target: { value: 'rom' } })
     fireEvent.keyDown(input, { key: 'Enter' })
     await waitFor(async () =>
@@ -369,7 +449,7 @@ describe('hidden labels', () => {
     const { handle } = setup()
     await show(handle)
     openSettings()
-    const input = screen.getByLabelText('Hide books labelled')
+    const input = screen.getByLabelText('Hide labels')
     for (const typed of ['Cozy Mystery', 'cozy mystery']) {
       fireEvent.change(input, { target: { value: typed } })
       fireEvent.keyDown(input, { key: 'Enter' })
@@ -384,9 +464,87 @@ describe('hidden labels', () => {
     withGenres(books)
     await show(handle)
     openSettings()
-    const input = screen.getByLabelText('Hide books labelled')
+    const input = screen.getByLabelText('Hide labels')
     fireEvent.keyDown(input, { key: 'Enter' })
     expect((await saved()).hiddenLabels).toEqual([])
+  })
+})
+
+describe('highlighted labels', () => {
+  function withGenres(books: BookStore) {
+    const rating = { r: 4, n: 100, url: 'https://x.test', loose: false }
+    books.set('B000000001', {
+      status: 'ready',
+      rating,
+      details: { genres: ['Fantasy', 'Romance'], year: 2000, desc: '' },
+    })
+  }
+
+  test('are added from the suggestions and removed from their chip', async () => {
+    const { handle, books } = setup()
+    withGenres(books)
+    await show(handle)
+    openSettings()
+    fireEvent.focus(screen.getByLabelText('Highlight labels'))
+    fireEvent.click(
+      within(screen.getByRole('group', { name: 'Suggestions' })).getByRole(
+        'button',
+        { name: 'Fantasy' }
+      )
+    )
+    await waitFor(async () =>
+      expect((await saved()).highlightLabels).toEqual(['Fantasy'])
+    )
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Stop highlighting Fantasy' })
+    )
+    await waitFor(async () =>
+      expect((await saved()).highlightLabels).toEqual([])
+    )
+  })
+
+  test('a label moves between hidden and highlighted, never in both', async () => {
+    await updateFilters({ hiddenLabels: ['Romance'] })
+    const { handle } = setup()
+    await show(handle)
+    openSettings()
+    const input = screen.getByLabelText('Highlight labels')
+    fireEvent.change(input, { target: { value: 'Romance' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    await waitFor(async () => {
+      const filters = await saved()
+      expect(filters.highlightLabels).toEqual(['Romance'])
+      expect(filters.hiddenLabels).toEqual([])
+    })
+    const hide = screen.getByLabelText('Hide labels')
+    fireEvent.change(hide, { target: { value: 'romance' } })
+    fireEvent.keyDown(hide, { key: 'Enter' })
+    await waitFor(async () => {
+      const filters = await saved()
+      expect(filters.hiddenLabels).toEqual(['romance'])
+      expect(filters.highlightLabels).toEqual([])
+    })
+  })
+
+  test('a hidden label is not suggested for highlighting', async () => {
+    await updateFilters({ hiddenLabels: ['Romance'] })
+    const { handle, books } = setup()
+    withGenres(books)
+    await show(handle)
+    openSettings()
+    fireEvent.focus(screen.getByLabelText('Highlight labels'))
+    const offered = within(
+      screen.getByRole('group', { name: 'Suggestions' })
+    ).getAllByRole('button')
+    expect(offered.map(b => b.textContent)).toEqual(['Fantasy'])
+  })
+
+  test('say how many cards on the page they mark', async () => {
+    await updateFilters({ highlightLabels: ['Fantasy'] })
+    const { handle } = setup({ highlighted: 3 })
+    await show(handle)
+    openSettings()
+    expect(screen.getByText('3 on this page')).toBeTruthy()
   })
 })
 
@@ -429,9 +587,7 @@ describe('maximum public price', () => {
       render(<Filters handle={setup().handle} region={regionByCode('UK')} />)
     })
     openSettings()
-    return screen.getByLabelText(
-      'Maximum public price (GBP)'
-    ) as HTMLInputElement
+    return screen.getByLabelText('Max price (GBP)') as HTMLInputElement
   }
   test('saves zero, preserves other marketplaces, and blank removes the limit', async () => {
     await updateFilters({ maxPrice: { US: 20 } })

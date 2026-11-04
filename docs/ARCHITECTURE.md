@@ -177,6 +177,13 @@ Background → content
 
 `BookUpdate` carries what its `status` implies: `ready` has `rating` (and `details` once the book page has been read), `failed` has `error`, `loading` and `notFound` have neither. The `queued` status of §6's `BookView` exists in the content script's store only; the background never sends it.
 
+Panel → background (one-off `sendMessage`, schema in `src/schema/panel.ts`): `OpenOptions`, sent
+by the panel's settings button, answered `Opened` (or `Failed { message }`) after
+`runtime.openOptionsPage()`; a content script cannot open the options page itself, and a link to it
+would need the page to be web-accessible. `src/background/options.ts` answers it from any sender of
+this extension, content scripts included: opening the extension's own page is all it does, and no
+web page can send to `runtime.onMessage` (the manifest has no `externally_connectable`).
+
 Popup / options → background (one-off `sendMessage`, schemas in `src/schema/popup.ts`):
 `CacheStats`, answered with `Stats { books, entries, bytes, pinned }`, and
 `ClearCache { scope: 'unpinned' | 'all' }`, answered with `Cleared { deleted }`; a cache that cannot
@@ -289,14 +296,17 @@ show; the panel is another script with a root of its own.
 also ignored by the scanner) that uses the overview's stylesheet. Each genre label after a badge is a
 focusable pill. Resting the pointer on one for 200 ms (or focusing it; Enter opens the popover and
 moves focus into it, Escape closes it) opens a popover with the label, how many books on the page
-carry it, and one button: "Hide books labelled “X”", or "Stop hiding “X”" when the label is already
-filtered on. Unlike the overview it takes the pointer, so it stays while the pointer is on the label
+carry it, and two buttons: "Hide books labelled “X”" and "Highlight books labelled “X”", or one,
+"Stop hiding “X”" or "Stop highlighting “X”", when the label is already hidden or highlighted. A
+label is in one list at most: hiding it removes it from the highlighted labels and the other way
+round. Unlike the overview it takes the pointer, so it stays while the pointer is on the label
 or on it and closes 250 ms after the pointer leaves both, or on scroll. A click saves through
 `filters.update` (`updateFilters` with a function, so it adds to the stored list and not to the one
 the tab last saw), switches the filters on if they were off (the popover says so first), and shows
-how it went, with the same button as the undo; a failed save is shown and can be retried. The pills
+how it went, with the undo as its button; a failed save is shown and can be retried. The pills
 of a hidden genre are marked by the filter applier (`agx-filtered`: struck through, with an
-`aria-label` saying they are hidden), so the mark follows every change of the filters, in every tab.
+`aria-label` saying they are hidden), and those of a highlighted one too (`agx-highlighted`: amber,
+bold), so the marks follow every change of the filters, in every tab.
 
 **Floating panel.** A second content script, `src/entrypoints/panel.content/` (DECISIONS.md D19), so
 React stays out of `content.js`. It draws React in a shadow root made by WXT's `createShadowRootUi`
@@ -313,7 +323,11 @@ there is a handle and unmounts when it is withdrawn (the extension was switched 
 shows nothing until the tab has asked for a book. `bun e2e` checks on live Audible that the panel's
 progress bar appears, which is the one thing `bun test` cannot prove about the shared world.
 
-- Shell: drag to a corner, collapse to a pill (`34/60`), hide for this site. The state is the
+- Shell: drag to a corner, collapse to a pill (`34/60`), hide for this site, open the settings (a
+  gear in the header, and "More settings" under the filter settings; both send `OpenOptions`, §5).
+  The pill has two halves, each a button that can also be dragged: the progress, which expands
+  the panel, and the filters' switch (`aria-pressed`, a funnel, crossed out when off) with the
+  number of cards the filters hide or dim on the page (`src/panel/Pill.tsx`). The state is the
   `local:panel` item (§8). Dragging follows the pointer and, on release, docks to the viewport corner
   nearest the panel's centre (`src/panel/drag.ts`); a press that moves under 4 px is a click. The
   panel draws nothing until it has read the item, so it never flashes at the wrong corner. "Hide on
@@ -333,9 +347,16 @@ progress bar appears, which is the one thing `bun test` cannot prove about the s
 - Progress: bar plus `34/60 · 18 cached · 2 not found · 1 failed`; "Paused — Goodreads is rate
   limiting (12 s)"; "Retry failed".
 - Filters (`src/panel/Filters.tsx`, built, below the progress): the master switch and `12 hidden ·
-  Show` always; a "Filter settings" area opens the rating slider (3.0–5.0, step 0.1), the minimum
-  number of ratings, the hidden labels, the first-published year range, the marketplace public-price limit,
-  and the two policies.
+  Show` always; a "Filter settings" area, open with the filters off too (highlights do not depend
+  on them), has one row per filter (the rating slider, 3.0–5.0, step 0.1; the minimum number of
+  ratings; the first-published year range; the marketplace public-price limit; the hidden labels),
+  each ending in its own Hide/Dim choice, then the highlighted labels with how many cards on the
+  page they mark, and the not-found policy (Show/Dim/Hide). The choices are radio buttons drawn as
+  one bar (`Choice`, `src/panel/controls.tsx`). Explanations sit behind an `i` button
+  (`InfoTip`): shown while it is hovered or focused, positioned fixed to the window above the button
+  (below it near the top), and named by the button's `aria-describedby` while shown. It is
+  hand-written rather than Radix Tooltip, whose positioning library would cost the panel's size
+  budget several KB (DECISIONS.md D25).
   Year bounds are text fields (blank for an open end, negative for BCE); the pair is saved together
   only when both are whole nonzero years or blank, with the lower bound no later than the upper.
   An invalid draft shows an error and leaves the saved range in force. The price limit is labelled
@@ -343,8 +364,9 @@ progress bar appears, which is the one thing `bun test` cannot prove about the s
   are not saved. Each edit merges with the stored map so another marketplace's limit survives.
   A change shows at once and
   is saved 300 ms after the user stops (Pacer's debouncer, flushed if the panel goes away), through
-  `updateFilters`, whose writes run in order. The label picker suggests the genres the page's books
-  carry, most common first (`genres.ts`), not genres from the whole cache.
+  `updateFilters`, whose writes run in order (`useFilterPrefs`, `src/panel/prefs.ts`, which the pill
+  shares). The label pickers suggest the genres the page's books carry, most common first
+  (`genres.ts`), not genres from the whole cache, leaving out labels already in either list.
 - Counter: `12 hidden · Show` — **Show** toggles `peek`, which reveals hidden cards (dimmed)
   without changing preferences.
 
@@ -363,15 +385,22 @@ Verdict for one card (pure function in `src/core/filter.ts`):
 2. Book not loaded yet (`queued`/`loading`/`failed`) → `show`. Hiding before data arrives makes the
    page jump.
 3. `notFound` → the `notFound` policy (default `show`).
-4. Rating below `minRating`, or count below `minRatings`, or any genre in `hiddenLabels`
-   (case-insensitive) → the miss mode (`hide` by default, `dim` as an option).
-5. Known first-published year outside the inclusive `minYear` / `maxYear` range → the miss mode.
+4. Rating below `minRating` (`rating`), count below `minRatings` (`count`), any genre in
+   `hiddenLabels`, case-insensitive (`labels`): the book fails that filter.
+5. Known first-published year outside the inclusive `minYear` / `maxYear` range (`year`): fails.
    Either bound can be `null` (off). Negative years are BCE; year 0 means unknown and does not fail
    this filter. Missing details do not fail it either; other filters still apply.
 6. Known public cash price above the inclusive `maxPrice[region]` ceiling, with currency matching
-   the current marketplace → the miss mode. Absent limit means off; 0 means free only. Missing
+   the current marketplace (`price`): fails. Absent limit means off; 0 means free only. Missing
    prices and mismatched currencies do not fail this filter. The not-found policy in step 3 wins.
-7. Otherwise `show`.
+7. A book that fails no filter: `show`. Otherwise each filter it fails has its own miss mode,
+   `modes[filter]` (`hide` by default, `dim` as an option): `hide` if any of them is `hide`, else
+   `dim`. `failures` (`src/core/filter.ts`) lists the filters a book fails, in this order.
+
+**Highlighted labels** are not a filter. A `ready` book with any genre in `highlightLabels`
+(case-insensitive) is highlighted (`isHighlighted`), whether or not the filters are on and whatever
+its verdict: a highlighted book that fails a filter is still hidden or dimmed. A label is in one of
+the two lists at most; the panel and the label popover move it from one to the other.
 
 Two adjustments follow the verdict: a card inside a carousel gets `dim` for `hide`, and so does every
 card while `peek` is on (the `12 hidden · Show` counter reveals the hidden books, dimmed, without
@@ -387,7 +416,10 @@ layout. From the saved pages, a carousel is `adbl-product-carousel`, `adbl-produ
 the library's own rows are in none; the search, category and home pages mix both kinds.
 
 The applier (`src/content/filter.ts`) sets `data-agx-filter="hide|dim"` on each card and counts the
-hidden ones. Everything that can change a verdict (a book arriving, a card being attached, the
+hidden ones, and the dimmed ones apart (failing only dimming filters, or a failing carousel slide),
+for the pill. A card whose book is highlighted gets `data-agx-highlight`, which `badges.css` draws as
+an amber outline inside the card (so a carousel cannot clip it and nothing moves); the applier
+counts those too. Everything that can change a verdict (a book arriving, a card being attached, the
 settings, peeking) ends in one pass over the page's cards, which is a few hundred. The settings come
 from `sync:prefs` through a watcher, so every open tab applies a change at once. Until the settings
 have been read nothing is filtered. The panel reads `hidden` and `peek` from the `PanelHandle` and
@@ -415,7 +447,7 @@ The panel's own state (`src/storage/panel.ts`: `corner`, `collapsed`, `hiddenHos
 `local:panel` item, version 1, decoded with defaults like the prefs.
 
 `src/storage/prefs.ts` holds `enabled` (the extension's master switch), `filters` and `display`,
-version 5. The options page edits all of them; the popup edits the master switch and the panel
+version 6. The options page edits all of them; the popup edits the master switch and the panel
 edits filters.
 WXT runs the version 1 → 2 migration when the
 module loads (it was `enabled` alone; the migrated record has the filters at their defaults).
@@ -425,13 +457,17 @@ reversed ranges. Version 3 → 4 adds `maxPrice: {}`, preserving every existing 
 all price limits start off. Each optional region value must be finite and nonnegative.
 Version 4 → 5 adds `display` with `labels: 3`, `year: true`, `overview: true`, preserving the
 existing appearance. Label count must be a whole number from 0 to 10.
+Version 5 → 6 replaces the single `mode` with `modes`, one miss mode per filter, each set to the old
+`mode`, and adds `highlightLabels: []`. The same upgrade (`upgradeModes`) runs on every decode and on
+importing a backup, so a record or backup written before v6 keeps the user's choice; an invalid old
+`mode` is dropped and the filters take `hide`.
 The content script runs only while the extension is on
 (`src/content/lifecycle.ts`): turning it off
 removes the badges, the overview and the stylesheet and closes the port, which ends this tab's
 lookups; turning it on starts the script again.
 
 ```ts
-// Prefs v5, defaults shown
+// Prefs v6, defaults shown
 {
   enabled: true,
   filters: {
@@ -441,8 +477,11 @@ lookups; turning it on starts the script again.
     minYear: null,           // inclusive; null is no lower bound, negative is BCE
     maxYear: null,           // inclusive; null is no upper bound
     hiddenLabels: [],        // Goodreads genre names
+    highlightLabels: [],     // Goodreads genre names; marked, never filtered
     notFound: 'show',        // 'show' | 'dim' | 'hide'
-    mode: 'hide',            // 'hide' | 'dim'
+    modes: {                 // each 'hide' | 'dim', per filter
+      rating: 'hide', count: 'hide', labels: 'hide', year: 'hide', price: 'hide',
+    },
     maxPrice: {},            // optional ceilings by region, e.g. { UK: 10, US: 20 }
   },
   display: { labels: 3, year: true, overview: true },
@@ -474,7 +513,7 @@ details, overrides) and pins separately and sizes everything as the JSON of its 
 Settings button). TanStack Form owns a draft and validates it through the prefs Schema on Save
 (D22). `src/options/settings.ts` converts text drafts, including blank bounds and prices, to prefs.
 Only edited values are merged with the latest saved prefs through the same serial writer; each
-marketplace price is merged separately, and the year bounds are one edit. Clean forms follow
+marketplace price and each filter's miss mode is merged separately, and the year bounds are one edit. Clean forms follow
 storage changes; a dirty form keeps its draft, announces the external change and offers to reload.
 Save errors keep the draft and appear on the page. Display choices redraw badges through the
 content script's prefs watcher.
@@ -574,13 +613,16 @@ src/
     options/                 # settings (TanStack Form), cache inspector (Table + Virtual)
   core/                      # pure TS, no DOM, no Effect: text.ts, matching.ts, filter.ts, regions.ts, asin.ts, page.ts,
                              #   expiry.ts (cache time limits and pin rules), html.ts, retryAfter.ts
-  schema/                    # Effect Schemas: messages.ts, prefs.ts, goodreads.ts, audible.ts, cache.ts
+  schema/                    # Effect Schemas: messages.ts, panel.ts (OpenOptions), popup.ts, inspector.ts, goodreads.ts,
+                             #   audible.ts, cache.ts
   background/                # Effect services: Goodreads.ts, AudibleCatalog.ts (with errors.ts, httpGet.ts), BookCache.ts,
-                             #   BookCacheTest.ts (test layer over fake-indexeddb), HttpTest.ts (fake fetch for the network services' tests), LookupQueue.ts, ProgressHub.ts, PortServer.ts, layers.ts
+                             #   BookCacheTest.ts (test layer over fake-indexeddb), HttpTest.ts (fake fetch for the network services' tests), LookupQueue.ts, ProgressHub.ts, PortServer.ts, layers.ts,
+                             #   popup.ts, inspector.ts, options.ts (the one-off requests)
   content/                   # main.ts (wires the parts below), scanner.ts, cards.ts, badges.ts, badges.css,
                              #   books.ts (the book store, a TanStack Store), shared.ts (the handle the panel reads),
                              #   port-client.ts, schedule.ts; filter-applier.ts arrives with the filters
-  panel/                     # React, for the panel script only: Panel.tsx, host.ts (mounts it while the badge script
+  panel/                     # React, for the panel script only: Panel.tsx, Pill.tsx, Filters.tsx, controls.tsx (InfoTip,
+                             #   Choice), prefs.ts (the filters pref hooks), host.ts (mounts it while the badge script
                              #   has a handle), summary.ts (what to show for the counters), panel.css (Tailwind, as text)
   ui/                        # React components shared with the popup and options page (Radix-based), hooks/
   storage/                   # WXT storage item definitions

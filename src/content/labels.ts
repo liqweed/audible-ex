@@ -1,15 +1,15 @@
 /**
  * The label popover: hovering (or focusing) a genre label after a badge offers to hide books with
- * that label, or to stop hiding them when it is already filtered on. Plain DOM in a shadow root of
+ * that label or to highlight them, or to stop when it is already hidden or highlighted. Plain DOM in a shadow root of
  * its own, like the hover overview (overview.ts), but this one takes the pointer so it can be
  * clicked: it stays while the pointer is on the label or on it, and goes a moment after the pointer
  * leaves both. Labels are found by one listener per event on the document, so they need no handlers
  * and a label that is redrawn keeps working.
  *
  * Everything shown is text, set as text. The popover does not know how filters are saved: it asks
- * `hide` and `unhide` and shows how that went.
+ * `hide`, `highlight` or `release` and shows how that went.
  */
-import { isHiddenLabel } from '../core/filter'
+import { hasLabel } from '../core/filter'
 import { LABEL } from './badges'
 import { LABEL_HOST } from './cards'
 import { placeOverview } from './overview'
@@ -35,15 +35,25 @@ export interface LabelPopoverOptions {
   schedule: Schedule
   /** The labels being filtered on now. */
   hiddenLabels(): readonly string[]
+  /** The labels being highlighted now. */
+  highlightLabels(): readonly string[]
   /** The user's master switch for the filters. */
   filtersEnabled(): boolean
   /** How many books on this page carry the label. */
   booksWith(label: string): number
-  /** Starts filtering on the label (and switches the filters on). Rejects if it could not be saved. */
+  /**
+   * Starts filtering on the label (and switches the filters on), and stops highlighting it.
+   * Rejects if it could not be saved.
+   */
   hide(label: string): Promise<void>
-  /** Stops filtering on the label. Rejects if it could not be saved. */
-  unhide(label: string): Promise<void>
+  /** Starts highlighting the label, and stops filtering on it. Rejects if it could not be saved. */
+  highlight(label: string): Promise<void>
+  /** Stops filtering on and highlighting the label. Rejects if it could not be saved. */
+  release(label: string): Promise<void>
 }
+
+/** What the user does with a label now. */
+type Use = 'hidden' | 'highlighted' | undefined
 
 export const labelOf = (target: EventTarget | null): Element | null =>
   target instanceof Element ? target.closest(`.${LABEL}`) : null
@@ -97,10 +107,10 @@ export function createLabelPopover(options: LabelPopoverOptions): LabelPopover {
     return el
   }
 
-  /** Draws the popover's content for `label`; `filtered` is whether it is filtered on, `status` how the last click went. */
+  /** Draws the popover's content for `label`; `use` is what the user does with it, `status` how the last click went. */
   function render(
     label: string,
-    filtered: boolean,
+    use: Use,
     status?: { text: string; error?: boolean }
   ) {
     const next = doc.createElement('div')
@@ -127,32 +137,59 @@ export function createLabelPopover(options: LabelPopoverOptions): LabelPopover {
       line.setAttribute('role', status.error ? 'alert' : 'status')
       next.append(line)
     }
-    const button = doc.createElement('button')
-    button.type = 'button'
-    button.textContent = filtered
-      ? `Stop hiding ${quote(label)}`
-      : `Hide books labelled ${quote(label)}`
-    button.addEventListener('click', () => {
-      button.disabled = true
-      const done = filtered ? options.unhide(label) : options.hide(label)
-      done.then(
-        () =>
-          render(label, !filtered, {
-            text: filtered
-              ? `No longer hiding ${quote(label)}.`
-              : `Hiding books labelled ${quote(label)}.`,
-          }),
-        () =>
-          render(label, filtered, {
-            text: 'Could not save the filter. Try again.',
-            error: true,
-          })
+    const action = (
+      caption: string,
+      save: () => Promise<void>,
+      after: Use,
+      done: string
+    ) => {
+      const button = doc.createElement('button')
+      button.type = 'button'
+      button.textContent = caption
+      button.addEventListener('click', () => {
+        for (const b of next.querySelectorAll('button')) b.disabled = true
+        save().then(
+          () => render(label, after, { text: done }),
+          () =>
+            render(label, use, {
+              text: 'Could not save the filter. Try again.',
+              error: true,
+            })
+        )
+      })
+      next.append(button)
+    }
+    if (use === 'hidden') {
+      action(
+        `Stop hiding ${quote(label)}`,
+        () => options.release(label),
+        undefined,
+        `No longer hiding ${quote(label)}.`
       )
-    })
-    next.append(button)
-    if (!filtered && !options.filtersEnabled()) {
+    } else if (use === 'highlighted') {
+      action(
+        `Stop highlighting ${quote(label)}`,
+        () => options.release(label),
+        undefined,
+        `No longer highlighting ${quote(label)}.`
+      )
+    } else {
+      action(
+        `Hide books labelled ${quote(label)}`,
+        () => options.hide(label),
+        'hidden',
+        `Hiding books labelled ${quote(label)}.`
+      )
+      action(
+        `Highlight books labelled ${quote(label)}`,
+        () => options.highlight(label),
+        'highlighted',
+        `Highlighting books labelled ${quote(label)}.`
+      )
+    }
+    if (use === undefined && !options.filtersEnabled()) {
       next.append(
-        text('span', 'meta', 'Filters are off; this switches them on.')
+        text('span', 'meta', 'Filters are off; hiding switches them on.')
       )
     }
 
@@ -174,7 +211,14 @@ export function createLabelPopover(options: LabelPopoverOptions): LabelPopover {
     pop = undefined
     at = undefined
     current = label
-    render(name, isHiddenLabel(options.hiddenLabels(), name))
+    render(
+      name,
+      hasLabel(options.hiddenLabels(), name)
+        ? 'hidden'
+        : hasLabel(options.highlightLabels(), name)
+          ? 'highlighted'
+          : undefined
+    )
     // Measured where it is going to be, after it has its text.
     if (pop) {
       const box = (pop as HTMLElement).getBoundingClientRect()

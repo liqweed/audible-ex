@@ -1,7 +1,13 @@
 /** Options drafts and prefs-only backups. Invalid input throws before a storage write. */
 import * as Schema from 'effect/Schema'
+import { DIMENSIONS } from '@/core/filter'
 import { REGIONS, type RegionCode } from '@/core/regions'
-import { type Prefs, Prefs as PrefsSchema, updatePrefs } from '@/storage/prefs'
+import {
+  type Prefs,
+  Prefs as PrefsSchema,
+  updatePrefs,
+  upgradeModes,
+} from '@/storage/prefs'
 
 export interface SettingsDraft {
   enabled: boolean
@@ -11,8 +17,9 @@ export interface SettingsDraft {
   minYear: string
   maxYear: string
   hiddenLabels: string
+  highlightLabels: string
   notFound: Prefs['filters']['notFound']
-  mode: Prefs['filters']['mode']
+  modes: Prefs['filters']['modes']
   prices: Record<RegionCode, string>
   labels: string
   year: boolean
@@ -27,8 +34,9 @@ export const draftFromPrefs = (prefs: Prefs): SettingsDraft => ({
   minYear: prefs.filters.minYear?.toString() ?? '',
   maxYear: prefs.filters.maxYear?.toString() ?? '',
   hiddenLabels: prefs.filters.hiddenLabels.join('\n'),
+  highlightLabels: prefs.filters.highlightLabels.join('\n'),
   notFound: prefs.filters.notFound,
-  mode: prefs.filters.mode,
+  modes: prefs.filters.modes,
   prices: Object.fromEntries(
     REGIONS.map(r => [r.code, prefs.filters.maxPrice[r.code]?.toString() ?? ''])
   ) as Record<RegionCode, string>,
@@ -36,6 +44,16 @@ export const draftFromPrefs = (prefs: Prefs): SettingsDraft => ({
   year: prefs.display.year,
   overview: prefs.display.overview,
 })
+
+/** One label per line, trimmed, without blanks or repeats. */
+const lines = (text: string): string[] => [
+  ...new Set(
+    text
+      .split('\n')
+      .map(s => s.trim())
+      .filter(Boolean)
+  ),
+]
 
 function number(text: string): number {
   if (!text.trim()) throw new Error('A required number is blank.')
@@ -58,16 +76,10 @@ export function prefsFromDraft(draft: SettingsDraft): Prefs {
       minRatings: number(draft.minRatings),
       minYear: draft.minYear.trim() === '' ? null : number(draft.minYear),
       maxYear: draft.maxYear.trim() === '' ? null : number(draft.maxYear),
-      hiddenLabels: [
-        ...new Set(
-          draft.hiddenLabels
-            .split('\n')
-            .map(s => s.trim())
-            .filter(Boolean)
-        ),
-      ],
+      hiddenLabels: lines(draft.hiddenLabels),
+      highlightLabels: lines(draft.highlightLabels),
       notFound: draft.notFound,
-      mode: draft.mode,
+      modes: draft.modes,
       maxPrice: Object.fromEntries(
         REGIONS.filter(r => draft.prices[r.code].trim() !== '').map(r => [
           r.code,
@@ -88,11 +100,16 @@ export function mergeSettings(base: Prefs, next: Prefs, current: Prefs): Prefs {
     'minRating',
     'minRatings',
     'hiddenLabels',
+    'highlightLabels',
     'notFound',
-    'mode',
   ] as const) {
     if (!same(base.filters[key], next.filters[key]))
       Object.assign(filters, { [key]: next.filters[key] })
+  }
+  const modes = { ...current.filters.modes }
+  for (const dimension of DIMENSIONS) {
+    if (base.filters.modes[dimension] !== next.filters.modes[dimension])
+      modes[dimension] = next.filters.modes[dimension]
   }
   // Bounds are one logical edit, so an external edit cannot turn a valid draft into a reversed pair.
   if (
@@ -117,7 +134,7 @@ export function mergeSettings(base: Prefs, next: Prefs, current: Prefs): Prefs {
   }
   return Schema.decodeSync(PrefsSchema)({
     enabled: base.enabled === next.enabled ? current.enabled : next.enabled,
-    filters: { ...filters, maxPrice },
+    filters: { ...filters, maxPrice, modes },
     display,
   })
 }
@@ -148,7 +165,13 @@ export const exportPrefs = (prefs: Prefs): string =>
     2
   )}\n`
 
+/** A backup from before prefs v6 has one `mode` for all filters; it becomes each filter's. */
+const upgradeBackup = (raw: unknown): unknown =>
+  typeof raw === 'object' && raw !== null && 'prefs' in raw
+    ? { ...raw, prefs: upgradeModes(raw.prefs) }
+    : raw
+
 export const importPrefs = (text: string): Prefs =>
-  Schema.decodeUnknownSync(Backup)(JSON.parse(text), {
+  Schema.decodeUnknownSync(Backup)(upgradeBackup(JSON.parse(text)), {
     onExcessProperty: 'error',
   }).prefs

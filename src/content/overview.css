@@ -91,6 +91,9 @@
   text-align: left;
   cursor: pointer;
 }
+.pop button + button {
+  margin-top: 4px;
+}
 .pop button:hover,
 .pop button:focus-visible {
   background: #e9e3d6;

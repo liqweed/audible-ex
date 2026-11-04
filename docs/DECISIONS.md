@@ -416,3 +416,36 @@ Rejected: fetching from options (bypasses the shared queue), treating a correcti
 as an ordinary cache write (expiry would lose it), and exporting cached ratings
 (against R5). Schema, queue and IndexedDB tests enforce these rules. As D8
 specifies, this repository has no separate ADR rules catalog.
+
+## D25 — A miss mode per filter, highlighted labels, and the panel's own info popovers (2026-11-04)
+
+Users asked to dim some filters and hide others (a price over the limit is worth
+seeing faded; a hidden genre is not), to mark genres they are interested in, and
+for a shorter panel.
+
+Prefs v6 replaces `filters.mode` with `filters.modes`, one `hide`/`dim` per
+filter (`rating`, `count`, `labels`, `year`, `price`). A book failing several
+filters is hidden if any of them hides, so a stricter filter is never softened by
+a lenient one. The migration gives every filter the old `mode`; the same upgrade
+(`upgradeModes`) runs on decode and on backup import, so the backup envelope
+stays at version 1. The not-found policy keeps its three values. Rejected: a
+global mode plus per-filter overrides (two places to read for one answer).
+
+Highlighted labels (`filters.highlightLabels`) live beside the hidden labels
+because the panel and the label popover edit them together, but they are not a
+filter: they never change a verdict and apply with the filters' switch off. A
+label is in one list at most; adding it to one removes it from the other.
+Highlighted cards get `data-agx-highlight`, an outline drawn inside the card.
+
+The panel's explanations are a hand-written fixed-position popover (`InfoTip`)
+with Lucide's `Info` icon, not `@radix-ui/react-tooltip`, already a dependency:
+Radix Tooltip brings its positioning library into `panel.js`, several KB of the
+13 KB left in the 120 KB budget (D19) for one feature. With the icons, the
+popover, the pill and the per-filter choices, `panel.js` went from 106.4 KB to
+109.6 KB gzipped; `content.js` from 40.5 KB to 41.1 KB. Revisit if the panel
+needs focus-trapped popovers or collision handling beyond above/below.
+
+The panel opens the options page through a one-off `OpenOptions` message to the
+background, which accepts it from content scripts. A link would need
+`options.html` in `web_accessible_resources` (rejected in D19), and
+`runtime.openOptionsPage` is not available to content scripts.

@@ -1,4 +1,5 @@
 import { createRoot } from 'react-dom/client'
+import { browser } from 'wxt/browser'
 import { createShadowRootUi } from 'wxt/utils/content-script-ui/shadow-root'
 import { defineContentScript } from 'wxt/utils/define-content-script'
 import logoSvg from '@/assets/brand/logo-small.svg?raw'
@@ -11,6 +12,15 @@ import panelCss from '@/panel/panel.css?inline'
 
 // The logo as an image URL: bundled as text, so no web-accessible resource is needed either.
 const LOGO = `data:image/svg+xml,${encodeURIComponent(logoSvg)}`
+
+// A content script cannot open the options page itself; the background does (ARCHITECTURE.md §5).
+const openOptions = () => {
+  browser.runtime
+    .sendMessage({ _tag: 'OpenOptions' })
+    .catch(error =>
+      console.error('audible-ex: could not open the settings', error)
+    )
+}
 
 // The floating panel (ARCHITECTURE.md §6, DECISIONS.md D19): a second content script, so React stays
 // out of content.js. It takes the badge script's state from the shared handle and draws in a shadow
@@ -29,7 +39,9 @@ export default defineContentScript({
           css: panelCss,
           onMount: container => {
             const root = createRoot(container)
-            root.render(<Panel handle={handle} logoSrc={LOGO} />)
+            root.render(
+              <Panel handle={handle} logoSrc={LOGO} openOptions={openOptions} />
+            )
             return root
           },
           onRemove: root => root?.unmount(),

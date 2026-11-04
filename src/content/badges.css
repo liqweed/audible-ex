@@ -98,3 +98,18 @@
   color: #8a3b2c;
   text-decoration: line-through;
 }
+
+/* Highlighted labels (filter.ts): an outline drawn inside the card, so carousels cannot clip it and
+   nothing moves. A highlight never hides a card; a dimmed card keeps its outline, faded. */
+[data-agx-highlight] {
+  /* biome-ignore lint/complexity/noImportantStyles: Audible's own focus and card styles must not remove it */
+  outline: 2px solid #d99a2b !important;
+  outline-offset: -2px;
+  border-radius: 6px;
+}
+.agx-label.agx-highlighted {
+  background: #fdf0d5;
+  border-color: #e2b768;
+  color: #7a4d00;
+  font-weight: 600;
+}

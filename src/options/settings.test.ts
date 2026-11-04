@@ -29,8 +29,10 @@ describe('settings drafts', () => {
         maxYear: -700,
         maxPrice: { UK: 0, US: 20.5 },
         hiddenLabels: ['History, Politics', 'Fantasy'],
+        highlightLabels: ['Science Fiction', 'Space Opera'],
+        modes: { ...DEFAULT_PREFS.filters.modes, labels: 'dim', price: 'dim' },
       },
-    }
+    } as const
     expect(prefsFromDraft(draftFromPrefs(prefs))).toEqual(prefs)
   })
   test.each([
@@ -101,6 +103,28 @@ describe('settings drafts', () => {
     })
     expect(merged.filters.maxPrice.UK).toBeUndefined()
   })
+  test("merges each filter's mode on its own, and the highlighted labels", () => {
+    const base = DEFAULT_PREFS
+    const next = {
+      ...base,
+      filters: {
+        ...base.filters,
+        highlightLabels: ['Fantasy'],
+        modes: { ...base.filters.modes, year: 'dim' },
+      },
+    } as const
+    const current = {
+      ...base,
+      filters: {
+        ...base.filters,
+        modes: { ...base.filters.modes, rating: 'dim' },
+      },
+    } as const
+    expect(mergeSettings(base, next, current).filters).toMatchObject({
+      highlightLabels: ['Fantasy'],
+      modes: { ...base.filters.modes, rating: 'dim', year: 'dim' },
+    })
+  })
 })
 
 describe('prefs backups', () => {
@@ -158,5 +182,22 @@ describe('prefs backups', () => {
         })
       )
     ).toEqual({ ...DEFAULT_PREFS, enabled: false })
+  })
+  test("a backup's single mode from before prefs v6 becomes every filter's", () => {
+    const { modes: _, ...filters } = DEFAULT_PREFS.filters
+    const prefs = importPrefs(
+      JSON.stringify({
+        format: 'audible-ex-prefs',
+        version: 1,
+        prefs: { ...DEFAULT_PREFS, filters: { ...filters, mode: 'dim' } },
+      })
+    )
+    expect(Object.values(prefs.filters.modes)).toEqual([
+      'dim',
+      'dim',
+      'dim',
+      'dim',
+      'dim',
+    ])
   })
 })

@@ -165,6 +165,17 @@ collapsing, moving and hiding survive a reload. Release 0.2.
 
 Release 0.3.
 
+3c. Panel follow-ups (prefs v6, DECISIONS.md D25)
+
+- [x] Hide or dim per filter (`modes`), with a compact Hide/Dim choice on each
+      filter's row; narrower year and price fields.
+- [x] Highlighted labels: outlined cards and marked pills, from the panel and
+      the label popover; independent of the filters' switch.
+- [x] `i` explanations instead of help paragraphs; a settings button that
+      opens the options page (`OpenOptions`).
+- [x] The pill shows and toggles filtering, and counts the hidden and dimmed
+      cards.
+
 3b. Price and year
 
 - [x] Public `catalog/products` prices verified without signing in on `.co.uk`
@@ -249,6 +260,18 @@ Afterwards, before 1.0
 - Duration and narrator filters.
 - Rating distribution on hover (needs the book page's histogram; check it's in
   `__NEXT_DATA__`).
+- Library and Wish List marks: a badge mark for a book the user owns or has
+  wish-listed, and later the personal collections it is in. Pins already
+  record that an ASIN was seen under `/library`, but not where: `Lookup.pinned`
+  would become the place (`library`, `wishlist`, `collection:<id>`), stored on
+  the pin with when it was last seen there, and sent back on `BookUpdate`.
+  Collection names come from the collections page. The extension only knows
+  what the user has scrolled past on those pages, so the feature needs a
+  visible "last seen in your Library on …" and a prompt to page through the
+  Library once; a background prescan would fetch `www.audible.*` pages with
+  the user's cookies, a new host permission and a privacy change (§11), and is
+  not planned. Removal is unknowable until the page is seen again without it,
+  so the mark expires with the pin.
 - Staged publishing (DECISIONS.md D21): `publishType: STAGED_PUBLISH` in
   `scripts/upload-cws.ts`, so an approved version waits for one click in the
   dashboard before users get it. Decide when the listing is public.
