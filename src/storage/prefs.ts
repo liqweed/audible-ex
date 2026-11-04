@@ -116,7 +116,7 @@ export { DEFAULT_DISPLAY } from '../core/display'
 export const Display = Schema.Struct({
   labels: Schema.Int.check(
     Schema.isBetween({ minimum: 0, maximum: GENRES_MAX })
-  ).pipe(Schema.withDecodingDefaultKey(Effect.succeed(3))),
+  ).pipe(Schema.withDecodingDefaultKey(Effect.succeed(DEFAULT_DISPLAY.labels))),
   year: Schema.Boolean.pipe(
     Schema.withDecodingDefaultKey(Effect.succeed(true))
   ),

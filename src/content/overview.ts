@@ -49,6 +49,30 @@ export function placeOverview(
   return { top, left }
 }
 
+/**
+ * A popover's title row: the extension's logo, so the reader can tell where the box comes from, and
+ * `title` in bold, set as text. Without `logo` (the tests), the title alone.
+ */
+export function popoverHead(
+  doc: Document,
+  title: string,
+  logo: string | undefined
+): HTMLElement {
+  const head = doc.createElement('div')
+  head.className = 'head'
+  if (logo) {
+    const img = doc.createElement('img')
+    img.className = 'logo'
+    img.src = logo
+    img.alt = ''
+    head.appendChild(img)
+  }
+  const line = doc.createElement('b')
+  line.textContent = title
+  head.appendChild(line)
+  return head
+}
+
 /** `★ 4.21 · 12,345 ratings · first published 2019 (approximate match)`. */
 export function ratingLine(
   { rating, details }: WithOverview,
@@ -77,6 +101,8 @@ export interface OverviewOptions {
   doc: Document
   /** The overview's stylesheet text, applied inside the shadow root only. */
   css: string
+  /** The extension's logo as an image URL, shown in the title row. */
+  logo?: string
   enabled?(): boolean
   showYear?(): boolean
   /** The book a badge shows, read when the pointer arrives. */
@@ -117,9 +143,13 @@ export function createOverview(options: OverviewOptions): Overview {
     box.className = 'tip'
     box.setAttribute('role', 'tooltip')
     // Everything below is text from Goodreads: set as text, never as markup.
-    const line = doc.createElement('b')
-    line.textContent = ratingLine(view, options.showYear?.() ?? true)
-    box.appendChild(line)
+    box.appendChild(
+      popoverHead(
+        doc,
+        ratingLine(view, options.showYear?.() ?? true),
+        options.logo
+      )
+    )
     const genres = view.details.genres.slice(0, OVERVIEW_GENRES)
     if (genres.length > 0) {
       const meta = doc.createElement('span')

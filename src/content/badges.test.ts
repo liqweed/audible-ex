@@ -149,17 +149,28 @@ describe('decorate', () => {
   const labels = () =>
     [...wrap().querySelectorAll('.agx-label')].map(l => l.textContent)
 
-  test('adds the year after the badge and up to 3 labels', () => {
+  test('adds the year after the badge and up to 4 labels', () => {
     decorate(
       badge,
-      details(2021, ['Science Fiction', 'Fiction', 'Space', 'Adventure'])
+      details(2021, [
+        'Science Fiction',
+        'Fiction',
+        'Space',
+        'Adventure',
+        'Humor',
+      ])
     )
     expect(badge.nextElementSibling?.className).toBe('agx-year')
     expect(badge.nextElementSibling?.textContent).toBe('2021')
-    expect(labels()).toEqual(['Science Fiction', 'Fiction', 'Space'])
+    expect(labels()).toEqual([
+      'Science Fiction',
+      'Fiction',
+      'Space',
+      'Adventure',
+    ])
   })
 
-  test('skips the genres that say nothing, before counting three', () => {
+  test('skips the genres that say nothing, before counting four', () => {
     decorate(
       badge,
       details(2000, [
@@ -175,7 +186,7 @@ describe('decorate', () => {
         'Horror',
       ])
     )
-    expect(labels()).toEqual(['Fantasy', 'Romance', 'Humor'])
+    expect(labels()).toEqual(['Fantasy', 'Romance', 'Humor', 'Horror'])
   })
 
   test('year 0 means unknown and shows no year; a negative year is shown', () => {

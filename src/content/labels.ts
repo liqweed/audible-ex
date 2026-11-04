@@ -12,7 +12,7 @@
 import { hasLabel } from '../core/filter'
 import { LABEL } from './badges'
 import { LABEL_HOST } from './cards'
-import { placeOverview } from './overview'
+import { placeOverview, popoverHead } from './overview'
 import type { Schedule } from './schedule'
 
 /** The pointer rests on a label this long before the popover appears, so passing over one does not. */
@@ -32,6 +32,8 @@ export interface LabelPopoverOptions {
   doc: Document
   /** The popover's stylesheet text, applied inside the shadow root only. */
   css: string
+  /** The extension's logo as an image URL, shown in the title row. */
+  logo?: string
   schedule: Schedule
   /** The labels being filtered on now. */
   hiddenLabels(): readonly string[]
@@ -54,6 +56,32 @@ export interface LabelPopoverOptions {
 
 /** What the user does with a label now. */
 type Use = 'hidden' | 'highlighted' | undefined
+
+/** The popover's three choices, in order. */
+const CHOICES = ['hide', 'show', 'highlight'] as const
+type Choice = (typeof CHOICES)[number]
+const CAPTION: Record<Choice, string> = {
+  hide: 'Hide',
+  show: 'Show',
+  highlight: 'Highlight',
+}
+const USE: Record<Choice, Use> = {
+  hide: 'hidden',
+  show: undefined,
+  highlight: 'highlighted',
+}
+/** What the status line says once a choice is saved; `before` is what the label was. */
+const DONE: Record<Choice, (label: string, before: Use) => string> = {
+  hide: label => `Hiding books labelled ${quote(label)}.`,
+  highlight: label => `Highlighting books labelled ${quote(label)}.`,
+  show: (label, before) =>
+    before === 'highlighted'
+      ? `No longer highlighting ${quote(label)}.`
+      : `No longer hiding ${quote(label)}.`,
+}
+const HELP =
+  'Hide takes books with this genre off the page, or dims them, as your filter settings say. ' +
+  'Highlight makes their covers shine. Show does neither. It applies on every Audible page.'
 
 export const labelOf = (target: EventTarget | null): Element | null =>
   target instanceof Element ? target.closest(`.${LABEL}`) : null
@@ -117,7 +145,7 @@ export function createLabelPopover(options: LabelPopoverOptions): LabelPopover {
     next.className = 'pop'
     next.setAttribute('role', 'dialog')
     next.setAttribute('aria-label', `Filter on ${label}`)
-    next.append(text('b', '', label))
+    next.append(popoverHead(doc, label, options.logo))
     const books = options.booksWith(label)
     if (books > 0) {
       next.append(
@@ -128,6 +156,66 @@ export function createLabelPopover(options: LabelPopoverOptions): LabelPopover {
         )
       )
     }
+    // Hide, show or highlight: one choice of three, as radio buttons drawn as one bar (the panel's).
+    const choice = doc.createElement('fieldset')
+    choice.className = 'choice'
+    const legend = text('legend', 'sr', `Books labelled ${quote(label)}`)
+    choice.append(legend)
+    const current: Choice =
+      use === 'hidden' ? 'hide' : use === 'highlighted' ? 'highlight' : 'show'
+    for (const value of CHOICES) {
+      const item = doc.createElement('label')
+      const input = doc.createElement('input')
+      input.type = 'radio'
+      input.name = 'agx-label-use'
+      input.value = value
+      input.checked = value === current
+      input.addEventListener('change', () => {
+        if (!input.checked) return
+        for (const i of choice.querySelectorAll('input')) i.disabled = true
+        const save =
+          value === 'hide'
+            ? options.hide(label)
+            : value === 'highlight'
+              ? options.highlight(label)
+              : options.release(label)
+        save.then(
+          () => render(label, USE[value], { text: DONE[value](label, use) }),
+          () =>
+            render(label, use, {
+              text: 'Could not save the filter. Try again.',
+              error: true,
+            })
+        )
+      })
+      item.append(input, doc.createTextNode(CAPTION[value]))
+      choice.append(item)
+    }
+    const info = doc.createElement('button')
+    info.type = 'button'
+    info.className = 'info'
+    info.textContent = 'i'
+    info.setAttribute('aria-label', 'About hide and highlight')
+    info.setAttribute('aria-expanded', 'false')
+    const help = text('span', 'help', HELP)
+    help.id = 'agx-label-help'
+    help.hidden = true
+    info.setAttribute('aria-controls', help.id)
+    const showHelp = (open: boolean) => {
+      help.hidden = !open
+      info.setAttribute('aria-expanded', String(open))
+    }
+    info.addEventListener('pointerenter', () => showHelp(true))
+    info.addEventListener('pointerleave', () => showHelp(false))
+    info.addEventListener('focus', () => showHelp(true))
+    info.addEventListener('blur', () => showHelp(false))
+    // Hovering or focusing opens it first, so a click only opens it (a tap, on touch).
+    info.addEventListener('click', () => showHelp(true))
+    const row = doc.createElement('div')
+    row.className = 'row'
+    row.append(choice, info)
+    next.append(row, help)
+
     if (status) {
       const line = text(
         'span',
@@ -137,62 +225,14 @@ export function createLabelPopover(options: LabelPopoverOptions): LabelPopover {
       line.setAttribute('role', status.error ? 'alert' : 'status')
       next.append(line)
     }
-    const action = (
-      caption: string,
-      save: () => Promise<void>,
-      after: Use,
-      done: string
-    ) => {
-      const button = doc.createElement('button')
-      button.type = 'button'
-      button.textContent = caption
-      button.addEventListener('click', () => {
-        for (const b of next.querySelectorAll('button')) b.disabled = true
-        save().then(
-          () => render(label, after, { text: done }),
-          () =>
-            render(label, use, {
-              text: 'Could not save the filter. Try again.',
-              error: true,
-            })
-        )
-      })
-      next.append(button)
-    }
-    if (use === 'hidden') {
-      action(
-        `Stop hiding ${quote(label)}`,
-        () => options.release(label),
-        undefined,
-        `No longer hiding ${quote(label)}.`
-      )
-    } else if (use === 'highlighted') {
-      action(
-        `Stop highlighting ${quote(label)}`,
-        () => options.release(label),
-        undefined,
-        `No longer highlighting ${quote(label)}.`
-      )
-    } else {
-      action(
-        `Hide books labelled ${quote(label)}`,
-        () => options.hide(label),
-        'hidden',
-        `Hiding books labelled ${quote(label)}.`
-      )
-      action(
-        `Highlight books labelled ${quote(label)}`,
-        () => options.highlight(label),
-        'highlighted',
-        `Highlighting books labelled ${quote(label)}.`
-      )
-    }
-    if (use === undefined && !options.filtersEnabled()) {
+    if (use !== 'hidden' && !options.filtersEnabled()) {
       next.append(
-        text('span', 'meta', 'Filters are off; hiding switches them on.')
+        text('span', 'note', 'Filters are off; Hide switches them on.')
       )
     }
 
+    // A choice made from the keyboard keeps the focus on the choice it moved to.
+    const hadFocus = !!pop && !!root && pop.contains(root.activeElement)
     if (pop) pop.replaceWith(next)
     else mount().appendChild(next)
     pop = next
@@ -200,6 +240,7 @@ export function createLabelPopover(options: LabelPopoverOptions): LabelPopover {
       next.style.top = `${at.top}px`
       next.style.left = `${at.left}px`
     }
+    if (hadFocus) next.querySelector<HTMLElement>('input:checked')?.focus()
   }
 
   function show(label: Element) {
@@ -285,7 +326,7 @@ export function createLabelPopover(options: LabelPopoverOptions): LabelPopover {
     if (label && (key === 'Enter' || key === ' ')) {
       event.preventDefault()
       show(label)
-      root?.querySelector('button')?.focus()
+      root?.querySelector<HTMLElement>('input:checked')?.focus()
     }
   }
 

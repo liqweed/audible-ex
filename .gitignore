@@ -14,9 +14,10 @@ stats-*.json
 .wxt
 web-ext.config.ts
 
-# Playwright (bun e2e)
+# Playwright (bun e2e), and the Playwright MCP server's snapshots
 test-results
 playwright-report
+.playwright-mcp/
 
 # Editor directories and files
 .vscode/*

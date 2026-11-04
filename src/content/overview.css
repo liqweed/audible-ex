@@ -1,40 +1,65 @@
-/* The hover overview's styles, ported from the userscript's `.agr-tip`, and the label popover's
-   (`.pop`). Imported as a string (`?inline`) and put inside each one's shadow root (overview.ts,
-   labels.ts), so they never reach the page. */
+/* The hover overview (`.tip`) and the label popover (`.pop`). Imported as a string (`?inline`) and
+   put inside each one's shadow root (overview.ts, labels.ts), so they never reach the page. They
+   look like the floating panel (Tailwind's slate palette, white, an 8 px radius and its large
+   shadow) and open with the extension's logo, so the reader can tell where they come from. */
 :host {
   /* Nothing is inherited from Audible's body, and the host takes no room in its layout. */
   all: initial;
 }
-.tip {
+.tip,
+.pop {
   position: fixed;
   z-index: 2147483647;
-  max-width: 420px;
-  max-height: 60vh;
-  overflow: hidden;
   box-sizing: border-box;
   padding: 10px 12px;
   border-radius: 8px;
-  background: #fffdf8;
-  color: #2b2118;
-  border: 1px solid #d8d0c0;
-  box-shadow: 0 6px 24px rgb(0 0 0 / 0.18);
+  background: #fff;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  box-shadow:
+    0 10px 15px -3px rgb(0 0 0 / 0.1),
+    0 4px 6px -4px rgb(0 0 0 / 0.1);
   font:
-    13px / 1.45 system-ui,
+    13px / 1.45 ui-sans-serif,
+    system-ui,
     sans-serif;
+}
+
+/* The title row: the logo, then the title in bold. */
+.head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.head b {
+  font-size: 13px;
+  font-weight: 600;
+}
+.logo {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #fff;
+  box-shadow: 0 0 0 1px #cbd5e1;
+}
+.meta {
+  display: block;
+  color: #475569;
+  font-size: 12px;
+}
+
+.tip {
+  max-width: 420px;
+  max-height: 60vh;
+  overflow: hidden;
   white-space: pre-line;
   /* The box never takes the pointer, so moving onto it cannot end the hover. */
   pointer-events: none;
 }
-.tip b {
-  display: block;
-  margin-bottom: 4px;
-  font-size: 13px;
-}
 .tip .meta {
-  display: block;
   margin-bottom: 6px;
-  opacity: 0.7;
-  font-size: 12px;
 }
 .tip .fade {
   position: absolute;
@@ -42,63 +67,123 @@
   right: 0;
   bottom: 0;
   height: 28px;
-  background: linear-gradient(transparent, #fffdf8);
+  background: linear-gradient(transparent, #fff);
 }
 
 /* The label popover: unlike the overview it takes the pointer, so it can be clicked. */
 .pop {
-  position: fixed;
-  z-index: 2147483647;
-  box-sizing: border-box;
   max-width: 280px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: #fffdf8;
-  color: #2b2118;
-  border: 1px solid #d8d0c0;
-  box-shadow: 0 6px 24px rgb(0 0 0 / 0.18);
-  font:
-    13px / 1.45 system-ui,
-    sans-serif;
   pointer-events: auto;
 }
-.pop b {
-  display: block;
-}
 .pop .meta {
-  display: block;
   margin-bottom: 8px;
-  opacity: 0.7;
-  font-size: 12px;
 }
 .pop .status {
   display: block;
-  margin: 4px 0 8px;
-  color: #2f6b2a;
+  margin: 6px 0 0;
+  color: #047857;
+  font-size: 12px;
 }
 .pop .status.error {
-  color: #a3321f;
+  color: #b91c1c;
 }
-.pop button {
-  display: block;
-  width: 100%;
-  padding: 5px 10px;
-  border-radius: 6px;
-  border: 1px solid #c9bfa9;
-  background: #f4f1ea;
-  color: #382110;
-  font: inherit;
-  text-align: left;
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Hide, show or highlight: radio buttons drawn as one bar, like the panel's choices. */
+.row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.choice {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 18px;
+}
+.choice label {
+  position: relative;
+  padding: 1px 8px;
+  color: #475569;
   cursor: pointer;
+  user-select: none;
 }
-.pop button + button {
-  margin-top: 4px;
+.choice label:first-of-type {
+  border-radius: 3px 0 0 3px;
 }
-.pop button:hover,
-.pop button:focus-visible {
-  background: #e9e3d6;
+.choice label:last-of-type {
+  border-radius: 0 3px 3px 0;
 }
-.pop button:disabled {
+.choice label:hover {
+  background: #f1f5f9;
+}
+.choice label:has(:checked) {
+  background: #4f46e5;
+  color: #fff;
+}
+.choice label:has(:focus-visible) {
+  outline: 2px solid #818cf8;
+  outline-offset: 1px;
+}
+.choice input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+}
+.choice:has(:disabled) {
   opacity: 0.6;
-  cursor: default;
+}
+
+/* The `i` that explains the choice, and the explanation it opens below the row. */
+.info {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid #cbd5e1;
+  border-radius: 9999px;
+  background: #fff;
+  color: #64748b;
+  font:
+    600 10px / 14px ui-sans-serif,
+    system-ui,
+    sans-serif;
+  cursor: help;
+}
+.info:hover,
+.info:focus-visible {
+  color: #0f172a;
+  border-color: #94a3b8;
+}
+.info:focus-visible {
+  outline: 2px solid #818cf8;
+  outline-offset: 1px;
+}
+.help {
+  display: block;
+  margin-top: 6px;
+  color: #475569;
+  font-size: 12px;
+}
+.help[hidden] {
+  display: none;
+}
+/* A line under the choice, such as "Filters are off". */
+.note {
+  display: block;
+  margin-top: 6px;
+  color: #475569;
+  font-size: 12px;
 }

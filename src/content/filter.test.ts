@@ -193,6 +193,13 @@ describe('highlighted labels on the com search fixture', () => {
         interesting.has((badge as HTMLElement).dataset.asin as string)
       ).toBe(true)
     expect(handleOf(world).filter.get().highlighted).toBe(outlined().length)
+    // The cover of each highlighted card glows; no other image does.
+    const shining = [...document.querySelectorAll('img[data-agx-shine]')]
+    expect(shining).toHaveLength(outlined().length)
+    for (const img of shining) {
+      expect(img.closest('[data-agx-highlight]')).not.toBeNull()
+      expect(img.getAttribute('src')).toContain('/images/I/')
+    }
     const pills = document.querySelectorAll('.agx-label.agx-highlighted')
     expect(pills.length).toBeGreaterThan(0)
     for (const pill of pills) {
@@ -213,6 +220,7 @@ describe('highlighted labels on the com search fixture', () => {
 
     filters.change({ ...FILTERS, highlightLabels: [] })
     expect(document.querySelectorAll('[data-agx-highlight]')).toHaveLength(0)
+    expect(document.querySelectorAll('[data-agx-shine]')).toHaveLength(0)
     expect(document.querySelectorAll('.agx-highlighted')).toHaveLength(0)
     expect(handleOf(world).filter.get().highlighted).toBe(0)
   })
@@ -235,6 +243,7 @@ describe('highlighted labels on the com search fixture', () => {
     ).toBeGreaterThan(0)
     world.content?.remove()
     expect(document.querySelectorAll('[data-agx-highlight]')).toHaveLength(0)
+    expect(document.querySelectorAll('[data-agx-shine]')).toHaveLength(0)
     expect(document.querySelectorAll('.agx-highlighted')).toHaveLength(0)
   })
 })

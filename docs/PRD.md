@@ -80,7 +80,7 @@ catalogue goes unchecked.
   failing several filters is hidden if any of them hides. Books in carousels
   are always dimmed, never removed.
 - Highlighted labels (areas of interest): books carrying any of the chosen
-  Goodreads genres get an outline and their label is marked. Highlighting
+  Goodreads genres get a soft glow around their cover and their label is marked. Highlighting
   never hides a book and works with filtering off. A label is hidden or
   highlighted, not both; the label popover offers either.
 - Books not found on Goodreads: shown (default), dimmed or hidden.

@@ -132,6 +132,23 @@ describe('the overview on the page', () => {
     expect(box?.querySelector('.fade')).not.toBeNull()
   })
 
+  test("opens with the extension's logo when it has one", () => {
+    fire('mouseover', badge())
+    expect(tip()?.querySelector('.head img')).toBeNull()
+    overview.stop()
+    overview = createOverview({
+      doc: document,
+      css: '',
+      logo: 'data:image/svg+xml,%3Csvg%2F%3E',
+      viewOf: el => books.get((el as HTMLElement).dataset.asin ?? ''),
+    })
+    fire('mouseover', badge())
+    const logo = tip()?.querySelector('.head img.logo')
+    expect(logo?.getAttribute('src')).toBe('data:image/svg+xml,%3Csvg%2F%3E')
+    expect(logo?.getAttribute('alt')).toBe('')
+    expect(tip()?.querySelector('.head b')?.textContent).toStartWith('★ 4.21')
+  })
+
   test('draws inside a shadow root, with its stylesheet there and none on the page', () => {
     fire('mouseover', badge())
     const host = document.querySelector(`.${OVERVIEW_HOST}`)

@@ -45,14 +45,14 @@ describe('options settings', () => {
   test('loads defaults and saves display, filters and marketplace prices together', async () => {
     await show()
     expect(value('Minimum rating')).toBe('4')
-    expect(value('Labels per book')).toBe('3')
+    expect(value('Labels per book')).toBe('4')
     change('Labels per book', '0')
     fireEvent.click(screen.getByLabelText('Show overview on hover'))
     change('From year', '-800')
     change('To year', '-700')
     change('audible.co.uk (GBP)', '0')
     change('Hidden labels', 'Fantasy\nHistory, Politics')
-    expect((await readPrefs()).display.labels).toBe(3)
+    expect((await readPrefs()).display.labels).toBe(4)
     await save()
     await screen.findByText('Settings saved.')
     expect((await readPrefs()).display).toEqual({

@@ -117,6 +117,25 @@ export function titleOf(card: Element, asin: string): string {
   return ''
 }
 
+/** Amazon's image host path; a card's cover is the first image served from it. */
+const COVER_SRC = /\/images\/I\//
+
+/**
+ * The card's cover image: the first image outside a popover whose address is an Amazon catalogue
+ * image (in the saved pages every card has exactly one), else its first image. Undefined for a card
+ * without images.
+ */
+export function coverOf(card: Element): HTMLImageElement | undefined {
+  let first: HTMLImageElement | undefined
+  for (const img of card.querySelectorAll('img')) {
+    if (img.closest(POPOVER)) continue
+    first ??= img
+    const src = img.getAttribute('src') ?? img.getAttribute('data-lazy') ?? ''
+    if (COVER_SRC.test(src)) return img
+  }
+  return first
+}
+
 /** Does this element's text look like the title? (page text may add or drop a subtitle) */
 function looksLikeTitle(el: Element, title: string): boolean {
   const text = norm(el.textContent)

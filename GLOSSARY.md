@@ -21,7 +21,7 @@ term; avoid the listed aliases.
 | **Pin**              | A book seen in Library or Wish List; its cache entries are kept 180 days after it was last seen.                      | favourite, bookmark                      |
 | **Prefs**            | The user's settings, stored in `storage.sync` as `sync:prefs`.                                                        | config, options (the page is "options")  |
 | **Filter**           | One rule in prefs that can hide or dim a card: minimum rating, minimum ratings, hidden labels, price, year.           | rule, criterion                          |
-| **Highlight**        | A label the user is interested in: cards of books carrying it are outlined. Never hides or dims a card.              | favourite, interest, tag                 |
+| **Highlight**        | A label the user is interested in: the covers of books carrying it glow. Never hides or dims a card.                 | favourite, interest, tag                 |
 | **Miss mode**        | What a book that fails one filter gets: `hide` or `dim`. Each filter has its own (`modes` in prefs).                  | filter mode, action                      |
 | **Verdict**          | The filter result for one card: `show`, `dim` or `hide`.                                                              | status (that's the lookup's state)       |
 | **Peek**             | Temporarily revealing hidden cards (dimmed) without changing prefs.                                                   | show all, reveal mode                    |
