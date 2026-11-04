@@ -68,11 +68,23 @@ describe('renderBadge', () => {
     expect(badge.classList.contains('agx-lo')).toBe(cls === 'agx-lo')
   })
 
-  test('a zero rating is not coloured low', () => {
+  test('a book nobody has rated yet says so, uncoloured, linked to Goodreads', () => {
     const badge = makeBadge()
     renderBadge(badge, ready(0, 0), never)
+    expect(badge.textContent).toBe('GR: no ratings yet')
+    expect(badge.title).toBe('Goodreads: no ratings yet')
+    expect(badge.getAttribute('href')).toBe(
+      'https://www.goodreads.com/book/show/1'
+    )
+    expect(badge.classList.contains('agx-unrated')).toBe(true)
     expect(badge.classList.contains('agx-lo')).toBe(false)
-    expect(badge.textContent).toBe('★ 0.00 (0)')
+  })
+
+  test('an approximate match with no ratings yet is marked with ?', () => {
+    const badge = makeBadge()
+    renderBadge(badge, ready(0, 0, true), never)
+    expect(badge.textContent).toBe('GR: no ratings yet?')
+    expect(badge.title).toContain('approximate')
   })
 
   test('an approximate match is marked with ?', () => {

@@ -1,6 +1,6 @@
 /**
  * Badges: plain DOM, no React (ARCHITECTURE.md §6). Building them on a card, drawing the `BookView`
- * on them (`★ 4.21 (12k)`, `GR: not found`, `GR: retry`), and the year and labels after the rating.
+ * on them (`★ 4.21 (12k)`, `GR: no ratings yet`, `GR: not found`, `GR: retry`), and the year and labels after the rating.
  * Ported from the userscript's `newBadge`, `makeWrap`, `render`, `decorate` and `visibleGenres`.
  * The hover overview (`showTip`) is in overview.ts; a badge only carries its ASIN for it.
  */
@@ -106,6 +106,12 @@ export function renderBadge(
       ev.preventDefault()
       onRetry()
     }
+  } else if (view.status === 'ready' && rating?.n === 0) {
+    // On Goodreads but rated by nobody yet, often before release: `★ 0.00 (0)` would read as a verdict.
+    badge.classList.add('agx-unrated')
+    badge.href = rating.url
+    badge.title = `Goodreads: no ratings yet${rating.loose ? ' (approximate title match)' : ''}`
+    badge.textContent = `GR: no ratings yet${rating.loose ? '?' : ''}`
   } else if (view.status === 'ready' && rating) {
     if (rating.r >= 4.2) badge.classList.add('agx-hi')
     else if (rating.r && rating.r < 3.7) badge.classList.add('agx-lo')

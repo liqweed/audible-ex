@@ -141,6 +141,19 @@ const BOOKS: readonly Book[] = [
   },
 ]
 
+/** On Goodreads but not rated yet, as a book is before its release; only the cards scene shows it. */
+const UNRATED: Book = {
+  asin: 'B0GALLERY9',
+  title: 'Out Next Month',
+  author: 'Rhea Stone',
+  colour: '#475569',
+  view: {
+    status: 'ready',
+    rating: rating(0, 0),
+    details: details(['Fantasy', 'Fiction'], 2026),
+  },
+}
+
 /** A cover served from Amazon's `/images/I/` path, as the extension finds covers; drawn, not fetched. */
 function cover(book: Book): string {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="${book.colour}"/><text x="50" y="54" fill="#fff" font-family="system-ui" font-size="9" text-anchor="middle">${book.title.split(' ').slice(0, 3).join(' ')}</text></svg>`
@@ -322,7 +335,7 @@ const FILTER_PREFS = {
 
 const draw: Record<SceneId, () => Promise<void>> = {
   async cards() {
-    drawCards(BOOKS, 'results')
+    drawCards([...BOOKS, UNRATED], 'results')
   },
   async carousel() {
     drawCards(
