@@ -35,6 +35,7 @@
   border-color: #e0b0a6;
 }
 .agx-badge.agx-wait,
+.agx-badge.agx-unrated,
 .agx-badge.agx-none {
   opacity: 0.6;
   font-weight: 400;

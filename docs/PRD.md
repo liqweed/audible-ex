@@ -47,7 +47,8 @@ catalogue goes unchecked.
 - Hover shows the Goodreads overview (up to 600 characters) with genres, year
   and rating count.
 - A book Goodreads doesn't have shows "GR: not found", linking to a Goodreads
-  search. A lookup that failed shows "GR: retry".
+  search. A book it has but nobody has rated yet shows "GR: no ratings yet",
+  linking to the book. A lookup that failed shows "GR: retry".
 - Cards load as they scroll near the viewport; nothing is looked up for cards
   the user never sees.
 - All 10 marketplaces: `.com .co.uk .ca .com.au .in .de .fr .it .es .co.jp`.

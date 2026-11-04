@@ -78,10 +78,10 @@ export function ratingLine(
   { rating, details }: WithOverview,
   showYear = true
 ): string {
-  const parts = [
-    `★ ${rating.r.toFixed(2)}`,
-    `${rating.n.toLocaleString()} ratings`,
-  ]
+  const parts =
+    rating.n === 0
+      ? ['No ratings yet']
+      : [`★ ${rating.r.toFixed(2)}`, `${rating.n.toLocaleString()} ratings`]
   // 0 is "Goodreads has no date"; a negative year is a real one.
   if (showYear && details.year) parts.push(`first published ${details.year}`)
   return parts.join(' · ') + (rating.loose ? ' (approximate match)' : '')

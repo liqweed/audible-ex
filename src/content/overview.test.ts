@@ -77,6 +77,12 @@ describe('ratingLine', () => {
     )
   })
 
+  test('says there are no ratings yet instead of a zero rating', () => {
+    expect(ratingLine(view({}, { r: 0, n: 0 }) as never)).toBe(
+      'No ratings yet · first published 2019'
+    )
+  })
+
   test('says so when the match is approximate', () => {
     expect(ratingLine(view({}, { loose: true }) as never)).toEndWith(
       ' (approximate match)'
