@@ -94,6 +94,9 @@ nobody can tune well).
 
 ## D10 — Changelog from change notes, release automation later (2026-10-29)
 
+Superseded in part by D26: the repository is public, and the release App and
+workflow are set up.
+
 The changelog is kept with Jig's changelog skill, in Keep a Changelog format:
 each pull request a user would notice adds a note in `changes/`, and the release
 step writes the notes into `CHANGELOG.md` and moves the version in
@@ -449,3 +452,29 @@ The panel opens the options page through a one-off `OpenOptions` message to the
 background, which accepts it from content scripts. A link would need
 `options.html` in `web_accessible_resources` (rejected in D19), and
 `runtime.openOptionsPage` is not available to content scripts.
+
+## D26 — Merging releases: the changelog workflow pushes the release commit and tags it (2026-11-04)
+
+The repository is public, so rulesets and protected environments are available
+on GitHub Free and D10's reason for cutting releases by hand is gone.
+`.github/workflows/changelog.yml` (Jig's template, pinned to Jig v0.129.2) runs
+the branch check on every pull request; after each push to `main` it writes the
+waiting notes into `CHANGELOG.md` and moves the version, and a GitHub App,
+`audible-ex-release` (Contents write only, no Workflows permission), pushes that
+commit straight onto `main` (`release.push: direct`). Once the commit's required
+check (`Extension — check, build`, `ci.required_checks`) passes, the workflow
+tags it `vX.Y.Z` through the API as the App, and the tag starts `release.yml`
+(D20), which publishes without an approval step (D21). The App's tag and push
+start other workflows; the workflow's own token would not.
+
+The App's key is the secret `CHANGELOG_APP_PRIVATE_KEY` of the environment
+`changelog-release`, which only `main` may deploy to, and only the two jobs that
+run nothing from the repository use it. The `main` ruleset lets the App past
+(bypass `always`) so it can push without a pull request; a second ruleset blocks
+force pushes and deletion of `main` with no bypass for it. The `release tags`
+ruleset lets the App create `v*` tags.
+
+Rejected: `release.push: pull-request` (a release pull request a person merges):
+one more step per release for a review the change notes already had, against
+D21. Revisit if a release ever needs holding back; staged publishing (PLAN.md,
+Later) is the store-side alternative.

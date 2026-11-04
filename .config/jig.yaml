@@ -25,10 +25,12 @@ issue_tracker:
   # repository.
   taxonomy: label-taxonomy.yaml
 changelog:
-  # Change notes per pull request (changes/README.md); the release step writes
-  # them into CHANGELOG.md. The version is package.json's, which WXT copies into
-  # the manifest. The release App that would cut the release commit is not set
-  # up yet (DECISIONS.md D10); a tag publishes the release (D20, release.yml).
+  # Change notes per pull request (changes/README.md). After each merge to main,
+  # .github/workflows/changelog.yml writes them into CHANGELOG.md, moves the
+  # version and pushes the release commit as the release App (release.push:
+  # direct, the default); once that commit's required checks pass it tags
+  # vX.Y.Z, and the tag publishes the release (D10, D20, D26, release.yml).
+  # The version is package.json's, which WXT copies into the manifest.
   file: CHANGELOG.md
   format: keep-a-changelog
   # What ships in the extension: a change here needs a note that asks for a

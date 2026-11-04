@@ -145,3 +145,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The extension is called **Book Ratings for Audible** in Chrome's toolbar and
   extensions page, in place of the working name `audible-ex`. Its description no
   longer mentions filters, which haven't shipped yet.
+
+[Unreleased]: https://github.com/liqweed/audible-ex/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/liqweed/audible-ex/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/liqweed/audible-ex/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/liqweed/audible-ex/releases/tag/v0.1.0
