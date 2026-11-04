@@ -8,6 +8,10 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+# Bun's bun.lock is the lockfile; another package manager's (an `npm install` by a tool) is never committed
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
 .output
 stats.html
 stats-*.json
