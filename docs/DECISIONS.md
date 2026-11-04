@@ -534,3 +534,36 @@ costs Goodreads nothing, so it shows at once instead of waiting for the
 catalogue's price batch; only uncached books wait for the price. Rejected: sending the thresholds to the
 background (it would still need the cards' placement and peeking), and cancelling
 queued Goodreads jobs (the queue's work is shared between tabs).
+
+## D29 — Firefox on addons.mozilla.org (2026-11-04)
+
+Every release has built a Firefox zip and a source archive since D20, but nothing
+submitted them. The Firefox build now carries what AMO needs, and the first
+submission is by hand (`docs/AMO-LISTING.md`).
+
+- **Add-on ID** `audible-ex@liqweed.github.io`: permanent, since AMO and every
+  installed copy know the add-on by it, and Firefox's sync storage, where the prefs
+  live, needs a fixed one.
+- **Data collection:** `required: ['websiteContent']`. Since 3 November 2025 new
+  add-ons must declare what leaves the browser, and Mozilla counts anything handled
+  outside the add-on or the browser. The titles, authors and ASINs read from Audible
+  pages go to Goodreads and Audible's catalogue. That is website content, as the
+  Chrome listing already says; "none" would be wrong. It is required, not optional:
+  the extension does nothing without it.
+- **Firefox 140 and Android 142** at least, where Firefox's own consent prompt
+  exists; older versions would need a consent screen of our own.
+- **MV2**, WXT's default for Firefox: a persistent background page, so the port and
+  the cache behave as they do under Chrome's worker without its lifetime limits.
+- **Desktop only** at first; Android is offered once someone has tried Audible's
+  mobile pages with it.
+
+The build is reproducible: `bun run zip:firefox` on macOS gave the v0.6.0 release's
+Firefox zip (built on Linux in CI) file for file, so a reviewer can rebuild the
+upload from the source archive with the steps in README.md. `web-ext lint` passes
+with four warnings, all `innerHTML` inside React DOM.
+
+Later: `release.yml` submits each release to AMO beside the Chrome Web Store, with
+an AMO API key in its own environment, as D20 does for Chrome. WXT's `wxt submit`
+(`publish-browser-extension`, already installed with WXT) can do the upload.
+Rejected for now: MV3 for Firefox (event pages instead of a persistent page, for no
+gain to users) and listing on Android untested.

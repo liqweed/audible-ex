@@ -18,6 +18,8 @@ D17); since v0.2.0 every release is uploaded and submitted by `release.yml`
 
 Later releases upload a new package to this item; they never create a new one.
 
+Firefox's listing on addons.mozilla.org is in [AMO-LISTING.md](AMO-LISTING.md).
+
 ## Store listing tab
 
 **Name** (from the manifest): Book Ratings for Audible
@@ -43,7 +45,7 @@ Filter and highlight
 • Hide or dim books below a minimum rating, with too few ratings, outside a range of first-published years, above a price limit you set for each marketplace, or carrying a genre you don't read. Each filter hides the books that fail it or only dims them, your choice.
 • Highlight the genres you're looking for: their books' covers glow. Highlighting never hides a book.
 • Hover a genre under any book to hide, show or highlight it in one step.
-• No book is hidden before its rating arrives, and books in carousels are only dimmed, so pages keep their layout.
+• No book is hidden for information that hasn't arrived, and books in carousels are only dimmed, so pages keep their layout.
 
 A small panel on Audible pages shows how far the lookups have got and holds the filters. Drag it to any corner, collapse it to a pill that counts the books it hides or dims, or hide it on a site.
 

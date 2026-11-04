@@ -42,6 +42,22 @@ bun run build     # .output/chrome-mv3, load it as an unpacked extension
 
 See [AGENTS.md](AGENTS.md) for the current state.
 
+### Building the store packages from source
+
+These steps rebuild the packages a release uploads, file for file. Add-on
+reviewers can use them on the source archive (`audible-ex-<version>-sources.zip`).
+
+1. Install [Bun](https://bun.sh) 1.4.0 and Node.js 24, the versions in
+   `mise.toml`. With [mise](https://mise.jdx.dev), `mise install` does both.
+2. `bun install --frozen-lockfile` installs the dependencies at the versions in
+   `bun.lock`.
+3. `bun run zip:firefox` writes `.output/audible-ex-<version>-firefox.zip`, the
+   Firefox package (`.output/firefox-mv2` unpacked). `bun run zip` writes the
+   Chrome package.
+
+The build bundles and minifies the code with WXT and Vite; nothing is fetched at
+run time.
+
 ## Privacy
 
 No server, no account, no analytics. The extension reads Audible pages

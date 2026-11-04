@@ -634,11 +634,15 @@ by `capture-fixtures.ts import`. What each fixture is, and the steps, are in
 - Content script `matches`: the 10 `https://www.audible.<tld>/*` sites; `all_frames: false`.
 - No `tabs`, `scripting` or `<all_urls>`. The port's `sender.tab.id` identifies the tab.
 - No remote code; everything is bundled.
+- Firefox only (`browser_specific_settings`, DECISIONS.md D29): the add-on ID
+  `audible-ex@liqweed.github.io`, Firefox 140 (Android 142) at least, and
+  `data_collection_permissions.required: ['websiteContent']`, Firefox's own consent for what the
+  extension sends (below). The Firefox build is MV2, WXT's default for Firefox.
 
 Privacy. The extension reads Audible page content, including Library and Wish List, and sends book
 titles and authors to Goodreads to look up ratings. The ASINs of the books on the page go to Audible's own catalogue API
 (`api.audible.<tld>`, the marketplace being browsed) to get each book's title and author. Nothing else leaves the browser: no
-analytics, no server, no account. No request to Goodreads or Audible carries cookies. The store listing's privacy disclosures and the privacy policy say exactly that.
+analytics, no server, no account. No request to Goodreads or Audible carries cookies. The store listings' privacy disclosures (`docs/STORE-LISTING.md`, `docs/AMO-LISTING.md`), Firefox's data-collection declaration and the privacy policy say exactly that.
 
 Publishing constraints that shape the code:
 
