@@ -152,14 +152,26 @@ test('badges, labels and the overview appear on audible.co.uk; store screenshots
   await expect(bar).toHaveAttribute('aria-valuenow', /^[1-9]\d*$/)
   await page.screenshot({ path: join(STORE, 'panel-progress.png') })
 
+  // A badge redrawn when its details arrive closes an open overview, so hover once they are all in.
+  const details = page.getByRole('progressbar', {
+    name: 'Genres and details read',
+  })
+  await expect
+    .poll(
+      async () =>
+        (await details.getAttribute('aria-valuenow')) ===
+        (await details.getAttribute('aria-valuemax')),
+      { timeout: 60_000 }
+    )
+    .toBe(true)
   await ready.first().hover()
-  await expect(page.locator('.agx-overview-host')).toBeAttached()
-  await page.waitForTimeout(500)
+  await expect(page.locator('.agx-overview-host [role=tooltip]')).toBeVisible()
+  await page.waitForTimeout(300)
   await page.screenshot({ path: join(STORE, 'screenshot-2-overview.png') })
   await page.close()
 })
 
-test('filters dim books and a highlighted genre outlines them; store screenshot', async () => {
+test('filters dim books and a highlighted genre makes covers glow; store screenshot', async () => {
   // Dim rather than hide, so the screenshot shows what the filters do, with a minimum rating most
   // books on the page reach, so it shows passing, dimmed and highlighted books together.
   const filters = {

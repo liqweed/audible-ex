@@ -35,13 +35,13 @@ Book Ratings for Audible adds each book's Goodreads rating to the Audible store:
 
 Every book card gets:
 • The Goodreads rating and number of ratings, such as ★ 4.21 (12k), in green for highly rated books and red for poorly rated ones. It links to the book on Goodreads.
-• The year the book was first published, and up to three Goodreads genres.
+• The year the book was first published, and up to four Goodreads genres.
 • Goodreads' overview of the book when you hover over the rating.
 
 Filter and highlight
 • Hide or dim books below a minimum rating, with too few ratings, outside a range of first-published years, above a price limit you set for each marketplace, or carrying a genre you don't read. Each filter hides the books that fail it or only dims them, your choice.
-• Highlight the genres you're looking for: their books get an outline. Highlighting never hides a book.
-• Hover a genre under any book to hide or highlight it in one step.
+• Highlight the genres you're looking for: their books' covers glow. Highlighting never hides a book.
+• Hover a genre under any book to hide, show or highlight it in one step.
 • No book is hidden before its rating arrives, and books in carousels are only dimmed, so pages keep their layout.
 
 A small panel on Audible pages shows how far the lookups have got and holds the filters. Drag it to any corner, collapse it to a pill that counts the books it hides or dims, or hide it on a site.
