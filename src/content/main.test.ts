@@ -116,7 +116,7 @@ describe('looking up what comes into view', () => {
     expect(badge.href).toBe(`https://www.goodreads.com/book/show/${A}`)
     expect(find(A).querySelector('.agx-year')).toBeNull()
     const details = {
-      genres: ['Fantasy', 'Audiobook', 'Epic', 'Magic', 'Dragons'],
+      genres: ['Fantasy', 'Audiobook', 'Epic', 'Magic', 'Dragons', 'Elves'],
       year: 1996,
     }
     world.port.receive(ready(A, { r: 4.21, n: 12_345 }, details))
@@ -125,7 +125,7 @@ describe('looking up what comes into view', () => {
     expect(find(A).querySelector('.agx-year')?.textContent).toBe('1996')
     expect(
       [...find(A).querySelectorAll('.agx-label')].map(l => l.textContent)
-    ).toEqual(['Fantasy', 'Epic', 'Magic'])
+    ).toEqual(['Fantasy', 'Epic', 'Magic', 'Dragons'])
   })
 
   test('keeps the details of the book for the overview', () => {

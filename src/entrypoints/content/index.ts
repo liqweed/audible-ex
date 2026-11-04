@@ -1,5 +1,6 @@
 import { browser } from 'wxt/browser'
 import { defineContentScript } from 'wxt/utils/define-content-script'
+import logoSvg from '@/assets/brand/logo-small.svg?raw'
 import { PORT_NAME } from '@/background/port'
 import css from '@/content/badges.css?inline'
 import { runWhileEnabled } from '@/content/lifecycle'
@@ -8,6 +9,10 @@ import overviewCss from '@/content/overview.css?inline'
 import { timeout } from '@/content/schedule'
 import { contentScriptMatches } from '@/core/regions'
 import { readPrefs, updateFilters, watchPrefs } from '@/storage/prefs'
+
+// The logo for the popovers' title rows, as the panel shows it: bundled as text, so no
+// web-accessible resource is needed.
+const LOGO = `data:image/svg+xml,${encodeURIComponent(logoSvg)}`
 
 // Badges and the hover overview on Audible cards (ARCHITECTURE.md §6). The panel is its own script (panel.content).
 export default defineContentScript({
@@ -38,6 +43,7 @@ export default defineContentScript({
           },
           css,
           overviewCss,
+          logo: LOGO,
         }),
     })
     // After an extension reload this script is orphaned: stop observing and reconnecting.

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { loadBody } from '../../test/content-harness'
-import { cardFor, placeAfterTitle, titleOf } from './cards'
+import { cardFor, coverOf, placeAfterTitle, titleOf } from './cards'
 
 const A = 'B000000001'
 const B = 'B000000002'
@@ -71,6 +71,26 @@ describe('titleOf', () => {
   test('is empty when the card says nothing', () => {
     loadBody(`<div><a href="/pd/T/${A}"><img></a></div>`)
     expect(titleOf(document.body.firstElementChild as Element, A)).toBe('')
+  })
+})
+
+describe('coverOf', () => {
+  test('is the first catalogue image, past icons and popovers', () => {
+    loadBody(`<div id="card">
+      <div class="bc-popover"><img id="pop" src="https://m.media-amazon.com/images/I/pop.jpg"></div>
+      <img id="icon" src="/static/icon.svg">
+      <img id="cover" src="https://m.media-amazon.com/images/I/51abc.jpg">
+      <img id="other" src="https://m.media-amazon.com/images/I/61def.jpg">
+    </div>`)
+    expect(coverOf(document.getElementById('card') as Element)?.id).toBe(
+      'cover'
+    )
+  })
+
+  test('falls back to the first image, and to nothing', () => {
+    loadBody(`<div id="a"><img id="x" src="/x.png"></div><div id="b"></div>`)
+    expect(coverOf(document.getElementById('a') as Element)?.id).toBe('x')
+    expect(coverOf(document.getElementById('b') as Element)).toBeUndefined()
   })
 })
 

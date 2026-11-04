@@ -1,40 +1,65 @@
-/* The hover overview's styles, ported from the userscript's `.agr-tip`, and the label popover's
-   (`.pop`). Imported as a string (`?inline`) and put inside each one's shadow root (overview.ts,
-   labels.ts), so they never reach the page. */
+/* The hover overview (`.tip`) and the label popover (`.pop`). Imported as a string (`?inline`) and
+   put inside each one's shadow root (overview.ts, labels.ts), so they never reach the page. They
+   look like the floating panel (Tailwind's slate palette, white, an 8 px radius and its large
+   shadow) and open with the extension's logo, so the reader can tell where they come from. */
 :host {
   /* Nothing is inherited from Audible's body, and the host takes no room in its layout. */
   all: initial;
 }
-.tip {
+.tip,
+.pop {
   position: fixed;
   z-index: 2147483647;
-  max-width: 420px;
-  max-height: 60vh;
-  overflow: hidden;
   box-sizing: border-box;
   padding: 10px 12px;
   border-radius: 8px;
-  background: #fffdf8;
-  color: #2b2118;
-  border: 1px solid #d8d0c0;
-  box-shadow: 0 6px 24px rgb(0 0 0 / 0.18);
+  background: #fff;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  box-shadow:
+    0 10px 15px -3px rgb(0 0 0 / 0.1),
+    0 4px 6px -4px rgb(0 0 0 / 0.1);
   font:
-    13px / 1.45 system-ui,
+    13px / 1.45 ui-sans-serif,
+    system-ui,
     sans-serif;
+}
+
+/* The title row: the logo, then the title in bold. */
+.head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.head b {
+  font-size: 13px;
+  font-weight: 600;
+}
+.logo {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #fff;
+  box-shadow: 0 0 0 1px #cbd5e1;
+}
+.meta {
+  display: block;
+  color: #475569;
+  font-size: 12px;
+}
+
+.tip {
+  max-width: 420px;
+  max-height: 60vh;
+  overflow: hidden;
   white-space: pre-line;
   /* The box never takes the pointer, so moving onto it cannot end the hover. */
   pointer-events: none;
 }
-.tip b {
-  display: block;
-  margin-bottom: 4px;
-  font-size: 13px;
-}
 .tip .meta {
-  display: block;
   margin-bottom: 6px;
-  opacity: 0.7;
-  font-size: 12px;
 }
 .tip .fade {
   position: absolute;
@@ -42,52 +67,36 @@
   right: 0;
   bottom: 0;
   height: 28px;
-  background: linear-gradient(transparent, #fffdf8);
+  background: linear-gradient(transparent, #fff);
 }
 
 /* The label popover: unlike the overview it takes the pointer, so it can be clicked. */
 .pop {
-  position: fixed;
-  z-index: 2147483647;
-  box-sizing: border-box;
   max-width: 280px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: #fffdf8;
-  color: #2b2118;
-  border: 1px solid #d8d0c0;
-  box-shadow: 0 6px 24px rgb(0 0 0 / 0.18);
-  font:
-    13px / 1.45 system-ui,
-    sans-serif;
   pointer-events: auto;
 }
-.pop b {
-  display: block;
-}
 .pop .meta {
-  display: block;
   margin-bottom: 8px;
-  opacity: 0.7;
-  font-size: 12px;
 }
 .pop .status {
   display: block;
   margin: 4px 0 8px;
-  color: #2f6b2a;
+  color: #047857;
+  font-size: 12px;
 }
 .pop .status.error {
-  color: #a3321f;
+  color: #b91c1c;
 }
 .pop button {
   display: block;
   width: 100%;
   padding: 5px 10px;
   border-radius: 6px;
-  border: 1px solid #c9bfa9;
-  background: #f4f1ea;
-  color: #382110;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #0f172a;
   font: inherit;
+  font-size: 12px;
   text-align: left;
   cursor: pointer;
 }
@@ -96,7 +105,11 @@
 }
 .pop button:hover,
 .pop button:focus-visible {
-  background: #e9e3d6;
+  background: #f1f5f9;
+}
+.pop button:focus-visible {
+  outline: 2px solid #818cf8;
+  outline-offset: 1px;
 }
 .pop button:disabled {
   opacity: 0.6;

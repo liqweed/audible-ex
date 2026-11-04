@@ -12,7 +12,7 @@
 import { hasLabel } from '../core/filter'
 import { LABEL } from './badges'
 import { LABEL_HOST } from './cards'
-import { placeOverview } from './overview'
+import { placeOverview, popoverHead } from './overview'
 import type { Schedule } from './schedule'
 
 /** The pointer rests on a label this long before the popover appears, so passing over one does not. */
@@ -32,6 +32,8 @@ export interface LabelPopoverOptions {
   doc: Document
   /** The popover's stylesheet text, applied inside the shadow root only. */
   css: string
+  /** The extension's logo as an image URL, shown in the title row. */
+  logo?: string
   schedule: Schedule
   /** The labels being filtered on now. */
   hiddenLabels(): readonly string[]
@@ -117,7 +119,7 @@ export function createLabelPopover(options: LabelPopoverOptions): LabelPopover {
     next.className = 'pop'
     next.setAttribute('role', 'dialog')
     next.setAttribute('aria-label', `Filter on ${label}`)
-    next.append(text('b', '', label))
+    next.append(popoverHead(doc, label, options.logo))
     const books = options.booksWith(label)
     if (books > 0) {
       next.append(

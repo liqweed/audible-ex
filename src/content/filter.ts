@@ -3,7 +3,7 @@
  * is `src/core/filter.ts`'s; this module reads the book store and the settings, sets `data-agx-filter`
  * on each card (`hide` or `dim`, with CSS in badges.css) and counts the cards that are hidden, which
  * the panel's `12 hidden · Show` reports. A card whose book carries a highlighted label gets
- * `data-agx-highlight`, whatever its verdict. It touches only those attributes and the label pills'
+ * `data-agx-highlight`, and its cover `data-agx-shine`, whatever its verdict. It touches only those attributes and the label pills'
  * classes.
  *
  * Everything that can change a verdict ends in `refresh`: a book arriving, a card appearing, the
@@ -20,11 +20,13 @@ import {
 import type { RegionCode } from '../core/regions'
 import { LABEL } from './badges'
 import type { BookView } from './books'
-import { isInCarousel } from './cards'
+import { coverOf, isInCarousel } from './cards'
 
 export const ATTRIBUTE = 'data-agx-filter'
-/** On a card whose book carries a label the user highlights (outlined by badges.css). */
+/** On a card whose book carries a label the user highlights. */
 export const HIGHLIGHT = 'data-agx-highlight'
+/** On that card's cover image, which badges.css makes glow. */
+export const SHINE = 'data-agx-shine'
 /** On a label pill whose genre the user hides (struck through by badges.css). */
 export const FILTERED = 'agx-filtered'
 /** On a label pill whose genre the user highlights. */
@@ -149,8 +151,15 @@ export function createFilterApplier(options: {
           card.setAttribute(ATTRIBUTE, verdict)
         if (marked) {
           if (!card.hasAttribute(HIGHLIGHT)) card.setAttribute(HIGHLIGHT, '')
+          // Checked on every pass: Audible may swap the image of a card it lazy-loads.
+          const cover = coverOf(card)
+          if (cover && !cover.hasAttribute(SHINE)) cover.setAttribute(SHINE, '')
           highlighted++
-        } else card.removeAttribute(HIGHLIGHT)
+        } else if (card.hasAttribute(HIGHLIGHT)) {
+          card.removeAttribute(HIGHLIGHT)
+          for (const img of card.querySelectorAll(`[${SHINE}]`))
+            img.removeAttribute(SHINE)
+        }
         if (judged === 'hide' && !slide) hidden++
         else if (judged !== 'show') dimmed++
       }
@@ -178,10 +187,11 @@ export function createFilterApplier(options: {
     refresh,
     remove() {
       for (const el of options.doc.querySelectorAll(
-        `[${ATTRIBUTE}], [${HIGHLIGHT}]`
+        `[${ATTRIBUTE}], [${HIGHLIGHT}], [${SHINE}]`
       )) {
         el.removeAttribute(ATTRIBUTE)
         el.removeAttribute(HIGHLIGHT)
+        el.removeAttribute(SHINE)
       }
       for (const pill of options.doc.querySelectorAll(
         `.${FILTERED}, .${HIGHLIGHTED}`

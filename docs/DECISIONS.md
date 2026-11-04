@@ -438,7 +438,8 @@ Highlighted labels (`filters.highlightLabels`) live beside the hidden labels
 because the panel and the label popover edit them together, but they are not a
 filter: they never change a verdict and apply with the filters' switch off. A
 label is in one list at most; adding it to one removes it from the other.
-Highlighted cards get `data-agx-highlight`, an outline drawn inside the card.
+Highlighted cards get `data-agx-highlight`, and their cover image `data-agx-shine`, a soft amber
+glow (first an outline of the whole card, which drew too much attention).
 
 The panel's explanations are a hand-written fixed-position popover (`InfoTip`)
 with Lucide's `Info` icon, not `@radix-ui/react-tooltip`, already a dependency:

@@ -293,7 +293,10 @@ scanner), so Audible's CSS can't reach it. The host and its root are made by han
 show; the panel is another script with a root of its own.
 
 **Label popover.** `src/content/labels.ts`, plain DOM, in a shadow root of its own (`agx-label-host`,
-also ignored by the scanner) that uses the overview's stylesheet. Each genre label after a badge is a
+also ignored by the scanner) that uses the overview's stylesheet. Both popovers look like the
+panel (white, Tailwind's slate palette, its radius and shadow) and open with a title row holding the
+extension's logo (`popoverHead`; the small logo, bundled as text and passed in as a data URL, as the
+panel does), so a reader can tell the box is the extension's and not Audible's. Each genre label after a badge is a
 focusable pill. Resting the pointer on one for 200 ms (or focusing it; Enter opens the popover and
 moves focus into it, Escape closes it) opens a popover with the label, how many books on the page
 carry it, and two buttons: "Hide books labelled “X”" and "Highlight books labelled “X”", or one,
@@ -417,9 +420,11 @@ the library's own rows are in none; the search, category and home pages mix both
 
 The applier (`src/content/filter.ts`) sets `data-agx-filter="hide|dim"` on each card and counts the
 hidden ones, and the dimmed ones apart (failing only dimming filters, or a failing carousel slide),
-for the pill. A card whose book is highlighted gets `data-agx-highlight`, which `badges.css` draws as
-an amber outline inside the card (so a carousel cannot clip it and nothing moves); the applier
-counts those too. Everything that can change a verdict (a book arriving, a card being attached, the
+for the pill. A card whose book is highlighted gets `data-agx-highlight`, and its cover image
+(`coverOf`, `src/content/cards.ts`: the first image served from Amazon's `/images/I/`, else the
+first image) gets `data-agx-shine`, which `badges.css` draws as a soft amber glow around the cover
+(a box shadow, so nothing moves; the card itself is unstyled). The cover is checked on every pass,
+since Audible may swap a lazy-loaded image. The applier counts highlighted cards too. Everything that can change a verdict (a book arriving, a card being attached, the
 settings, peeking) ends in one pass over the page's cards, which is a few hundred. The settings come
 from `sync:prefs` through a watcher, so every open tab applies a change at once. Until the settings
 have been read nothing is filtered. The panel reads `hidden` and `peek` from the `PanelHandle` and
@@ -456,7 +461,8 @@ filter applies until the user sets a bound. The Schema rejects fractional or zer
 reversed ranges. Version 3 → 4 adds `maxPrice: {}`, preserving every existing choice;
 all price limits start off. Each optional region value must be finite and nonnegative.
 Version 4 → 5 adds `display` with `labels: 3`, `year: true`, `overview: true`, preserving the
-existing appearance. Label count must be a whole number from 0 to 10.
+existing appearance. The default label count is 4 since 0.5; a stored count, including the 3 that
+version 5 wrote, is kept. Label count must be a whole number from 0 to 10.
 Version 5 → 6 replaces the single `mode` with `modes`, one miss mode per filter, each set to the old
 `mode`, and adds `highlightLabels: []`. The same upgrade (`upgradeModes`) runs on every decode and on
 importing a backup, so a record or backup written before v6 keeps the user's choice; an invalid old
@@ -484,7 +490,7 @@ lookups; turning it on starts the script again.
     },
     maxPrice: {},            // optional ceilings by region, e.g. { UK: 10, US: 20 }
   },
-  display: { labels: 3, year: true, overview: true },
+  display: { labels: 4, year: true, overview: true },
 }
 ```
 

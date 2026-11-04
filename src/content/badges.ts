@@ -9,7 +9,7 @@ import { type BookView, hasOverview } from './books'
 import { POPOVER, placeAfterTitle } from './cards'
 
 /** Genre labels shown after the badge, and the Goodreads shelves that say nothing about a book. */
-export const MAX_LABELS = 3
+export const MAX_LABELS: number = DEFAULT_DISPLAY.labels
 export const SKIP_GENRES: ReadonlySet<string> = new Set([
   'audiobook',
   'audiobooks',

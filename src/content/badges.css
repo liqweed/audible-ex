@@ -99,17 +99,18 @@
   text-decoration: line-through;
 }
 
-/* Highlighted labels (filter.ts): an outline drawn inside the card, so carousels cannot clip it and
-   nothing moves. A highlight never hides a card; a dimmed card keeps its outline, faded. */
-[data-agx-highlight] {
-  /* biome-ignore lint/complexity/noImportantStyles: Audible's own focus and card styles must not remove it */
-  outline: 2px solid #d99a2b !important;
-  outline-offset: -2px;
-  border-radius: 6px;
+/* Highlighted labels (filter.ts): the cover of a highlighted book glows, a soft amber light around
+   the image with a hairline at its edge, the panel's amber. The card itself is untouched, so
+   nothing moves; a highlight never hides a card, and a dimmed card's cover glows faded. */
+img[data-agx-shine] {
+  box-shadow:
+    0 0 0 1px rgb(251 191 36 / 0.9),
+    0 0 10px 2px rgb(251 191 36 / 0.65),
+    0 0 22px 6px rgb(251 191 36 / 0.3);
 }
 .agx-label.agx-highlighted {
-  background: #fdf0d5;
-  border-color: #e2b768;
-  color: #7a4d00;
+  background: #fef3c7;
+  border-color: #fcd34d;
+  color: #78350f;
   font-weight: 600;
 }

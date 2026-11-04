@@ -67,6 +67,8 @@ export interface ContentDeps {
   css: string
   /** The hover overview's stylesheet text; it goes inside the overview's shadow root. */
   overviewCss: string
+  /** The extension's logo as an image URL, for the popovers' title rows. */
+  logo?: string
   now?: () => number
 }
 
@@ -247,6 +249,7 @@ export function startContent(deps: ContentDeps): Content | undefined {
   const overview = createOverview({
     doc,
     css: deps.overviewCss,
+    logo: deps.logo,
     enabled: () => display.overview,
     showYear: () => display.year,
     viewOf: badge => books.get((badge as HTMLElement).dataset.asin ?? ''),
@@ -295,6 +298,7 @@ export function startContent(deps: ContentDeps): Content | undefined {
   const labels = createLabelPopover({
     doc,
     css: deps.overviewCss,
+    logo: deps.logo,
     schedule: deps.schedule,
     hiddenLabels: () => filter.settings().hiddenLabels,
     highlightLabels: () => filter.settings().highlightLabels,
