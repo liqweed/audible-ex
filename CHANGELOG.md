@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-04
+
+### Changed
+
+- Eager filtering: the extension no longer looks up what the filters already hide. A book over your price limit is hidden as soon as its price is known and is not looked up on Goodreads; a book under your minimum rating or number of ratings gets no Goodreads book page. This only applies to filters set to hide: dimmed books and books in carousels are looked up in full. If a held-back book would show again (you turn its filter off, set it to dim, or use Show), its lookup carries on.
+- The price limit now also applies to books not found on Goodreads: such a book gets the stricter of the price limit and the not-found setting.
+
 ## [0.5.1] - 2026-11-04
 
 ### Changed
@@ -181,7 +188,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   extensions page, in place of the working name `audible-ex`. Its description no
   longer mentions filters, which haven't shipped yet.
 
-[Unreleased]: https://github.com/liqweed/audible-ex/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/liqweed/audible-ex/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/liqweed/audible-ex/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/liqweed/audible-ex/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/liqweed/audible-ex/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/liqweed/audible-ex/compare/v0.3.0...v0.4.0
