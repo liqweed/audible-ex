@@ -218,10 +218,24 @@ test('filters dim books and a highlighted genre makes covers glow; store screens
   await setFilters({ ...filters, highlightLabels: [label] })
   await expect(page.locator('[data-agx-highlight]').first()).toBeAttached()
   await scrollToBooks(page)
+  await settled(page)
 
   await page.getByRole('button', { name: 'Filter settings' }).click()
   await page.waitForTimeout(500)
   await page.screenshot({ path: join(STORE, 'screenshot-3-filters.png') })
+
+  // A highlighted label's popover, with the panel collapsed to its pill.
+  await page.getByRole('button', { name: 'Collapse' }).click()
+  await page
+    .locator('.agx-label.agx-highlighted')
+    .filter({ visible: true })
+    .first()
+    .hover()
+  await expect(
+    page.getByRole('dialog', { name: `Filter on ${label}` })
+  ).toBeVisible()
+  await page.waitForTimeout(300)
+  await page.screenshot({ path: join(STORE, 'screenshot-4-popover.png') })
   await page.close()
 })
 
@@ -235,11 +249,11 @@ test('the cache inspector in the settings; store screenshot', async () => {
     .getByRole('heading', { name: 'Cached books' })
     .evaluate(h => window.scrollBy(0, h.getBoundingClientRect().top - 24))
   await page.waitForTimeout(300)
-  await page.screenshot({ path: join(STORE, 'screenshot-4-cache.png') })
+  await page.screenshot({ path: join(STORE, 'screenshot-5-cache.png') })
   await page.close()
 })
 
-test('the popup, framed for a store screenshot', async () => {
+test('the popup, framed for a picture', async () => {
   const page = await context.newPage()
   await page.goto(`chrome-extension://${extensionId}/popup.html`)
   await expect(page.getByText('Not affiliated with Audible')).toBeVisible()
@@ -253,7 +267,7 @@ test('the popup, framed for a store screenshot', async () => {
       main { background: white; border-radius: 12px; zoom: 1.6;
              box-shadow: 0 10px 30px rgb(0 0 0 / 0.15) }`,
   })
-  await page.screenshot({ path: join(STORE, 'screenshot-5-popup.png') })
+  await page.screenshot({ path: join(STORE, 'popup.png') })
   await page.close()
 })
 

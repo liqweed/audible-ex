@@ -5,15 +5,16 @@ they are reviewed like code and stay in step with the manifest and
 [PRIVACY.md](../PRIVACY.md). When a permission, host or data flow changes, change
 this file in the same pull request (AGENTS.md, "Change together").
 
-Release 0.1 is published **unlisted** (DECISIONS.md D17); it switches to public
-after a week of use without reported breakage.
+The listing is public. Release 0.1.0 was first published unlisted (DECISIONS.md
+D17); since v0.2.0 every release is uploaded and submitted by `release.yml`
+([Automated releases](#automated-releases)).
 
 | Item       | Value                                                                     |
 | ---------- | ------------------------------------------------------------------------- |
 | Item ID    | `kmmnfidbflcgfcbifjfakgnjppoflffo`                                        |
 | Store page | https://chromewebstore.google.com/detail/kmmnfidbflcgfcbifjfakgnjppoflffo |
 | Dashboard  | https://chrome.google.com/webstore/devconsole (the item, by its ID)       |
-| Submitted  | 0.1.0, 2026-11-02, unlisted; pending review                               |
+| Visibility | Public                                                                    |
 
 Later releases upload a new package to this item; they never create a new one.
 
@@ -83,8 +84,9 @@ Upload the screenshots in this order, which is the order of their file names:
 2. `screenshot-2-overview.png`: the overview on hovering a rating.
 3. `screenshot-3-filters.png`: the panel's filter settings, with books dimmed
    and a genre highlighted.
-4. `screenshot-4-cache.png`: the cache inspector in the settings.
-5. `screenshot-5-popup.png`: the toolbar popup.
+4. `screenshot-4-popover.png`: a highlighted genre's popover (Hide, Show or
+   Highlight), with the panel collapsed to its pill.
+5. `screenshot-5-cache.png`: the cache inspector in the settings.
 
 **Official URL:** none. **Homepage URL:** https://github.com/liqweed/audible-ex.
 **Support URL:** https://github.com/liqweed/audible-ex/issues.
@@ -125,11 +127,10 @@ use cases; not used or transferred for purposes unrelated to the single purpose;
 not used or transferred to determine creditworthiness or for lending.
 
 **Privacy policy URL:** https://github.com/liqweed/audible-ex/blob/main/PRIVACY.md
-(the repository must be public first).
 
 ## Distribution tab
 
-Free. Visibility: **Unlisted** for 0.1. Regions: all.
+Free. Visibility: **Public**. Regions: all.
 
 ## Assets
 
@@ -137,13 +138,13 @@ Free. Visibility: **Unlisted** for 0.1. Regions: all.
 bundled Chromium, checks badges on live `audible.com` and `audible.co.uk`, and
 writes the five screenshots and the promo tile to `.output/store/`. It sets the
 filters itself: off for the search and overview screenshots, and dimming, with
-the page's commonest genre highlighted, for the filters screenshot. It opens a
-browser window: Goodreads answers 403 to headless Chromium. Outside the US,
-`audible.com` serves its error page for search and book pages, so the `.com`
-check uses the home page and the screenshots come from `.co.uk`. Look at every
-image before uploading: the pages show whatever Audible lists that day. Each
-run starts with an empty cache, so runs in quick succession can meet Goodreads'
-rate limit; wait a few minutes between them.
+the page's commonest genre highlighted, for the filters and popover
+screenshots. It opens a browser window: Goodreads answers 403 to headless
+Chromium. Outside the US, `audible.com` serves its error page for search and
+book pages, so the `.com` check uses the home page and the screenshots come from
+`.co.uk`. Look at every image before uploading: the pages show whatever Audible
+lists that day. Each run starts with an empty cache, so runs in quick
+succession can meet Goodreads' rate limit; wait a few minutes between them.
 
 ## Verified CRX uploads
 
@@ -158,8 +159,8 @@ update from anyone who takes over the developer account without the key
 - **Public key:** `.config/cws-signing-key.pub.pem`; `bun crx` refuses a key
   that doesn't match it. SHA-256 of its DER form: `074fa5ca29271270bde909744381e3e55218fbfdd17da3df5209309cb574c1d3`.
 - **Opt-in:** the item → **Package** → **Verified CRX Uploads** → **Opt In**,
-  then paste the public key below. Status: not yet opted in; do it once 0.1.0
-  is approved, before the listing goes public.
+  then paste the public key below. Status: opted in; the store has accepted the
+  signed CRX of every release since v0.2.0.
 
 ```text
 -----BEGIN PUBLIC KEY-----
@@ -173,38 +174,46 @@ NQIDAQAB
 -----END PUBLIC KEY-----
 ```
 
-## Submitting a release
+## Updating the listing
+
+A release uploads the package only. When the description, the screenshots or
+the privacy answers in this file change, copy them into the dashboard by hand:
+
+1. Run `bun e2e` and look at every image in `.output/store/` (see
+   [Assets](#assets)).
+2. The item → **Store listing**: paste the description and replace the
+   screenshots, in the order listed under the graphic assets. The item →
+   **Privacy**: the single purpose, the justifications and the data usage.
+3. **Save draft**, then **Submit for review**: listing changes are reviewed
+   like a package.
+
+## Submitting a release by hand
+
+`release.yml` submits every release ([Automated releases](#automated-releases)).
+When it cannot, the same steps by hand:
 
 1. On an up-to-date `main` with the release commit tagged (`changes/README.md`),
    run `bun run build`, `bun e2e`, then `bun crx`, which signs the build with
    the key from 1Password; the upload is
-   `.output/audible-ex-<version>-chrome.crx`. (Before the opt-in, `bun zip`'s
-   `.output/audible-ex-<version>-chrome.zip` is accepted too.)
-2. First release only: register at
-   https://chrome.google.com/webstore/devconsole with a Google account that has
-   2-step verification, pay the one-time US$5 fee, verify the contact email,
-   and declare non-trader status (a free, non-commercial extension).
-3. Dashboard → **Items** → **New item** (later releases: the item → **Package**
-   → **Upload new package**), upload the package.
-4. Fill the three tabs from this file; upload the assets.
-5. **Submit for review.** After approval, install from the store link and check
+   `.output/audible-ex-<version>-chrome.crx`.
+2. The item → **Package** → **Upload new package**, upload the CRX.
+3. **Submit for review.** After approval, install from the store link and check
    badges on two marketplaces.
 
 ## Automated releases
 
-`.github/workflows/release.yml` does steps 1 and 3–5 of "Submitting a release"
-for every release after the first (DECISIONS.md D20). A person runs the release
+`.github/workflows/release.yml` does the steps of "Submitting a release by hand"
+for every release since v0.2.0 (DECISIONS.md D20). A person runs the release
 commit (`changes/README.md`) and pushes `vx.y.z`; nothing else is asked of
 them (DECISIONS.md D21). The run checks that the tag
 matches `package.json` and is on `main`, gates, builds, signs (`sign` job),
 uploads and submits (`publish` job) and attaches the zips to a GitHub release.
-The store then reviews it as usual; read the result in the dashboard. The
-upload carries the package only: when the description, the screenshots or the
-privacy answers here change, update them in the dashboard by hand.
+The store then reviews it as usual; read the result in the dashboard. It does
+not touch the listing ([Updating the listing](#updating-the-listing)).
 
-One-time setup, in this order (not yet done):
+One-time setup, in this order (done on 2026-11-03; kept to re-create it):
 
-1. **Opt in to Verified CRX uploads** (D18, after 0.1.0's first review). Put the
+1. **Opt in to Verified CRX uploads** (D18). Put the
    private key from 1Password into the repository's secret `CWS_SIGNING_KEY`,
    under the `release-signing` environment, not the repository's secrets.
 2. **Environments** (Settings → Environments): `release-signing` and
@@ -243,9 +252,6 @@ One-time setup, in this order (not yet done):
    Done on 2026-11-03: the service account is accepted by the store (it was
    added in the dashboard's Account tab) and the item reports `PUBLISHED`.
 
-Not verified against the live store: the upload itself (`X-Goog-Upload-Protocol:
-raw` with a CRX under API v2), the Workload Identity exchange from GitHub, and
-that Chrome's `--pack-extension` runs on the CI runner (it does on a Mac). Watch
-the first automated release and fix what it shows; the manual route above still
-works. A submission already in review makes the run stop with a message (cancel
-it in the dashboard, then re-run the job).
+It has released every version since v0.2.0; the first two v0.2.0 runs failed
+and were fixed in #59 and #60. A submission already in review makes the run
+stop with a message (cancel it in the dashboard, then re-run the job).
