@@ -80,38 +80,110 @@
 }
 .pop .status {
   display: block;
-  margin: 4px 0 8px;
+  margin: 6px 0 0;
   color: #047857;
   font-size: 12px;
 }
 .pop .status.error {
   color: #b91c1c;
 }
-.pop button {
-  display: block;
-  width: 100%;
-  padding: 5px 10px;
-  border-radius: 6px;
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Hide, show or highlight: radio buttons drawn as one bar, like the panel's choices. */
+.row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.choice {
+  display: flex;
+  margin: 0;
+  padding: 0;
   border: 1px solid #cbd5e1;
-  background: #fff;
-  color: #0f172a;
-  font: inherit;
+  border-radius: 4px;
   font-size: 12px;
-  text-align: left;
+  line-height: 18px;
+}
+.choice label {
+  position: relative;
+  padding: 1px 8px;
+  color: #475569;
   cursor: pointer;
+  user-select: none;
 }
-.pop button + button {
-  margin-top: 4px;
+.choice label:first-of-type {
+  border-radius: 3px 0 0 3px;
 }
-.pop button:hover,
-.pop button:focus-visible {
+.choice label:last-of-type {
+  border-radius: 0 3px 3px 0;
+}
+.choice label:hover {
   background: #f1f5f9;
 }
-.pop button:focus-visible {
+.choice label:has(:checked) {
+  background: #4f46e5;
+  color: #fff;
+}
+.choice label:has(:focus-visible) {
   outline: 2px solid #818cf8;
   outline-offset: 1px;
 }
-.pop button:disabled {
+.choice input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+}
+.choice:has(:disabled) {
   opacity: 0.6;
-  cursor: default;
+}
+
+/* The `i` that explains the choice, and the explanation it opens below the row. */
+.info {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid #cbd5e1;
+  border-radius: 9999px;
+  background: #fff;
+  color: #64748b;
+  font:
+    600 10px / 14px ui-sans-serif,
+    system-ui,
+    sans-serif;
+  cursor: help;
+}
+.info:hover,
+.info:focus-visible {
+  color: #0f172a;
+  border-color: #94a3b8;
+}
+.info:focus-visible {
+  outline: 2px solid #818cf8;
+  outline-offset: 1px;
+}
+.help {
+  display: block;
+  margin-top: 6px;
+  color: #475569;
+  font-size: 12px;
+}
+.help[hidden] {
+  display: none;
+}
+/* A line under the choice, such as "Filters are off". */
+.note {
+  display: block;
+  margin-top: 6px;
+  color: #475569;
+  font-size: 12px;
 }

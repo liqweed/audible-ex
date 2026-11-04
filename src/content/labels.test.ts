@@ -58,7 +58,18 @@ const popover = () =>
   document
     .querySelector('.agx-label-host')
     ?.shadowRoot?.querySelector('.pop') ?? null
-const button = () => popover()?.querySelector('button') as HTMLButtonElement
+/** The popover's radio button for `choice`: Hide, Show or Highlight. */
+const option = (choice: 'Hide' | 'Show' | 'Highlight') =>
+  [...(popover()?.querySelectorAll('.choice label') ?? [])]
+    .find(l => l.textContent === choice)
+    ?.querySelector('input') as HTMLInputElement
+const checked = () =>
+  (popover()?.querySelector('.choice input:checked') as HTMLInputElement)
+    ?.parentElement?.textContent
+const pick = async (choice: 'Hide' | 'Show' | 'Highlight') => {
+  option(choice).click()
+  await flush()
+}
 const hover = (el: Element) =>
   el.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }))
 /** The pointer reaches the popover: its events arrive at the document from the host. */
@@ -121,11 +132,34 @@ describe('hovering a label', () => {
     expect(popover()).not.toBeNull()
   })
 
-  test('names the label, how many books carry it, and offers to hide it', () => {
+  test('names the label, how many books carry it, and offers hide, show or highlight', () => {
     openOn(pills('Romance')[0] as Element)
     expect(popover()?.querySelector('b')?.textContent).toBe('Romance')
     expect(popover()?.textContent).toContain('2 books on this page')
-    expect(button().textContent).toBe('Hide books labelled “Romance”')
+    const group = popover()?.querySelector('fieldset.choice')
+    expect(group?.querySelector('legend')?.textContent).toBe(
+      'Books labelled “Romance”'
+    )
+    expect(
+      [...(group?.querySelectorAll('label') ?? [])].map(l => l.textContent)
+    ).toEqual(['Hide', 'Show', 'Highlight'])
+    expect(checked()).toBe('Show')
+  })
+
+  test('explains the choice behind its info button', () => {
+    openOn(pills('Romance')[0] as Element)
+    const info = popover()?.querySelector('button.info') as HTMLButtonElement
+    const help = popover()?.querySelector('.help') as HTMLElement
+    expect(info.getAttribute('aria-label')).toBe('About hide and highlight')
+    expect(help.hidden).toBe(true)
+    info.dispatchEvent(new Event('pointerenter'))
+    expect(help.hidden).toBe(false)
+    expect(info.getAttribute('aria-expanded')).toBe('true')
+    expect(help.textContent).toContain('Highlight makes their covers shine')
+    info.dispatchEvent(new Event('pointerleave'))
+    expect(help.hidden).toBe(true)
+    info.click()
+    expect(help.hidden).toBe(false)
   })
 
   test('says one book in the singular', () => {
@@ -176,11 +210,10 @@ describe('hovering a label', () => {
 describe('hiding a label from the popover', () => {
   test('saves it, says so, and marks the pills', async () => {
     openOn(pills('Romance')[0] as Element)
-    button().click()
-    await flush()
+    await pick('Hide')
     expect(filters.current.hiddenLabels).toEqual(['Romance'])
     expect(popover()?.textContent).toContain('Hiding books labelled “Romance”.')
-    expect(button().textContent).toBe('Stop hiding “Romance”')
+    expect(checked()).toBe('Hide')
     expect(
       pills('Romance').every(p => p.classList.contains('agx-filtered'))
     ).toBe(true)
@@ -188,19 +221,16 @@ describe('hiding a label from the popover', () => {
 
   test('hides the books that carry it', async () => {
     openOn(pills('Fantasy')[0] as Element)
-    button().click()
-    await flush()
+    await pick('Hide')
     const hidden = document.querySelectorAll('[data-agx-filter="hide"]')
     const dimmed = document.querySelectorAll('[data-agx-filter="dim"]')
     expect(hidden.length + dimmed.length).toBeGreaterThan(0)
   })
 
-  test('the same button undoes it', async () => {
+  test('Show undoes it', async () => {
     openOn(pills('Romance')[0] as Element)
-    button().click()
-    await flush()
-    button().click()
-    await flush()
+    await pick('Hide')
+    await pick('Show')
     expect(filters.current.hiddenLabels).toEqual([])
     expect(popover()?.textContent).toContain('No longer hiding “Romance”.')
     expect(document.querySelectorAll('.agx-filtered')).toHaveLength(0)
@@ -209,8 +239,7 @@ describe('hiding a label from the popover', () => {
   test('keeps the labels already hidden, and does not add one twice', async () => {
     filters.change({ ...FILTERS, hiddenLabels: ['Horror'] })
     openOn(pills('Romance')[0] as Element)
-    button().click()
-    await flush()
+    await pick('Hide')
     expect(filters.current.hiddenLabels).toEqual(['Horror', 'Romance'])
   })
 
@@ -218,10 +247,9 @@ describe('hiding a label from the popover', () => {
     filters.change({ ...FILTERS, enabled: false })
     openOn(pills('Romance')[0] as Element)
     expect(popover()?.textContent).toContain(
-      'Filters are off; hiding switches them on.'
+      'Filters are off; Hide switches them on.'
     )
-    button().click()
-    await flush()
+    await pick('Hide')
     expect(filters.current.enabled).toBe(true)
     expect(filters.current.hiddenLabels).toEqual(['Romance'])
   })
@@ -229,46 +257,35 @@ describe('hiding a label from the popover', () => {
   test('tells the user when it could not be saved, and allows another try', async () => {
     openOn(pills('Romance')[0] as Element)
     filters.failNextUpdate = true
-    button().click()
-    await flush()
+    await pick('Hide')
     expect(popover()?.querySelector('.status.error')?.textContent).toBe(
       'Could not save the filter. Try again.'
     )
     expect(filters.current.hiddenLabels).toEqual([])
-    expect(button().disabled).toBe(false)
-    expect(button().textContent).toBe('Hide books labelled “Romance”')
+    expect(option('Hide').disabled).toBe(false)
+    expect(checked()).toBe('Show')
 
-    button().click()
-    await flush()
+    await pick('Hide')
     expect(filters.current.hiddenLabels).toEqual(['Romance'])
   })
 })
 
 describe('a label that is already filtered', () => {
-  test('offers to stop hiding it', async () => {
+  test('shows Hide chosen, and Show stops hiding it', async () => {
     filters.change({ ...FILTERS, hiddenLabels: ['romance'] })
     openOn(pills('Romance')[0] as Element)
-    expect(button().textContent).toBe('Stop hiding “Romance”')
-    button().click()
-    await flush()
+    expect(checked()).toBe('Hide')
+    await pick('Show')
+    expect(popover()?.textContent).toContain('No longer hiding “Romance”.')
     expect(filters.current.hiddenLabels).toEqual([])
     expect(document.querySelectorAll('.agx-filtered')).toHaveLength(0)
   })
 })
 
 describe('highlighting a label', () => {
-  const highlightButton = () =>
-    [...(popover()?.querySelectorAll('button') ?? [])].find(b =>
-      b.textContent?.startsWith('Highlight')
-    ) as HTMLButtonElement
-
   test('saves it, says so, and marks the pills without hiding anything', async () => {
     openOn(pills('Romance')[0] as Element)
-    expect(highlightButton().textContent).toBe(
-      'Highlight books labelled “Romance”'
-    )
-    highlightButton().click()
-    await flush()
+    await pick('Highlight')
     expect(filters.current.highlightLabels).toEqual(['Romance'])
     expect(filters.current.hiddenLabels).toEqual([])
     expect(popover()?.querySelector('.status')?.textContent).toBe(
@@ -280,12 +297,14 @@ describe('highlighting a label', () => {
     expect(document.querySelectorAll('[data-agx-filter]')).toHaveLength(0)
   })
 
-  test('offers to stop highlighting a highlighted label', async () => {
+  test('shows Highlight chosen, and Show stops highlighting it', async () => {
     filters.change({ ...FILTERS, highlightLabels: ['romance'] })
     openOn(pills('Romance')[0] as Element)
-    expect(button().textContent).toBe('Stop highlighting “Romance”')
-    button().click()
-    await flush()
+    expect(checked()).toBe('Highlight')
+    await pick('Show')
+    expect(popover()?.textContent).toContain(
+      'No longer highlighting “Romance”.'
+    )
     expect(filters.current.highlightLabels).toEqual([])
     expect(document.querySelectorAll('.agx-highlighted')).toHaveLength(0)
   })
@@ -293,8 +312,7 @@ describe('highlighting a label', () => {
   test('hiding one label keeps the others highlighted, and the other way round', async () => {
     filters.change({ ...FILTERS, highlightLabels: ['Horror'] })
     openOn(pills('Romance')[0] as Element)
-    button().click()
-    await flush()
+    await pick('Hide')
     expect(filters.current.hiddenLabels).toEqual(['Romance'])
     expect(filters.current.highlightLabels).toEqual(['Horror'])
     filters.change({
@@ -303,10 +321,20 @@ describe('highlighting a label', () => {
       highlightLabels: [],
     })
     openOn(pills('Fantasy')[0] as Element)
-    highlightButton().click()
-    await flush()
+    await pick('Highlight')
     expect(filters.current.highlightLabels).toEqual(['Fantasy'])
     expect(filters.current.hiddenLabels).toEqual(['Horror'])
+  })
+
+  test('moves straight from hidden to highlighted and back', async () => {
+    filters.change({ ...FILTERS, hiddenLabels: ['Romance'] })
+    openOn(pills('Romance')[0] as Element)
+    await pick('Highlight')
+    expect(filters.current.hiddenLabels).toEqual([])
+    expect(filters.current.highlightLabels).toEqual(['Romance'])
+    await pick('Hide')
+    expect(filters.current.hiddenLabels).toEqual(['Romance'])
+    expect(filters.current.highlightLabels).toEqual([])
   })
 })
 
@@ -317,14 +345,24 @@ describe('from the keyboard', () => {
     expect(popover()).not.toBeNull()
   })
 
-  test('Enter on a label opens it and moves focus to its button', () => {
+  test('Enter on a label opens it and moves focus to the chosen option', () => {
     const [pill] = pills('Romance')
     pill?.dispatchEvent(
       new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })
     )
     expect(popover()).not.toBeNull()
     const root = document.querySelector('.agx-label-host')?.shadowRoot
-    expect(root?.activeElement).toBe(button())
+    expect(root?.activeElement === option('Show')).toBe(true)
+  })
+
+  test('a choice made from the keyboard keeps the focus on it', async () => {
+    const [pill] = pills('Romance')
+    pill?.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })
+    )
+    await pick('Hide')
+    const root = document.querySelector('.agx-label-host')?.shadowRoot
+    expect(root?.activeElement === option('Hide')).toBe(true)
   })
 
   test('Escape closes it and returns focus to the label', () => {

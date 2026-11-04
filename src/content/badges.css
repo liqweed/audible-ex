@@ -99,14 +99,17 @@
   text-decoration: line-through;
 }
 
-/* Highlighted labels (filter.ts): the cover of a highlighted book glows, a soft amber light around
-   the image with a hairline at its edge, the panel's amber. The card itself is untouched, so
-   nothing moves; a highlight never hides a card, and a dimmed card's cover glows faded. */
+/* Highlighted labels (filter.ts): the cover of a highlighted book shines in the panel's amber, a
+   thin ring just inside its rounded edge and a soft glow around it. Carousel slides clip what lies
+   outside the cover, so the ring is drawn inside it (an outline follows the radius) and the glow
+   shows where there is room. The card itself is untouched, so nothing moves; a highlight never hides
+   a card, and a dimmed card's cover shines faded. */
 img[data-agx-shine] {
+  outline: 2px solid rgb(251 191 36 / 0.95);
+  outline-offset: -2px;
   box-shadow:
-    0 0 0 1px rgb(251 191 36 / 0.9),
-    0 0 10px 2px rgb(251 191 36 / 0.65),
-    0 0 22px 6px rgb(251 191 36 / 0.3);
+    0 0 10px 2px rgb(251 191 36 / 0.5),
+    0 0 22px 6px rgb(251 191 36 / 0.22);
 }
 .agx-label.agx-highlighted {
   background: #fef3c7;

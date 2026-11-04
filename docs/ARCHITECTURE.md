@@ -299,14 +299,16 @@ extension's logo (`popoverHead`; the small logo, bundled as text and passed in a
 panel does), so a reader can tell the box is the extension's and not Audible's. Each genre label after a badge is a
 focusable pill. Resting the pointer on one for 200 ms (or focusing it; Enter opens the popover and
 moves focus into it, Escape closes it) opens a popover with the label, how many books on the page
-carry it, and two buttons: "Hide books labelled “X”" and "Highlight books labelled “X”", or one,
-"Stop hiding “X”" or "Stop highlighting “X”", when the label is already hidden or highlighted. A
-label is in one list at most: hiding it removes it from the highlighted labels and the other way
-round. Unlike the overview it takes the pointer, so it stays while the pointer is on the label
-or on it and closes 250 ms after the pointer leaves both, or on scroll. A click saves through
-`filters.update` (`updateFilters` with a function, so it adds to the stored list and not to the one
-the tab last saw), switches the filters on if they were off (the popover says so first), and shows
-how it went, with the undo as its button; a failed save is shown and can be retried. The pills
+carry it, and one choice of three, **Hide | Show | Highlight** (radio buttons drawn as one bar, like
+the panel's), with the label's current use selected, and an `i` button that opens a one-line
+explanation below it on hover, focus or click. A label is in one list at most: Hide removes it from
+the highlighted labels, Highlight from the hidden ones, Show from both. Unlike the overview it
+takes the pointer, so it stays while the pointer is on the label or on it and closes 250 ms after
+the pointer leaves both, or on scroll. Choosing saves at once through `filters.update`
+(`updateFilters` with a function, so it changes the stored lists and not the ones the tab last saw);
+Hide switches the filters on if they were off (the popover says so first). The popover then says
+how it went, and a choice made from the keyboard keeps the focus; a failed save is shown, the
+choice goes back, and it can be retried. The pills
 of a hidden genre are marked by the filter applier (`agx-filtered`: struck through, with an
 `aria-label` saying they are hidden), and those of a highlighted one too (`agx-highlighted`: amber,
 bold), so the marks follow every change of the filters, in every tab.
@@ -422,8 +424,9 @@ The applier (`src/content/filter.ts`) sets `data-agx-filter="hide|dim"` on each 
 hidden ones, and the dimmed ones apart (failing only dimming filters, or a failing carousel slide),
 for the pill. A card whose book is highlighted gets `data-agx-highlight`, and its cover image
 (`coverOf`, `src/content/cards.ts`: the first image served from Amazon's `/images/I/`, else the
-first image) gets `data-agx-shine`, which `badges.css` draws as a soft amber glow around the cover
-(a box shadow, so nothing moves; the card itself is unstyled). The cover is checked on every pass,
+first image) gets `data-agx-shine`, which `badges.css` draws as a thin amber ring just inside the
+cover's rounded edge (an outline, which carousel slides cannot clip) and a soft glow around it (a box
+shadow, shown where there is room); nothing moves, and the card itself is unstyled. The cover is checked on every pass,
 since Audible may swap a lazy-loaded image. The applier counts highlighted cards too. Everything that can change a verdict (a book arriving, a card being attached, the
 settings, peeking) ends in one pass over the page's cards, which is a few hundred. The settings come
 from `sync:prefs` through a watcher, so every open tab applies a change at once. Until the settings
