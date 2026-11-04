@@ -73,7 +73,7 @@ submits it to the Chrome Web Store (DECISIONS.md D20). Biome doesn't check Markd
 | Failure it prevents                                | Rule                                                                                     |
 | -------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | Hammering Goodreads, getting the extension blocked | All lookups through `LookupQueue` and `BookCache`; no new request paths without review   |
-| Hiding a book before its data arrives (page jumps) | Filter verdict is `show` for any book not `ready` (`src/core/filter.ts`)                 |
+| Hiding a book before its data arrives (page jumps) | A filter acts only on data that has arrived (`failures`, `src/core/filter.ts`)          |
 | Breaking Audible carousels                         | Cards in carousels are dimmed, never hidden                                              |
 | A content script that slows every Audible page     | `content.js` imports only `effect/Schema` from Effect and no React; React lives in `panel.content` (D19) |
 | Store rejection or takedown                        | No new permission or host without updating ARCHITECTURE.md §11 and the privacy statement |

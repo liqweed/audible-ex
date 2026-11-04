@@ -40,7 +40,11 @@ describe('book store', () => {
 describe('book store state', () => {
   test('holds the books and the progress in one TanStack Store', () => {
     const store = createBookStore()
-    expect(store.state.get()).toEqual({ books: new Map(), progress: undefined })
+    expect(store.state.get()).toEqual({
+      books: new Map(),
+      progress: undefined,
+      held: new Set(),
+    })
     const states: number[] = []
     const stop = store.state.subscribe(state => states.push(state.books.size))
     store.set('B000000001', { status: 'queued' })

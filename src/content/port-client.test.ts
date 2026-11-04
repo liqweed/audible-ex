@@ -80,6 +80,34 @@ describe('port client', () => {
     expect(t.port.sent[2]).toEqual({ _tag: 'Retry', asins: ['B000000001'] })
   })
 
+  test('sends DetailsLookup once per ASIN, and nothing for none', () => {
+    const t = setup()
+    t.client.details([])
+    expect(t.ports).toHaveLength(0)
+    t.client.details(['B000000001', 'B000000001', 'B000000002'])
+    expect(t.port.sent.at(-1)).toEqual({
+      _tag: 'DetailsLookup',
+      asins: ['B000000001', 'B000000002'],
+    })
+  })
+
+  test('one item per ASIN: pinned if any is, rating only if all are', () => {
+    const t = setup()
+    t.client.lookup([
+      { asin: 'B000000001', pinned: false, ratingOnly: true },
+      { asin: 'B000000001', pinned: true, ratingOnly: true },
+      { asin: 'B000000002', pinned: false, ratingOnly: true },
+      { asin: 'B000000002', pinned: false },
+    ])
+    expect(t.port.sent.at(-1)).toEqual({
+      _tag: 'Lookup',
+      items: [
+        { asin: 'B000000001', pinned: true, ratingOnly: true },
+        { asin: 'B000000002', pinned: false },
+      ],
+    })
+  })
+
   test('hands decoded background messages on', () => {
     const t = setup()
     t.client.lookup([item('B000000001')])
@@ -175,6 +203,36 @@ describe('port client', () => {
       t.state.unresolved = [item('B000000009')]
       t.client.lookup([item('B000000009')])
       expect(t.port.lookups()).toEqual([['B000000009']])
+    })
+
+    test('a lookup on a new connection still asks for more than a rating-only re-send', () => {
+      const t = setup([{ asin: 'B000000001', pinned: false, ratingOnly: true }])
+      t.client.lookup([item('B000000001'), item('B000000002')])
+      expect(t.port.sent.slice(1)).toEqual([
+        {
+          _tag: 'Lookup',
+          items: [{ asin: 'B000000001', pinned: false, ratingOnly: true }],
+        },
+        { _tag: 'Lookup', items: [item('B000000001'), item('B000000002')] },
+      ])
+    })
+
+    test('a cache-only re-send covers nothing deeper, and a deeper item covers it', () => {
+      const t = setup([{ asin: 'B000000001', pinned: false, cacheOnly: true }])
+      t.client.lookup([
+        { asin: 'B000000001', pinned: false, ratingOnly: true },
+        { asin: 'B000000001', pinned: false, cacheOnly: true },
+      ])
+      expect(t.port.sent.slice(1)).toEqual([
+        {
+          _tag: 'Lookup',
+          items: [{ asin: 'B000000001', pinned: false, cacheOnly: true }],
+        },
+        {
+          _tag: 'Lookup',
+          items: [{ asin: 'B000000001', pinned: false, ratingOnly: true }],
+        },
+      ])
     })
 
     test('waits longer after each failed attempt, to 30 s, so a broken worker does not spin', () => {

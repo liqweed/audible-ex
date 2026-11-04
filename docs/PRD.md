@@ -85,7 +85,15 @@ catalogue goes unchecked.
   never hides a book and works with filtering off. A label is hidden or
   highlighted, not both; the label popover offers either.
 - Books not found on Goodreads: shown (default), dimmed or hidden.
-- A book whose data hasn't loaded is never hidden.
+- A book is never hidden for data that hasn't loaded. Each filter applies as
+  soon as its data has: the price (from Audible) before the rating, the rating
+  before the genres and year.
+- Eager filtering: no more is fetched for a book a hiding filter already
+  hides (no Goodreads lookup for a book over the price limit, no book page for
+  one under the minimum rating). If it would be seen again (the filter is
+  turned off or set to dim, the filters are switched off, or the user peeks),
+  the rest of its lookup follows. Dimmed books and books in carousels are
+  looked up in full.
 - A counter, `12 hidden · Show`, reveals hidden books (dimmed) without changing
   the filters. It counts the books that are hidden, not those dimmed in carousels.
 - A master switch turns filtering off.
@@ -100,7 +108,8 @@ catalogue goes unchecked.
   inclusive ceiling. Blank turns it off; 0 means free only. Unknown prices or
   currencies other than the marketplace currency do not fail this filter.
   Public catalogue prices can differ from signed-in member offers; the panel
-  explains this. The not-found policy still governs books not on Goodreads.
+  explains this. A book not on Goodreads over the limit gets the stricter of
+  the price filter and the not-found policy.
 
 ### R4 — Popup and options (phases 1 and 4)
 

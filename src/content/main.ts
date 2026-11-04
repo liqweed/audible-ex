@@ -7,9 +7,21 @@
  * over the port; a `BookUpdate` goes into the book store and from there onto every badge of that
  * ASIN, so a book shown on several cards updates them all, and a card scanned after the book is
  * known draws it at once, without a second lookup.
+ *
+ * Eager filtering: a lookup goes only as far as the filters leave worth it (`lookupDepth`). A book
+ * the filters already hide on its price gets no Goodreads lookup (only what the cache has, asked
+ * while the price is on its way), one they hide on its rating no book page; it is asked for the
+ * rest as soon as it would be seen again (a filter off or dimming, peeking).
+ * Lookups wait for the user's filters to be read, since those decide how far each one goes.
  */
 import { DEFAULT_DISPLAY, type DisplaySettings } from '../core/display'
-import { type FilterSettings, hasLabel, labelKey } from '../core/filter'
+import {
+  type Depth,
+  type FilterSettings,
+  hasLabel,
+  labelKey,
+  lookupDepth,
+} from '../core/filter'
 import { isLibraryPath, pageKind } from '../core/page'
 import { regionFromHost } from '../core/regions'
 import {
@@ -72,6 +84,24 @@ export interface ContentDeps {
   now?: () => number
 }
 
+/**
+ * How long lookups wait for the filters to be read before they go ahead without them: storage that
+ * does not answer must not leave the page without ratings.
+ */
+export const FILTERS_WAIT_MS = 1000
+
+/** The `Lookup` item that asks for `depth` of a book. */
+const itemOf = (
+  asin: string,
+  pinned: boolean,
+  depth: Exclude<Depth, 'none'>
+): LookupItem => ({
+  asin,
+  pinned,
+  ...(depth === 'cached' && { cacheOnly: true }),
+  ...(depth === 'rating' && { ratingOnly: true }),
+})
+
 export interface Content {
   readonly books: BookStore
   /** Stops watching and lookups; what is on the page stays (the extension was reloaded). */
@@ -85,6 +115,7 @@ export function startContent(deps: ContentDeps): Content | undefined {
   const { doc, location } = deps
   const region = regionFromHost(location.hostname)
   if (!region) return undefined
+  const regionCode = region.code
 
   injectStyles(doc, deps.css)
 
@@ -97,23 +128,36 @@ export function startContent(deps: ContentDeps): Content | undefined {
   const pinRows = isLibraryPath(location.pathname)
   /** ASINs already sent as pinned, so a pinned row is not re-sent for nothing. */
   const pinnedSent = new Set<string>()
+  /** ASINs seen on a pinned row; they go pinned whenever they are sent. */
+  const pins = new Set<string>()
+  /** How far each book's lookup has been asked of the background. */
+  const asked = new Map<string, Exclude<Depth, 'none'>>()
+  /** ASINs whose price the background has answered, with a price or without one. */
+  const priced = new Set<string>()
+  /** Books whose lookup is held back because the filters hide them (`ContentState.held`). */
+  let held: ReadonlySet<string> = new Set()
+  /** Lookups wait until the filters are known (or `FILTERS_WAIT_MS`): they decide how far each goes. */
+  let filtersRead = deps.filters === undefined
 
   const client = createPortClient({
     connect: deps.connect,
     region: region.code,
     page: pageKind(location.pathname),
     unresolved: () =>
-      [...books.entries()]
-        .filter(([, view]) => isUnresolved(view))
-        .map(([asin]) => ({ asin, pinned: pinnedSent.has(asin) })),
+      [...asked]
+        .filter(([asin]) => isUnresolved(books.get(asin)))
+        .map(([asin, depth]) => itemOf(asin, pinnedSent.has(asin), depth)),
     onMessage(message) {
       if (message._tag === 'BookUpdate') {
         const price = books.get(message.asin)?.price
         books.set(message.asin, { ...viewOf(message), ...(price && { price }) })
+        lookUp([message.asin])
       } else if (message._tag === 'PriceUpdate') {
+        priced.add(message.asin)
         const known = books.get(message.asin)
         if (known && message.price)
           books.set(message.asin, { ...known, price: message.price })
+        lookUp([message.asin])
       } else {
         const { _tag, ...progress } = message
         books.setProgress(progress)
@@ -140,12 +184,102 @@ export function startContent(deps: ContentDeps): Content | undefined {
     for (const asin of fresh) pricesAsked.add(asin)
     client.prices(fresh)
   }
+
+  /**
+   * Asks the background for as much of each book's lookup as the filters leave worth having
+   * (`lookupDepth`): a first lookup, possibly `ratingOnly`, or the details (`DetailsLookup`) of one
+   * that stopped at the rating. Called for whatever can change the answer: cards coming into view, a
+   * book's data or price arriving, the settings, peeking. A lookup that was sent is never taken back.
+   */
+  function lookUp(asins: Iterable<string>) {
+    if (!filtersRead || !running) return
+    const settings = filter.settings()
+    const lookups: LookupItem[] = []
+    const details: string[] = []
+    let nextHeld: Set<string> | undefined
+    for (const asin of asins) {
+      const view = books.get(asin)
+      const cards = cardsByAsin.get(asin)
+      if (!view || !cards) continue
+      const depth = lookupDepth(
+        view,
+        settings,
+        { ...filter.placement(cards), priced: priced.has(asin) },
+        regionCode
+      )
+      let had = asked.get(asin)
+      if (had === 'cached' && view.status !== 'queued') {
+        // The cache answered: as far as the background goes, that was a rating-only lookup.
+        had = 'rating'
+        asked.set(asin, had)
+      }
+      const pin = pins.has(asin) && !pinnedSent.has(asin)
+      let send: Exclude<Depth, 'none'> | undefined
+      if (had === undefined) {
+        if (depth !== 'none') send = depth
+      } else if (
+        had === 'cached' &&
+        (depth === 'rating' || depth === 'details')
+      ) {
+        // The price let the book through and the cache had nothing (or has not said yet).
+        send = depth
+      } else if (
+        had === 'rating' &&
+        depth === 'details' &&
+        view.status === 'ready'
+      ) {
+        if (pin) send = 'details'
+        else {
+          asked.set(asin, 'details')
+          details.push(asin)
+        }
+      } else if (pin) {
+        // A book already asked for, seen on a pinned row: sent again to record the pin.
+        send = had
+      }
+      if (send) {
+        asked.set(asin, send)
+        if (pins.has(asin)) pinnedSent.add(asin)
+        lookups.push(itemOf(asin, pins.has(asin), send))
+      }
+      const isHeld =
+        depth === 'none' &&
+        !view.details &&
+        view.status !== 'notFound' &&
+        view.status !== 'failed'
+      if (isHeld !== held.has(asin)) {
+        nextHeld ??= new Set(held)
+        if (isHeld) nextHeld.add(asin)
+        else nextHeld.delete(asin)
+      }
+    }
+    // One message for all the books that changed together.
+    client.lookup(lookups)
+    client.details(details)
+    if (nextHeld) {
+      held = nextHeld
+      books.setHeld(held)
+    }
+  }
+
+  /** The filters are known, or no longer waited for: every book's lookup is looked at again. */
+  let cancelFiltersWait = filtersRead
+    ? undefined
+    : deps.schedule(() => filtersKnown(), FILTERS_WAIT_MS)
+  function filtersKnown() {
+    filtersRead = true
+    cancelFiltersWait?.()
+    cancelFiltersWait = undefined
+    lookUp(cardsByAsin.keys())
+  }
+
   /** A change that arrived before the first read finished is newer than that read. */
   let settingsChanged = false
   const unwatchFilters = deps.filters?.watch(settings => {
     settingsChanged = true
     filter.setSettings(settings)
     requestPrices()
+    filtersKnown()
   })
   deps.filters?.read().then(
     settings => {
@@ -153,10 +287,14 @@ export function startContent(deps: ContentDeps): Content | undefined {
         filter.setSettings(settings)
         requestPrices()
       }
+      filtersKnown()
     },
     // Unreadable settings leave the page unfiltered, which is the safe side of the rule that a
     // book is never hidden for a reason the user did not choose.
-    error => console.error('audible-ex: could not read the filters', error)
+    error => {
+      console.error('audible-ex: could not read the filters', error)
+      filtersKnown()
+    }
   )
 
   function retry(card: Element, asin: string) {
@@ -167,6 +305,7 @@ export function startContent(deps: ContentDeps): Content | undefined {
       ...(books.get(asin)?.price && { price: books.get(asin)?.price }),
     })
     attach(card, asin)
+    asked.set(asin, 'details')
     client.retry([asin])
   }
 
@@ -176,11 +315,13 @@ export function startContent(deps: ContentDeps): Content | undefined {
       .filter(([, view]) => view.status === 'failed')
       .map(([asin]) => asin)
     if (asins.length === 0) return
-    for (const asin of asins)
+    for (const asin of asins) {
       books.set(asin, {
         status: 'queued',
         ...(books.get(asin)?.price && { price: books.get(asin)?.price }),
       })
+      asked.set(asin, 'details')
+    }
     client.retry(asins)
   }
 
@@ -205,28 +346,20 @@ export function startContent(deps: ContentDeps): Content | undefined {
   })
 
   function onVisible(visible: ReadonlyArray<VisibleCard>) {
-    const items = new Map<string, boolean>()
+    const asins = new Set<string>()
     for (const { card, asin } of visible) {
       if (!card.isConnected || hasBadge(card)) continue
-      const pinned = pinRows && isKnownRow(card)
+      if (pinRows && isKnownRow(card)) pins.add(asin)
       const known = books.get(asin) !== undefined
       attach(card, asin)
-      if (!known) {
-        // Shows the wait on every badge of this book and marks the ask as made.
-        books.set(asin, { status: 'queued' })
-        items.set(asin, pinned)
-      } else if (pinned && !pinnedSent.has(asin)) {
-        items.set(asin, true)
-      }
+      // Shows the wait on every badge of this book.
+      if (!known) books.set(asin, { status: 'queued' })
+      asins.add(asin)
     }
-    const lookups: LookupItem[] = [...items].map(([asin, pinned]) => ({
-      asin,
-      pinned,
-    }))
-    for (const { asin, pinned } of lookups) if (pinned) pinnedSent.add(asin)
-    // One message for all the cards that came into view together.
-    client.lookup(lookups)
     requestPrices()
+    // One message for all the cards that came into view together. A new card can show a book the
+    // filters hid (a carousel slide), so books already known are asked again too.
+    lookUp(asins)
     // A card for a book already known is judged at once.
     filter.refresh()
   }
@@ -337,12 +470,17 @@ export function startContent(deps: ContentDeps): Content | undefined {
     state: books.state,
     filter: filter.state,
     retryFailed,
-    setPeek: filter.setPeek,
+    setPeek(peek) {
+      filter.setPeek(peek)
+      // Peeking shows the hidden books, so their lookups go on.
+      lookUp(cardsByAsin.keys())
+    },
   }
   publishHandle(doc, handle)
 
   function stop() {
     running = false
+    cancelFiltersWait?.()
     withdrawHandle(doc, handle)
     unwatchFilters?.()
     unwatchDisplay?.()

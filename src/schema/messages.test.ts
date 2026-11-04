@@ -27,6 +27,14 @@ const toBackground: Content[] = [
       { asin: '197865085X', pinned: true },
     ],
   },
+  {
+    _tag: 'Lookup',
+    items: [
+      { asin: 'B08G9PRS1K', pinned: false, ratingOnly: true },
+      { asin: '197865085X', pinned: true, cacheOnly: true },
+    ],
+  },
+  { _tag: 'DetailsLookup', asins: ['B08G9PRS1K'] },
   { _tag: 'Retry', asins: ['B08G9PRS1K'] },
 ]
 

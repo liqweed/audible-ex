@@ -245,6 +245,39 @@ describe('LookupQueue.rating', () => {
   )
 })
 
+describe('LookupQueue.cachedRating', () => {
+  scenario('answers from the cache only, and never looks anything up', {}, s =>
+    Effect.gen(function* () {
+      s.cache.ratings.set(asin(1), {
+        _tag: 'Found',
+        asin: asin(1),
+        savedAt: 0,
+        ...matchFor(1),
+        r: 4.5,
+        n: 10,
+      })
+      s.cache.ratings.set(asin(2), { _tag: 'Miss', asin: asin(2), savedAt: 0 })
+      const found = yield* s.queue.cachedRating(asin(1))
+      expect(Option.map(found, r => r._tag)).toEqual(Option.some('Found'))
+      const missed = yield* s.queue.cachedRating(asin(2))
+      expect(Option.map(missed, r => r._tag)).toEqual(Option.some('Miss'))
+      expect(yield* s.queue.cachedRating(asin(3))).toEqual(Option.none())
+      expect(s.calls).toEqual([])
+    })
+  )
+
+  scenario(
+    'has nothing when the cache cannot be read',
+    {},
+    s =>
+      Effect.gen(function* () {
+        expect(yield* s.queue.cachedRating(asin(1))).toEqual(Option.none())
+        expect(s.calls).toEqual([])
+      }),
+    { broken: true }
+  )
+})
+
 describe('LookupQueue dedupe', () => {
   const gate = latch()
 

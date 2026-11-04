@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import type { BookView, ProgressView } from '@/content/books'
 import {
   counts,
+  detailsProgress,
   filteredText,
   hasFormatChange,
   panelView,
@@ -115,5 +116,36 @@ describe('filteredText', () => {
     expect(filteredText(12, 0)).toBe('12 hidden')
     expect(filteredText(0, 3)).toBe('3 dimmed')
     expect(filteredText(0, 0)).toBe('')
+  })
+})
+
+describe('detailsProgress', () => {
+  const rating = {
+    r: 4,
+    n: 10,
+    url: 'https://www.goodreads.com/book/show/1',
+    loose: false,
+  }
+  const details = { genres: [], year: 2000, desc: '' }
+  const books = new Map<string, BookView>([
+    ['A', { status: 'ready', rating, details }],
+    ['B', { status: 'ready', rating }],
+    ['C', { status: 'ready', rating }],
+    ['D', { status: 'loading' }],
+  ])
+
+  test('counts the rated books and those whose page has been read', () => {
+    expect(detailsProgress(books)).toEqual({ done: 1, total: 3 })
+  })
+
+  test('leaves out a held book still without its page, so the bar can finish', () => {
+    expect(detailsProgress(books, new Set(['B', 'D']))).toEqual({
+      done: 1,
+      total: 2,
+    })
+    expect(detailsProgress(books, new Set(['A']))).toEqual({
+      done: 1,
+      total: 3,
+    })
   })
 })

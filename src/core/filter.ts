@@ -4,9 +4,11 @@
  * verdict into an attribute and CSS. The inputs are structural, so this module needs nothing from
  * the content script or from storage.
  *
- * The rule that matters most: a book whose data has not arrived is never hidden, because hiding it
- * and then showing it makes the page jump. Genres come from the book page, after the rating, so a
- * hidden-label filter cannot act on a book until its details have arrived either.
+ * The rule that matters most: a filter acts only on data that has arrived, and is never undone by
+ * later data, because hiding a book and then showing it makes the page jump. Each filter acts as
+ * soon as the data it reads is known: the price (from Audible) can hide a book before its rating,
+ * the rating before its genres and year. That is also what lets the content script stop a book's
+ * lookup early (`lookupDepth`, eager filtering).
  *
  * Each filter has its own miss mode: a book that fails a `hide` filter is hidden, one that fails only
  * `dim` filters is dimmed. Highlighted labels are not a filter: they never change the verdict.
@@ -79,25 +81,28 @@ export const hasLabel = (labels: readonly string[], genre: string): boolean =>
   labels.some(label => labelKey(label) === labelKey(genre))
 
 /**
- * The filters `book` fails, in the order of `DIMENSIONS`. Empty for a book whose rating has not
- * arrived; each filter acts once the data it reads is known.
+ * The filters `book` fails, in the order of `DIMENSIONS`. Each filter acts once the data it reads
+ * is known: the price whatever the lookup's status, the rating and count once the book is `ready`,
+ * the labels and year once its details have arrived too. More data can only add failures.
  */
 export function failures(
   book: FilterBook,
   settings: FilterSettings,
   region?: RegionCode
 ): Dimension[] {
-  if (book.status !== 'ready' || !book.rating) return []
   const failed: Dimension[] = []
-  const { r, n } = book.rating
-  if (r < settings.minRating) failed.push('rating')
-  if (settings.minRatings > 0 && n < settings.minRatings) failed.push('count')
+  const ready = book.status === 'ready'
+  const rating = ready ? book.rating : undefined
+  if (rating && rating.r < settings.minRating) failed.push('rating')
+  if (rating && settings.minRatings > 0 && rating.n < settings.minRatings)
+    failed.push('count')
+  const details = ready ? book.details : undefined
   if (
     settings.hiddenLabels.length > 0 &&
-    book.details?.genres.some(genre => hasLabel(settings.hiddenLabels, genre))
+    details?.genres.some(genre => hasLabel(settings.hiddenLabels, genre))
   )
     failed.push('labels')
-  const year = book.details?.year
+  const year = details?.year
   // 0 means Goodreads has no year. A year filter cannot act until a known year arrives.
   if (
     year !== undefined &&
@@ -128,14 +133,23 @@ export function judge(
   region?: RegionCode
 ): Verdict {
   if (!settings.enabled || !book) return 'show'
-  if (book.status === 'notFound') return settings.notFound
   const failed = failures(book, settings, region)
-  if (failed.length === 0) return 'show'
   // The strictest filter the book fails decides: one `hide` is enough to hide it.
-  return failed.some(dimension => settings.modes[dimension] === 'hide')
-    ? 'hide'
-    : 'dim'
+  const verdict: Verdict =
+    failed.length === 0
+      ? 'show'
+      : failed.some(dimension => settings.modes[dimension] === 'hide')
+        ? 'hide'
+        : 'dim'
+  // A book not on Goodreads gets the not-found policy, or a failed price limit if that is stricter.
+  return book.status === 'notFound'
+    ? strictest(settings.notFound, verdict)
+    : verdict
 }
+
+const STRICTNESS: Record<Verdict, number> = { show: 0, dim: 1, hide: 2 }
+const strictest = (a: Verdict, b: Verdict): Verdict =>
+  STRICTNESS[a] >= STRICTNESS[b] ? a : b
 
 /**
  * Does `book` carry a label the user highlights? Independent of the filters' switch and verdict:
@@ -164,3 +178,46 @@ export const verdict = (
   where: Placement,
   region?: RegionCode
 ): Verdict => place(judge(book, settings, region), where)
+
+/**
+ * How far a book's lookup is worth taking now: nothing more, its rating if the cache has it (no
+ * Goodreads request), its rating only, or its details too.
+ */
+export type Depth = 'none' | 'cached' | 'rating' | 'details'
+
+/** What `lookupDepth` needs to know besides the book and the settings. */
+export interface DepthContext extends Placement {
+  /** The background has answered the book's price (with a price, or that there is none). */
+  readonly priced: boolean
+}
+
+/**
+ * Eager filtering (PRD R3): how much of `book`'s lookup to ask for now. A filter's failures only
+ * grow as data arrives, so a book that a `hide` filter hides on what is known stays hidden whatever
+ * else arrives: nothing more is fetched for it (`none`). While a hiding price limit waits for the
+ * book's price only what the cache has is asked for (`cached`), which costs Goodreads nothing; while
+ * a hiding rating filter could still hide it only the rating (`rating`); the book page follows when
+ * the rating lets the book through.
+ *
+ * A book that would be dimmed is still seen, so it gets everything (`details`), and so does every
+ * book in a carousel or while the user peeks: neither is ever hidden (`place`). The caller asks
+ * again whenever the answer can change: data arriving, the settings, a new card, peeking.
+ */
+export function lookupDepth(
+  book: FilterBook | undefined,
+  settings: FilterSettings,
+  where: DepthContext,
+  region?: RegionCode
+): Depth {
+  if (!settings.enabled || where.inCarousel || where.peek) return 'details'
+  if (judge(book, settings, region) === 'hide') return 'none'
+  const limit = region === undefined ? undefined : settings.maxPrice[region]
+  if (!where.priced && limit !== undefined && settings.modes.price === 'hide')
+    return 'cached'
+  const ratingCanHide =
+    settings.modes.rating === 'hide' ||
+    (settings.modes.count === 'hide' && settings.minRatings > 0)
+  if (!(book?.status === 'ready' && book.rating) && ratingCanHide)
+    return 'rating'
+  return 'details'
+}

@@ -67,6 +67,8 @@ describe('filters on the com search fixture (list rows and carousels)', () => {
       pathname: '/search',
       filters,
     })
+    // Lookups wait for the filters to be read.
+    await flush()
     world.io.intersect()
     asins = [...new Set(world.port.lookups().flat())]
     poor = new Set()
@@ -174,6 +176,8 @@ describe('highlighted labels on the com search fixture', () => {
       pathname: '/search',
       filters,
     })
+    // Lookups wait for the filters to be read.
+    await flush()
     world.io.intersect()
     const asins = [...new Set(world.port.lookups().flat())]
     const interesting = new Set<string>()
@@ -232,6 +236,8 @@ describe('highlighted labels on the com search fixture', () => {
       pathname: '/search',
       filters: new FakeFilters({ ...FILTERS, highlightLabels: ['Fantasy'] }),
     })
+    // Lookups wait for the filters to be read.
+    await flush()
     world.io.intersect()
     for (const asin of new Set(world.port.lookups().flat()))
       world.port.receive(
@@ -261,6 +267,8 @@ describe('year filtering on the com search fixture', () => {
       pathname: '/search',
       filters,
     })
+    // Lookups wait for the filters to be read.
+    await flush()
     world.io.intersect()
     const asins = [...new Set(world.port.lookups().flat())]
     for (const asin of asins)
@@ -312,6 +320,8 @@ describe('a book that has not arrived', () => {
       pathname: '/search',
       filters,
     })
+    // Lookups wait for the filters to be read.
+    await flush()
     world.io.intersect()
     await flush()
     expect(document.querySelectorAll('[data-agx-filter]')).toHaveLength(0)
@@ -325,6 +335,8 @@ describe('a book that has not arrived', () => {
       pathname: '/search',
       filters,
     })
+    // Lookups wait for the filters to be read.
+    await flush()
     world.io.intersect()
     const [first] = world.port.lookups().flat()
     world.port.receive(notFound(first as string))
@@ -342,7 +354,7 @@ describe('a book that has not arrived', () => {
     }
   })
 
-  test('stays unfiltered while the settings are still being read', async () => {
+  test('stays unfiltered while the settings are still being read, and is looked up after a wait', async () => {
     loadFixture('com', 'search')
     const filters = new FakeFilters(FILTERS)
     filters.read = () => new Promise(() => {})
@@ -351,7 +363,12 @@ describe('a book that has not arrived', () => {
       pathname: '/search',
       filters,
     })
+    await flush()
     world.io.intersect()
+    // Lookups wait for the filters, but not for ever (FILTERS_WAIT_MS).
+    expect(world.ports).toHaveLength(0)
+    world.timers.runAll()
+    expect(world.port.lookups().flat().length).toBeGreaterThan(0)
     for (const asin of world.port.lookups().flat())
       world.port.receive(ready(asin, { r: 1, n: 1 }))
     await flush()
@@ -375,6 +392,8 @@ describe('price filtering on cards', () => {
     )
     const filters = new FakeFilters(FILTERS)
     const world = startWorld({ hostname: 'www.audible.com', filters })
+    // Lookups wait for the filters to be read.
+    await flush()
     world.io.intersect()
     world.port.receive(ready('B000000001', { r: 4.5, n: 100 }))
     await flush()
@@ -406,22 +425,177 @@ describe('price filtering on cards', () => {
     )
     world.content?.remove()
   })
-  test('a price that arrives before the rating cannot hide a loading card', async () => {
-    loadBody(
-      '<article><h3><a href="/pd/Book/B000000001">Book</a></h3></article>'
-    )
-    const filters = new FakeFilters({ ...FILTERS, maxPrice: { US: 0 } })
+})
+
+describe('eager filtering', () => {
+  const A = 'B000000001'
+  const B = 'B000000002'
+  const article = (asin: string) =>
+    `<article><h3><a href="/pd/Book/${asin}">Book ${asin}</a></h3></article>`
+  const carousel = (asin: string) =>
+    `<adbl-product-carousel>${article(asin)}</adbl-product-carousel>`
+  /** The `Lookup` items sent, in order. */
+  const lookupItems = (world: World) =>
+    world.port.sent
+      .filter(m => m._tag === 'Lookup')
+      .flatMap(m => m.items as Array<Record<string, unknown>>)
+  /** The ASINs asked for with `DetailsLookup`, in order. */
+  const detailsAsked = (world: World) =>
+    world.port.sent
+      .filter(m => m._tag === 'DetailsLookup')
+      .flatMap(m => m.asins as string[])
+  const price = (asin: string, amount: number) => ({
+    _tag: 'PriceUpdate',
+    asin,
+    price: { amount, currency: 'USD' },
+  })
+  async function start(html: string, settings: FilterSettings) {
+    loadBody(html)
+    const filters = new FakeFilters(settings)
     const world = startWorld({ hostname: 'www.audible.com', filters })
     await flush()
     world.io.intersect()
-    world.port.receive({
-      _tag: 'PriceUpdate',
-      asin: 'B000000001',
-      price: { amount: 1, currency: 'USD' },
+    return { world, filters }
+  }
+
+  test('a book over a hiding price limit is hidden on its price and never looked up', async () => {
+    const { world } = await start(article(A) + article(B), {
+      ...FILTERS,
+      maxPrice: { US: 10 },
     })
-    expect(marked('hide')).toHaveLength(0)
-    world.port.receive(ready('B000000001', { r: 4.5, n: 100 }))
-    expect(marked('hide')).toHaveLength(1)
+    expect(world.port.sent.filter(m => m._tag === 'PriceLookup')).toEqual([
+      { _tag: 'PriceLookup', asins: [A, B] },
+    ])
+    // Until the prices arrive, only what the cache has.
+    expect(lookupItems(world)).toEqual([
+      { asin: A, pinned: false, cacheOnly: true },
+      { asin: B, pinned: false, cacheOnly: true },
+    ])
+    world.port.receive(price(A, 15))
+    world.port.receive({ _tag: 'PriceUpdate', asin: B })
+    expect(marked('hide').map(m => m.asin)).toEqual([A])
+    // B has no price to fail and was not cached, so its lookup goes ahead; A is held.
+    expect(lookupItems(world).slice(2)).toEqual([
+      { asin: B, pinned: false, ratingOnly: true },
+    ])
+    expect(currentHandle()?.state.get().held).toEqual(new Set([A]))
+    world.content?.remove()
+  })
+
+  test('a rating the cache has shows before the price, and the book page waits for the price', async () => {
+    const { world } = await start(article(A) + article(B), {
+      ...FILTERS,
+      maxPrice: { US: 10 },
+    })
+    // The cache had both ratings; A's is under the minimum, which hides it at once.
+    world.port.receive(ready(A, { r: 3.1, n: 900 }))
+    world.port.receive(ready(B, { r: 4.4, n: 900 }))
+    expect(mainBadges().map(b => b.textContent)).toEqual([
+      '★ 3.10 (900)',
+      '★ 4.40 (900)',
+    ])
+    expect(marked('hide').map(m => m.asin)).toEqual([A])
+    expect(detailsAsked(world)).toEqual([])
+    world.port.receive(price(A, 5))
+    world.port.receive(price(B, 5))
+    // B passes both: its book page follows, and no other lookup; A stays held.
+    expect(detailsAsked(world)).toEqual([B])
+    expect(lookupItems(world)).toHaveLength(2)
+    expect(currentHandle()?.state.get().held).toEqual(new Set([A]))
+    world.content?.remove()
+  })
+
+  test('a book hidden on its rating gets no book page; one that passes does', async () => {
+    const { world } = await start(article(A) + article(B), FILTERS)
+    expect(lookupItems(world)).toEqual([
+      { asin: A, pinned: false, ratingOnly: true },
+      { asin: B, pinned: false, ratingOnly: true },
+    ])
+    world.port.receive(ready(A, { r: 3.1, n: 900 }))
+    world.port.receive(ready(B, { r: 4.4, n: 900 }))
+    expect(marked('hide').map(m => m.asin)).toEqual([A])
+    expect(detailsAsked(world)).toEqual([B])
+    expect(currentHandle()?.state.get().held).toEqual(new Set([A]))
+    world.content?.remove()
+  })
+
+  test('a held book is looked up the rest of the way when it would be seen again', async () => {
+    const { world, filters } = await start(article(A) + article(B), {
+      ...FILTERS,
+      maxPrice: { US: 10 },
+    })
+    world.port.receive(price(A, 15))
+    world.port.receive(price(B, 5))
+    world.port.receive(ready(B, { r: 3.1, n: 900 }))
+    expect(lookupItems(world).map(i => i.asin)).toEqual([A, B, B])
+    expect(detailsAsked(world)).toEqual([])
+    // Peeking shows the hidden books: both go on.
+    currentHandle()?.setPeek(true)
+    expect(lookupItems(world).at(-1)).toEqual({ asin: A, pinned: false })
+    expect(detailsAsked(world)).toEqual([B])
+    expect(currentHandle()?.state.get().held).toEqual(new Set())
+    world.content?.remove()
+
+    const again = await start(article(A), { ...FILTERS, maxPrice: { US: 10 } })
+    again.world.port.receive(price(A, 15))
+    expect(lookupItems(again.world)).toEqual([
+      { asin: A, pinned: false, cacheOnly: true },
+    ])
+    // Dimming instead of hiding shows the book; its rating may still hide it, so that comes first.
+    again.filters.change({
+      ...FILTERS,
+      maxPrice: { US: 10 },
+      modes: { ...FILTERS.modes, price: 'dim' },
+    })
+    expect(lookupItems(again.world).slice(1)).toEqual([
+      { asin: A, pinned: false, ratingOnly: true },
+    ])
+    expect(marked('dim').map(m => m.asin)).toEqual([A])
+    again.world.content?.remove()
+  })
+
+  test('turning the filters off looks up the held books', async () => {
+    const { world, filters } = await start(article(A), FILTERS)
+    world.port.receive(ready(A, { r: 2, n: 900 }))
+    expect(detailsAsked(world)).toEqual([])
+    filters.change({ ...FILTERS, enabled: false })
+    expect(detailsAsked(world)).toEqual([A])
+    world.content?.remove()
+  })
+
+  test('a carousel slide, never hidden, is looked up in full', async () => {
+    const { world } = await start(carousel(A), {
+      ...FILTERS,
+      maxPrice: { US: 10 },
+    })
+    expect(lookupItems(world)).toEqual([{ asin: A, pinned: false }])
+    world.content?.remove()
+  })
+
+  test('dimming filters do not hold anything back', async () => {
+    const dimming = {
+      rating: 'dim',
+      count: 'dim',
+      labels: 'hide',
+      year: 'hide',
+      price: 'dim',
+    } as const
+    const { world } = await start(article(A), {
+      ...FILTERS,
+      maxPrice: { US: 10 },
+      modes: dimming,
+    })
+    expect(lookupItems(world)).toEqual([{ asin: A, pinned: false }])
+    world.content?.remove()
+  })
+
+  test('a reconnect asks again for as much as was asked', async () => {
+    const { world } = await start(article(A), FILTERS)
+    world.port.drop()
+    world.timers.runAll()
+    expect(lookupItems(world)).toEqual([
+      { asin: A, pinned: false, ratingOnly: true },
+    ])
     world.content?.remove()
   })
 })

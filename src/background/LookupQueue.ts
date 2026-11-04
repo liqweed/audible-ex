@@ -107,6 +107,13 @@ export interface LookupQueueService {
     onMiss?: Effect.Effect<void>
   ) => Effect.Effect<RatingResult, LookupError>
   /**
+   * The rating of `asin` if the cache has it (as `rating` would answer it, a manual match
+   * included), without looking anything up. A cache that cannot be read has nothing.
+   */
+  readonly cachedRating: (
+    asin: string
+  ) => Effect.Effect<Option.Option<RatingResult>>
+  /**
    * Genres, year and overview of a Goodreads book: from the cache at once, otherwise read from the
    * book page through the queue, after any waiting ratings. `onMiss` is as for `rating`.
    */
@@ -486,6 +493,10 @@ const make = Effect.gen(function* () {
         yield* onMiss
         return yield* shared(ratingsInFlight, request.asin, ratingFlow(request))
       }),
+    cachedRating: asin =>
+      cachedRating(asin).pipe(
+        Effect.map(stored => stored as Option.Option<RatingResult>)
+      ),
     details: (bookId, onMiss = Effect.void) =>
       Effect.gen(function* () {
         const stored = yield* cachedDetails(bookId)
