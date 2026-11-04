@@ -156,6 +156,14 @@ request, `/jig:decide` for a design dilemma (record the outcome in
 (`changes/README.md` says which changes need one), `/jig:fix-ci` for a red
 run, `/jig:audit` to re-score the repository.
 
+## Scratch files
+
+`.context/` at the repository root (gitignored) is the scratch area for agents
+and people: notes, previews, setup pages and scripts, screenshots, and
+`/jig:drive-pr`'s handoff (`.context/pr-drive-<PR>.md`). Nothing there is
+committed or relied on by the build; never put scratch files elsewhere in the
+tree.
+
 ## What a terminal cannot verify
 
 Loading the unpacked extension, the panel, badges on live Audible pages and the
