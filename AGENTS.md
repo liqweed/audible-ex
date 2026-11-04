@@ -25,7 +25,8 @@ and the hover overview (`src/content/`); the popup has the on/off switch and the
 cache size and clearing. The floating panel (its own content script, D19) has
 progress, drag/collapse/hide controls, filters and marketplace public-price limits.
 The options page edits all prefs, controls badge display and imports/exports
-prefs-only backups; the cache inspector is tracked in #42. TanStack Form
+prefs-only backups; the cache inspector searches/sorts/deletes local books and corrects matches
+through the shared queue ([D24](docs/DECISIONS.md#d24--cache-inspector-and-persistent-manual-matches-2026-11-04)). TanStack Form
 stays in the options entrypoint ([D22](docs/DECISIONS.md#d22--tanstack-form-for-the-options-settings-2026-11-03)).
 
 ## Non-negotiables

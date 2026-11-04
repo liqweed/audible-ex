@@ -100,8 +100,11 @@ catalogue goes unchecked.
   Import and reset are confirmed before replacement; backups contain prefs only,
   never cached book data or device-local panel placement. Display changes apply
   to open Audible tabs without another lookup.
-- Next in phase 4 (#42): a cache browser to search cached books, delete entries and
-  correct a wrong Goodreads match.
+- Cache inspector: search cached books by title, author or ASIN, sort by rating or
+  saved time, delete individual books and correct a wrong match with an HTTPS
+  Goodreads book URL. Corrections are verified through the shared queue and kept
+  across expiry and cleanup; delete-book or clear-all removes them. Reload Audible
+  to see a change. No cached ratings are exported.
 
 ### R5 — Respectful data use (all phases)
 

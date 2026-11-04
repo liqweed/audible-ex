@@ -7,6 +7,7 @@
  */
 import * as Schema from 'effect/Schema'
 import * as SchemaIssue from 'effect/SchemaIssue'
+import { Count, Rating } from './common'
 
 /**
  * One result of `book/auto_complete?format=json`, the list `scoreCandidates` takes. The shape
@@ -131,5 +132,39 @@ export function bookPageData(nextData: unknown, bookId: string): BookPageData {
     descriptionHtml:
       book.description ?? book['description({"stripped":true})'] ?? '',
     ...(typeof firstPublished === 'number' && { firstPublished }),
+  }
+}
+
+/** Exact selected edition and its work's rating; never fall back to another book. */
+export function bookPageRating(
+  nextData: unknown,
+  bookId: string
+): typeof Rating.Type {
+  const { apolloState } =
+    Schema.decodeUnknownSync(NextData)(nextData).props.pageProps
+  const selected = Object.values(apolloState).find(
+    value =>
+      isEntity(value, 'Book') &&
+      'legacyId' in value &&
+      String(value.legacyId) === bookId
+  )
+  const book = Schema.decodeUnknownSync(
+    Schema.Struct({
+      work: Schema.Struct({ __ref: Schema.String }),
+    })
+  )(selected)
+  const work = Schema.decodeUnknownSync(
+    Schema.Struct({
+      stats: Schema.Struct({
+        averageRating: Rating.fields.r,
+        ratingsCount: Count,
+      }),
+    })
+  )(apolloState[book.work.__ref])
+  return {
+    r: work.stats.averageRating,
+    n: work.stats.ratingsCount,
+    url: `https://www.goodreads.com/book/show/${bookId}`,
+    loose: false,
   }
 }

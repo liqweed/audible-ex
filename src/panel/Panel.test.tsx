@@ -9,6 +9,7 @@ import {
   type PanelState,
   type PanelStorage,
 } from '@/storage/panel'
+import { updateFilters } from '@/storage/prefs'
 import { Panel } from './Panel'
 
 afterEach(cleanup)
@@ -221,6 +222,41 @@ describe('the shell', () => {
     expect(screen.getByRole('progressbar')).toBeTruthy()
     expect(saved.map(s => s.collapsed)).toEqual([true, false])
     expect(box(view)).toBeTruthy()
+  })
+
+  test('outside clicks hide filter settings without collapsing the panel or swallowing the click', async () => {
+    await updateFilters({ enabled: true })
+    await open()
+    fireEvent.click(screen.getByRole('button', { name: 'Filter settings' }))
+    expect(screen.getByRole('slider', { name: 'Minimum rating' })).toBeTruthy()
+    // Header and controls elsewhere inside the panel are still inside the boundary.
+    fireEvent.click(screen.getByText('Goodreads ratings'))
+    fireEvent.click(screen.getByLabelText(/Minimum number of ratings/))
+    expect(
+      screen.getByRole('button', { name: 'Hide filter settings' })
+    ).toBeTruthy()
+
+    const outside = document.createElement('button')
+    let clicks = 0
+    outside.addEventListener('click', event => {
+      clicks++
+      expect(event.defaultPrevented).toBe(false)
+      event.stopPropagation()
+    })
+    document.body.append(outside)
+    fireEvent.click(outside)
+    expect(clicks).toBe(1)
+    expect(screen.queryByRole('slider')).toBeNull()
+    expect(
+      screen
+        .getByRole('button', { name: 'Filter settings' })
+        .getAttribute('aria-expanded')
+    ).toBe('false')
+    expect(screen.getByRole('progressbar')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /expand/i })).toBeNull()
+    // Opening it again continues to work after the listener was removed.
+    fireEvent.click(screen.getByRole('button', { name: 'Filter settings' }))
+    expect(screen.getByRole('slider')).toBeTruthy()
   })
 
   test('starts as a pill when it was left collapsed', async () => {

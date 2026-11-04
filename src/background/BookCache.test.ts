@@ -10,6 +10,7 @@ import {
   type BookCacheService,
   CacheError,
   DB_NAME,
+  DB_VERSION,
   PURGE_START_DELAY,
 } from './BookCache'
 
@@ -778,11 +779,11 @@ describe('a worker restart', () => {
 describe('IndexedDB failing', () => {
   scenario('is a CacheError, not a defect', factory =>
     Effect.gen(function* () {
-      // A newer database makes opening version 1 fail with a VersionError.
+      // A newer database makes opening the current version fail with a VersionError.
       yield* Effect.promise(
         () =>
           new Promise<void>((done, fail) => {
-            const request = factory.open(DB_NAME, 2)
+            const request = factory.open(DB_NAME, DB_VERSION + 1)
             request.onsuccess = () => {
               request.result.close()
               done()
@@ -806,7 +807,7 @@ describe('another connection', () => {
         yield* Effect.promise(
           () =>
             new Promise<void>((done, fail) => {
-              const request = factory.open(DB_NAME, 2)
+              const request = factory.open(DB_NAME, DB_VERSION + 1)
               request.onsuccess = () => {
                 request.result.close()
                 done()
@@ -816,5 +817,134 @@ describe('another connection', () => {
         )
       })
     )
+  )
+})
+
+describe('cache inspector', () => {
+  scenario(
+    'lists expired books and metadata-only books with pins and manual matches',
+    factory =>
+      worker(factory, cache =>
+        Effect.gen(function* () {
+          yield* store(cache, pinnedBook, true)
+          yield* cache.setMeta(otherBook.meta)
+          yield* cache.correct(found, details)
+          yield* advance(31 * DAY)
+          const books = yield* cache.list
+          expect(books).toHaveLength(2)
+          expect(books.find(b => b.asin === found.asin)).toMatchObject({
+            title: meta.title,
+            manual: true,
+            pinned: true,
+            rating: { r: found.r },
+          })
+          expect(
+            books.find(b => b.asin === otherBook.meta.asin)?.rating
+          ).toBeUndefined()
+        })
+      )
+  )
+  scenario(
+    'a correction survives restart, expiry, purge and clear-unpinned, but clear-all removes it',
+    factory =>
+      Effect.gen(function* () {
+        yield* worker(factory, cache => cache.correct(found, details))
+        yield* advance(200 * DAY)
+        yield* worker(factory, cache =>
+          Effect.gen(function* () {
+            yield* cache.purge
+            yield* cache.clear('unpinned')
+            expect(Option.isNone(yield* cache.getRating(found.asin))).toBe(true)
+            expect(
+              Option.getOrUndefined(yield* cache.getOverride(found.asin))
+                ?.bookId
+            ).toBe(found.bookId)
+            expect(
+              yield* peek(factory, 'details', details.bookId)
+            ).toBeDefined()
+            yield* cache.clear('all')
+            expect(Option.isNone(yield* cache.getOverride(found.asin))).toBe(
+              true
+            )
+            expect(yield* cache.list).toEqual([])
+          })
+        )
+      })
+  )
+  scenario('automatic writes cannot overwrite a manual match', factory =>
+    worker(factory, cache =>
+      Effect.gen(function* () {
+        yield* cache.correct(found, details)
+        yield* cache.setRating({ _tag: 'Miss', asin: found.asin })
+        yield* cache.setRating({ ...otherBook.rating, asin: found.asin })
+        expect(
+          Option.getOrUndefined(yield* cache.getRating(found.asin))
+        ).toMatchObject({ _tag: 'Found', bookId: found.bookId })
+      })
+    )
+  )
+  scenario(
+    'deleting a book removes its override and pin, while keeping shared details until the last reference',
+    factory =>
+      worker(factory, cache =>
+        Effect.gen(function* () {
+          yield* store(cache, pinnedBook, true)
+          yield* cache.correct(found, details)
+          yield* cache.setRating({ ...found, asin: otherBook.rating.asin })
+          yield* cache.deleteBook(found.asin)
+          expect(yield* cache.list).toHaveLength(1)
+          expect(Option.isNone(yield* cache.getOverride(found.asin))).toBe(true)
+          expect(Option.isSome(yield* cache.getDetails(details.bookId))).toBe(
+            true
+          )
+          expect((yield* cache.stats).pinned).toBe(0)
+          yield* cache.deleteBook(otherBook.rating.asin)
+          expect(Option.isNone(yield* cache.getDetails(details.bookId))).toBe(
+            true
+          )
+        })
+      )
+  )
+  scenario('upgrades version 1 without losing existing ratings', factory =>
+    Effect.gen(function* () {
+      yield* Effect.promise(
+        () =>
+          new Promise<void>((resolve, reject) => {
+            const request = factory.open(DB_NAME, 1)
+            request.onupgradeneeded = () => {
+              for (const [name, key, time] of [
+                ['ratings', 'asin', 'savedAt'],
+                ['meta', 'asin', 'savedAt'],
+                ['details', 'bookId', 'savedAt'],
+                ['pins', 'asin', 'lastSeen'],
+              ] as const) {
+                request.result
+                  .createObjectStore(name, { keyPath: key })
+                  .createIndex(time, time)
+              }
+              request.result.createObjectStore('housekeeping', {
+                keyPath: 'name',
+              })
+            }
+            request.onsuccess = () => {
+              const db = request.result
+              const tx = db.transaction('ratings', 'readwrite')
+              tx.objectStore('ratings').put({ ...found, savedAt: START })
+              tx.oncomplete = () => {
+                db.close()
+                resolve()
+              }
+            }
+            request.onerror = () => reject(request.error)
+          })
+      )
+      yield* worker(factory, cache =>
+        Effect.gen(function* () {
+          expect(Option.isSome(yield* cache.getRating(found.asin))).toBe(true)
+          yield* cache.correct(found, details)
+          expect(Option.isSome(yield* cache.getOverride(found.asin))).toBe(true)
+        })
+      )
+    })
   )
 })

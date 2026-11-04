@@ -10,7 +10,7 @@ import { Count } from './common'
 export const CacheStatsRequest = Schema.TaggedStruct('CacheStats', {})
 
 /**
- * Empties the cache. `unpinned` keeps the books seen in Library and Wish List; `all` leaves nothing.
+ * Empties the cache. `unpinned` keeps Library, Wish List and manually matched books; `all` leaves nothing.
  * The reply is `Cleared`.
  */
 export const ClearCacheRequest = Schema.TaggedStruct('ClearCache', {

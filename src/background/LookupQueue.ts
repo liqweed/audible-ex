@@ -91,6 +91,12 @@ export interface RatingRequest {
 }
 
 export interface LookupQueueService {
+  /** Validate a manual choice through the same workers, then save it atomically. */
+  readonly correct: (
+    asin: string,
+    bookId: string
+  ) => Effect.Effect<void, LookupError | CacheError>
+
   /**
    * The rating of `request.asin`: from the cache at once, otherwise looked up (Audible metadata,
    * then the Goodreads search through the queue) and cached. `onMiss` runs before the wait when the
@@ -340,8 +346,19 @@ const make = Effect.gen(function* () {
       )
     )
 
+  const manual = (asin: string) =>
+    soft('read', cache.getOverride(asin), Option.none())
   const cachedRating = (asin: string) =>
-    soft('read', cache.getRating(asin), Option.none())
+    Effect.gen(function* () {
+      const rating = yield* soft('read', cache.getRating(asin), Option.none())
+      const override = yield* manual(asin)
+      return Option.filter(
+        rating,
+        r =>
+          Option.isNone(override) ||
+          (r._tag === 'Found' && r.bookId === override.value.bookId)
+      )
+    })
 
   const cachedDetails = (bookId: string) =>
     soft('read', cache.getDetails(bookId), Option.none()).pipe(
@@ -377,12 +394,37 @@ const make = Effect.gen(function* () {
       return meta
     })
 
-  const ratingFlow = ({ region, asin }: RatingRequest) =>
+  const ratingFlow = ({
+    region,
+    asin,
+  }: RatingRequest): Effect.Effect<RatingResult, LookupError> =>
     Effect.gen(function* () {
       // Asked again here: another asker may have stored it since the caller looked.
       const stored = yield* cachedRating(asin)
       if (Option.isSome(stored)) return stored.value as RatingResult
 
+      const override = yield* manual(asin)
+      if (Option.isSome(override)) {
+        const bookId = override.value.bookId
+        const book = yield* submit(
+          'rating',
+          whileRunning(asin, goodreads.book(bookId))
+        )
+        yield* soft(
+          'write',
+          cache.setDetails({ bookId, ...book.details }),
+          undefined
+        )
+        yield* soft(
+          'write',
+          cache.setRating({ asin, _tag: 'Found', bookId, ...book.rating }),
+          undefined
+        )
+        const latest = yield* manual(asin)
+        if (Option.isSome(latest) && latest.value.bookId !== bookId)
+          return yield* ratingFlow({ region, asin, pinned: false })
+        return { _tag: 'Found', bookId, ...book.rating } as const
+      }
       const meta = yield* metaFor(region, asin)
       const match = yield* submit(
         'rating',
@@ -399,6 +441,10 @@ const make = Effect.gen(function* () {
             loose: match.value.loose,
           }
       yield* soft('write', cache.setRating({ asin, ...result }), undefined)
+      // A correction may have completed while the automatic search was in flight.
+      const latest = yield* manual(asin)
+      if (Option.isSome(latest))
+        return yield* ratingFlow({ region, asin, pinned: false })
       return result
     })
 
@@ -422,6 +468,14 @@ const make = Effect.gen(function* () {
   >()
 
   return LookupQueue.of({
+    correct: (asin, bookId) =>
+      Effect.gen(function* () {
+        const book = yield* submit('rating', goodreads.book(bookId))
+        yield* cache.correct(
+          { _tag: 'Found', asin, bookId, ...book.rating },
+          { bookId, ...book.details }
+        )
+      }),
     rating: (request, onMiss = Effect.void) =>
       Effect.gen(function* () {
         if (request.pinned) {

@@ -9,3 +9,21 @@
 .options-hint {
   @apply text-xs leading-relaxed text-slate-500;
 }
+
+.cache-scroll {
+  height: 400px;
+  overflow: auto;
+  border: 1px solid var(--color-slate-200);
+  border-radius: 0.5rem;
+}
+.cache-row {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--color-slate-200);
+}

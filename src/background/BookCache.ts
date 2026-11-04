@@ -38,9 +38,12 @@ import {
   DetailsRecord,
   HousekeepingRecord,
   MetaRecord,
+  OverrideRecord,
   PinRecord,
   RatingRecord,
 } from '../schema/cache'
+
+import type { CachedBook } from '../schema/inspector'
 
 type Rating = typeof RatingRecord.Type
 type Meta = typeof MetaRecord.Type
@@ -49,13 +52,13 @@ type Details = typeof DetailsRecord.Type
 /** A record as the caller hands it over: the cache stamps `savedAt` itself. */
 type Unstamped<T> = T extends unknown ? Omit<T, 'savedAt'> : never
 
-/** What `clear` deletes: `unpinned` keeps Library and Wish List books, `all` leaves nothing. */
+/** What `clear` deletes: `unpinned` keeps Library, Wish List and manually matched books, `all` leaves nothing. */
 export type ClearScope = 'unpinned' | 'all'
 
 export interface CacheStats {
   /** Rating entries stored (found or not found), including expired ones the purge hasn't removed yet. */
   readonly books: number
-  /** Ratings, metadata and details stored; pins and housekeeping are not entries. */
+  /** Ratings, metadata, details and overrides stored; pins and housekeeping are not entries. */
   readonly entries: number
   /** Approximate size of everything stored, as the JSON of its records. */
   readonly bytes: number
@@ -74,6 +77,16 @@ export class CacheError extends Data.TaggedError('CacheError')<{
 }
 
 export interface BookCacheService {
+  readonly list: Effect.Effect<readonly CachedBook[], CacheError>
+  readonly deleteBook: (asin: string) => Effect.Effect<void, CacheError>
+  readonly getOverride: (
+    asin: string
+  ) => Effect.Effect<Option.Option<typeof OverrideRecord.Type>, CacheError>
+  readonly correct: (
+    rating: Extract<Unstamped<Rating>, { _tag: 'Found' }>,
+    details: Unstamped<Details>
+  ) => Effect.Effect<void, CacheError>
+
   /** The stored rating, or none when absent, expired (found: 30 days, not found: 7) or unreadable. */
   readonly getRating: (
     asin: string
@@ -117,7 +130,7 @@ export class BookCache extends Context.Service<BookCache, BookCacheService>()(
 }
 
 export const DB_NAME = 'audible-ex-cache'
-const DB_VERSION = 1
+export const DB_VERSION = 2
 
 interface CacheDb extends DBSchema {
   ratings: { key: string; value: Rating; indexes: { savedAt: number } }
@@ -128,11 +141,19 @@ interface CacheDb extends DBSchema {
     value: typeof PinRecord.Type
     indexes: { lastSeen: number }
   }
+  overrides: { key: string; value: typeof OverrideRecord.Type }
   housekeeping: { key: string; value: typeof HousekeepingRecord.Type }
 }
 
 type Db = IDBPDatabase<CacheDb>
-type AllStores = ['ratings', 'meta', 'details', 'pins', 'housekeeping']
+type AllStores = [
+  'ratings',
+  'meta',
+  'details',
+  'pins',
+  'housekeeping',
+  'overrides',
+]
 type WriteTx = IDBPTransaction<CacheDb, AllStores, 'readwrite'>
 
 /**
@@ -159,6 +180,8 @@ const open = (factory: IDBFactory) => {
       }
       db.createObjectStore('housekeeping', { keyPath: 'name' })
     }
+    if (event.oldVersion < 2)
+      db.createObjectStore('overrides', { keyPath: 'asin' })
   })
   return new Promise<Db>((resolve, reject) => {
     let settled = false
@@ -176,6 +199,7 @@ const open = (factory: IDBFactory) => {
   })
 }
 
+const decodeOverride = Schema.decodeUnknownOption(OverrideRecord)
 const decodeRating = Schema.decodeUnknownOption(RatingRecord)
 const decodeMeta = Schema.decodeUnknownOption(MetaRecord)
 const decodeDetails = Schema.decodeUnknownOption(DetailsRecord)
@@ -189,7 +213,7 @@ const decodeHousekeeping = Schema.decodeUnknownOption(HousekeepingRecord)
  */
 const readRecord = async <T>(
   db: Db,
-  name: 'ratings' | 'meta' | 'details',
+  name: 'ratings' | 'meta' | 'details' | 'overrides',
   key: string,
   decode: (raw: unknown) => Option.Option<T>
 ): Promise<Option.Option<T>> => {
@@ -264,7 +288,12 @@ const deleteUnpinned = async (
   how: 'purge' | 'unpinned'
 ): Promise<number> => {
   const asins = await livePins(tx, now)
+  const overrides = (await tx.objectStore('overrides').getAll()).flatMap(raw =>
+    Option.toArray(decodeOverride(raw))
+  )
+  for (const record of overrides) asins.add(record.asin)
   const bookIds = await pinnedBookIds(tx, asins)
+  for (const record of overrides) bookIds.add(record.bookId)
   let deleted = 0
   for (const name of ENTRY_STORES) {
     const store = tx.objectStore(name)
@@ -295,7 +324,7 @@ const deleteUnpinned = async (
 
 const writeTx = (db: Db) =>
   db.transaction(
-    ['ratings', 'meta', 'details', 'pins', 'housekeeping'],
+    ['ratings', 'meta', 'details', 'pins', 'housekeeping', 'overrides'],
     'readwrite'
   )
 
@@ -332,9 +361,10 @@ const clearNow = async (db: Db, now: number, scope: ClearScope) => {
     deleted = await deleteUnpinned(tx, now, 'unpinned')
   } else {
     deleted = 0
+    deleted += await tx.objectStore('overrides').count()
     for (const name of ENTRY_STORES)
       deleted += await tx.objectStore(name).count()
-    for (const name of [...ENTRY_STORES, 'pins'] as const) {
+    for (const name of [...ENTRY_STORES, 'pins', 'overrides'] as const) {
       await tx.objectStore(name).clear()
     }
   }
@@ -343,22 +373,103 @@ const clearNow = async (db: Db, now: number, scope: ClearScope) => {
 }
 
 const statsNow = async (db: Db): Promise<CacheStats> => {
-  const tx = db.transaction(['ratings', 'meta', 'details', 'pins'], 'readonly')
-  const [ratings, meta, details, pins] = await Promise.all([
+  const tx = db.transaction(
+    ['ratings', 'meta', 'details', 'pins', 'overrides'],
+    'readonly'
+  )
+  const [ratings, meta, details, pins, overrides] = await Promise.all([
     tx.objectStore('ratings').getAll(),
     tx.objectStore('meta').getAll(),
     tx.objectStore('details').getAll(),
     tx.objectStore('pins').getAll(),
+    tx.objectStore('overrides').getAll(),
   ])
-  const bytes = [ratings, meta, details, pins]
+  const bytes = [ratings, meta, details, pins, overrides]
     .flat()
     .reduce((sum, record) => sum + JSON.stringify(record).length, 0)
   return {
     books: ratings.length,
-    entries: ratings.length + meta.length + details.length,
+    entries: ratings.length + meta.length + details.length + overrides.length,
     bytes,
     pinned: pins.length,
   }
+}
+
+/** One consistent snapshot, including expired ratings and metadata-only books. */
+const listNow = async (db: Db, now: number): Promise<readonly CachedBook[]> => {
+  const tx = db.transaction(
+    ['ratings', 'meta', 'pins', 'overrides'],
+    'readonly'
+  )
+  const [ratings, metadata, overrides, pins] = await Promise.all([
+    tx.objectStore('ratings').getAll(),
+    tx.objectStore('meta').getAll(),
+    tx.objectStore('overrides').getAll(),
+    tx.objectStore('pins').getAll(),
+  ])
+  await tx.done
+  const valid = <T>(
+    raw: unknown[],
+    decode: (raw: unknown) => Option.Option<T>
+  ) => raw.flatMap(r => Option.toArray(decode(r)))
+  const byAsin = <T extends { readonly asin: string }>(records: T[]) =>
+    new Map(records.map(r => [r.asin, r]))
+  const rs = byAsin(valid(ratings, decodeRating))
+  const ms = byAsin(valid(metadata, decodeMeta))
+  const os = byAsin(valid(overrides, decodeOverride))
+  const ps = byAsin(
+    valid(pins, decodePin).filter(p => !isPinLapsed(p.lastSeen, now))
+  )
+  return [...new Set([...rs.keys(), ...ms.keys(), ...os.keys()])].map(asin => {
+    const rating = rs.get(asin),
+      meta = ms.get(asin),
+      override = os.get(asin)
+    const found =
+      rating?._tag === 'Found' &&
+      (!override || override.bookId === rating.bookId)
+        ? rating
+        : undefined
+    return {
+      asin,
+      title: meta?.title ?? asin,
+      author: meta?.author ?? '',
+      savedAt: Math.max(
+        rating?.savedAt ?? 0,
+        meta?.savedAt ?? 0,
+        override?.savedAt ?? 0
+      ),
+      ...(found && {
+        rating: { r: found.r, n: found.n, url: found.url, loose: found.loose },
+      }),
+      ...((override?.bookId ?? found?.bookId) && {
+        bookId: override?.bookId ?? found?.bookId,
+      }),
+      manual: !!override,
+      pinned: ps.has(asin),
+    }
+  })
+}
+
+const deleteBookNow = async (db: Db, asin: string) => {
+  const tx = writeTx(db)
+  const rating = decodeRating(await tx.objectStore('ratings').get(asin))
+  const override = decodeOverride(await tx.objectStore('overrides').get(asin))
+  const ids = new Set<string>()
+  if (Option.isSome(rating) && rating.value._tag === 'Found')
+    ids.add(rating.value.bookId)
+  if (Option.isSome(override)) ids.add(override.value.bookId)
+  for (const name of ['ratings', 'meta', 'pins', 'overrides'] as const)
+    await tx.objectStore(name).delete(asin)
+  for (const raw of await tx.objectStore('ratings').getAll()) {
+    const r = decodeRating(raw)
+    if (Option.isSome(r) && r.value._tag === 'Found') ids.delete(r.value.bookId)
+  }
+  for (const raw of await tx.objectStore('overrides').getAll()) {
+    const o = decodeOverride(raw)
+    if (Option.isSome(o)) ids.delete(o.value.bookId)
+  }
+  for (const id of ids) await tx.objectStore('details').delete(id)
+  await tx.done
 }
 
 const pinNow = async (db: Db, asin: string, now: number) => {
@@ -391,7 +502,7 @@ const make = (factory: IDBFactory) =>
 
     const get = <T extends { readonly savedAt: number }>(
       operation: string,
-      name: 'ratings' | 'meta' | 'details',
+      name: 'ratings' | 'meta' | 'details' | 'overrides',
       decode: (raw: unknown) => Option.Option<T>,
       ttl: (record: T) => number
     ) =>
@@ -422,7 +533,35 @@ const make = (factory: IDBFactory) =>
       getRating: get('getRating', 'ratings', decodeRating, r =>
         ratingTtl(r._tag)
       ),
-      setRating: set('setRating', r => db.put('ratings', r)),
+      setRating: set('setRating', async r => {
+        const tx = db.transaction(['ratings', 'overrides'], 'readwrite')
+        const override = decodeOverride(
+          await tx.objectStore('overrides').get(r.asin)
+        )
+        if (
+          Option.isNone(override) ||
+          (r._tag === 'Found' && r.bookId === override.value.bookId)
+        ) {
+          await tx.objectStore('ratings').put(r)
+        }
+        await tx.done
+      }),
+      getOverride: asin =>
+        run('getOverride', () =>
+          readRecord(db, 'overrides', asin, decodeOverride)
+        ),
+      list: atNow('list', now => listNow(db, now)),
+      deleteBook: asin => run('deleteBook', () => deleteBookNow(db, asin)),
+      correct: (rating, details) =>
+        atNow('correct', async savedAt => {
+          const tx = writeTx(db)
+          await tx
+            .objectStore('overrides')
+            .put({ asin: rating.asin, bookId: rating.bookId, savedAt })
+          await tx.objectStore('ratings').put({ ...rating, savedAt })
+          await tx.objectStore('details').put({ ...details, savedAt })
+          await tx.done
+        }),
       getMeta: get('getMeta', 'meta', decodeMeta, () => TTL_META),
       setMeta: set('setMeta', r => db.put('meta', r)),
       getDetails: get(
