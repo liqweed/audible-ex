@@ -7,6 +7,7 @@ import {
   expect,
   type Page,
   test,
+  type Worker,
 } from 'playwright/test'
 
 // Smoke test against live Audible and Goodreads (`bun e2e`, never in CI: the sites change on their
@@ -22,12 +23,17 @@ const ROOT = join(import.meta.dirname, '..')
 const EXTENSION = join(ROOT, '.output/chrome-mv3')
 const STORE = join(ROOT, '.output/store')
 const VIEWPORT = { width: 1280, height: 800 }
+/** The part of the extension API the tests call inside its service worker. */
+declare const chrome: {
+  storage: { sync: { set(items: object): Promise<void> } }
+}
 /** A rating badge, as opposed to one that is waiting, not found or failed. */
 const READY = 'a.agx-badge[href^="https://www.goodreads.com/book/"]'
 
 test.describe.configure({ mode: 'serial', timeout: 120_000 })
 
 let context: BrowserContext
+let worker: Worker
 let extensionId: string
 
 test.beforeAll(async () => {
@@ -42,9 +48,13 @@ test.beforeAll(async () => {
       `--load-extension=${EXTENSION}`,
     ],
   })
-  const worker =
+  worker =
     context.serviceWorkers()[0] ?? (await context.waitForEvent('serviceworker'))
   extensionId = new URL(worker.url()).host
+  // The worker can be found before its extension API is set up.
+  await expect
+    .poll(() => worker.evaluate(() => typeof chrome.storage))
+    .toBe('object')
 })
 
 test.afterAll(async () => {
@@ -90,6 +100,53 @@ async function openWithBadges(url: string, min: number) {
   return { page, ready }
 }
 
+/** Scrolls the first book with a rating near the top: Audible's header and banners fill the view. */
+async function scrollToBooks(page: Page) {
+  await page
+    .locator(READY)
+    .filter({ visible: true })
+    .first()
+    .evaluate(badge =>
+      window.scrollBy(0, badge.getBoundingClientRect().top - 60)
+    )
+  await page.waitForTimeout(500)
+}
+
+/**
+ * Waits until the panel's two bars are full: every book in reach has its rating, and every found
+ * one its genres, year and overview. A badge redrawn when its details arrive also closes an open
+ * overview.
+ */
+async function settled(page: Page) {
+  const full = async (name: string) => {
+    const bar = page.getByRole('progressbar', { name })
+    return (
+      (await bar.getAttribute('aria-valuenow')) ===
+      (await bar.getAttribute('aria-valuemax'))
+    )
+  }
+  await expect
+    .poll(
+      async () =>
+        (await full('Ratings looked up')) &&
+        (await full('Genres and details read')),
+      { timeout: 90_000 }
+    )
+    .toBe(true)
+}
+
+/**
+ * Replaces the prefs with these filters; every other filter and pref takes its default when read
+ * (src/storage/prefs.ts). `prefs$` is WXT's version record for the item.
+ */
+async function setFilters(filters: Record<string, unknown>) {
+  await worker.evaluate(
+    filters =>
+      chrome.storage.sync.set({ prefs: { filters }, prefs$: { v: 6 } }),
+    filters
+  )
+}
+
 // Search and book pages on audible.com answer with an error page outside the US, so .com is
 // checked on its home page and the screenshots come from .co.uk.
 test('badges appear on audible.com', async () => {
@@ -98,16 +155,15 @@ test('badges appear on audible.com', async () => {
 })
 
 test('badges, labels and the overview appear on audible.co.uk; store screenshots', async () => {
+  // The default filters hide books rated below 4.0; this page should show every badge.
+  await setFilters({ enabled: false })
   const { page, ready } = await openWithBadges(
-    'https://www.audible.co.uk/search?keywords=Andy%20Weir',
+    'https://www.audible.co.uk/search?keywords=Andy%20Weir&sort=review-rank',
     3
   )
-  // Years and labels arrive after the rating; the screenshot is better with them.
-  await expect
-    .poll(() => page.locator('.agx-year').filter({ visible: true }).count(), {
-      timeout: 60_000,
-    })
-    .toBeGreaterThanOrEqual(2)
+  // Scrolling brings more books in reach; their years and labels arrive after the ratings.
+  await scrollToBooks(page)
+  await settled(page)
   await page.screenshot({ path: join(STORE, 'screenshot-1-search.png') })
 
   // The floating panel is a second content script that gets the badge script's state through the
@@ -120,13 +176,84 @@ test('badges, labels and the overview appear on audible.co.uk; store screenshots
   await page.screenshot({ path: join(STORE, 'panel-progress.png') })
 
   await ready.first().hover()
-  await expect(page.locator('.agx-overview-host')).toBeAttached()
-  await page.waitForTimeout(500)
+  await expect(page.locator('.agx-overview-host [role=tooltip]')).toBeVisible()
+  await page.waitForTimeout(300)
   await page.screenshot({ path: join(STORE, 'screenshot-2-overview.png') })
   await page.close()
 })
 
-test('the popup, framed for a store screenshot', async () => {
+test('filters dim books and a highlighted genre makes covers glow; store screenshot', async () => {
+  // Dim rather than hide, so the screenshot shows what the filters do, with a minimum rating most
+  // books on the page reach, so it shows passing, dimmed and highlighted books together.
+  const filters = {
+    minRating: 3.8,
+    modes: {
+      rating: 'dim',
+      count: 'dim',
+      labels: 'dim',
+      year: 'dim',
+      price: 'dim',
+    },
+  }
+  await setFilters(filters)
+  const { page } = await openWithBadges(
+    'https://www.audible.co.uk/search?keywords=time%20travel',
+    3
+  )
+  const labels = page.locator('.agx-label').filter({ visible: true })
+  await expect
+    .poll(() => labels.count(), { timeout: 60_000 })
+    .toBeGreaterThanOrEqual(4)
+  // Highlight the commonest genre that some cards on the page lack. Open pages apply a prefs change
+  // at once; a label's own popover does the same, but hovering it is flaky while cards load.
+  const names = await labels.allTextContents()
+  const tally = new Map<string, number>()
+  for (const name of names) tally.set(name, (tally.get(name) ?? 0) + 1)
+  const cards = await page.locator(READY).filter({ visible: true }).count()
+  const [label] = [...tally]
+    .filter(([, n]) => n < cards)
+    .sort((a, b) => b[1] - a[1])
+    .map(([name]) => name)
+  expect(label).toBeDefined()
+  await setFilters({ ...filters, highlightLabels: [label] })
+  await expect(page.locator('[data-agx-highlight]').first()).toBeAttached()
+  await scrollToBooks(page)
+  await settled(page)
+
+  await page.getByRole('button', { name: 'Filter settings' }).click()
+  await page.waitForTimeout(500)
+  await page.screenshot({ path: join(STORE, 'screenshot-3-filters.png') })
+
+  // A highlighted label's popover, with the panel collapsed to its pill.
+  await page.getByRole('button', { name: 'Collapse' }).click()
+  await page
+    .locator('.agx-label.agx-highlighted')
+    .filter({ visible: true })
+    .first()
+    .hover()
+  await expect(
+    page.getByRole('dialog', { name: `Filter on ${label}` })
+  ).toBeVisible()
+  await page.waitForTimeout(300)
+  await page.screenshot({ path: join(STORE, 'screenshot-4-popover.png') })
+  await page.close()
+})
+
+test('the cache inspector in the settings; store screenshot', async () => {
+  const page = await context.newPage()
+  await page.goto(`chrome-extension://${extensionId}/options.html`)
+  await page.getByRole('button', { name: 'Open cache inspector' }).click()
+  // The books the earlier tests looked up.
+  await expect(page.getByText(/^[1-9]\d* of \d+ cached books$/)).toBeVisible()
+  await page
+    .getByRole('heading', { name: 'Cached books' })
+    .evaluate(h => window.scrollBy(0, h.getBoundingClientRect().top - 24))
+  await page.waitForTimeout(300)
+  await page.screenshot({ path: join(STORE, 'screenshot-5-cache.png') })
+  await page.close()
+})
+
+test('the popup, framed for a picture', async () => {
   const page = await context.newPage()
   await page.goto(`chrome-extension://${extensionId}/popup.html`)
   await expect(page.getByText('Not affiliated with Audible')).toBeVisible()
@@ -140,7 +267,7 @@ test('the popup, framed for a store screenshot', async () => {
       main { background: white; border-radius: 12px; zoom: 1.6;
              box-shadow: 0 10px 30px rgb(0 0 0 / 0.15) }`,
   })
-  await page.screenshot({ path: join(STORE, 'screenshot-3-popup.png') })
+  await page.screenshot({ path: join(STORE, 'popup.png') })
   await page.close()
 })
 
