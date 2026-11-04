@@ -83,13 +83,13 @@ name: changelog
 on:
   pull_request:
   push:
-    branches: ["main"]
+    branches: ['main']
   workflow_run:
-    workflows: ["CI"]
+    workflows: ['CI']
     types: [completed]
-    branches: ["main"]
+    branches: ['main']
   schedule:
-    - cron: "23 */6 * * *"
+    - cron: '23 */6 * * *'
   workflow_dispatch:
 
 permissions:
@@ -303,7 +303,7 @@ jobs:
         uses: jig-harness/jig/plugin/skills/changelog@4d37551e36ffd9d9807a284e518cd2d03d3523ae # v0.129.2
         with:
           command: tag
-          rerun: "true"
+          rerun: 'true'
       # After the plan's ready list is handed on, so a failed version does
       # not hold back the others.
       - name: Fail for a releasing commit whose checks failed
