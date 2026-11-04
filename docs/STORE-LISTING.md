@@ -9,12 +9,12 @@ The listing is public. Release 0.1.0 was first published unlisted (DECISIONS.md
 D17); since v0.2.0 every release is uploaded and submitted by `release.yml`
 ([Automated releases](#automated-releases)).
 
-| Item       | Value                                                                     |
-| ---------- | ------------------------------------------------------------------------- |
-| Item ID    | `kmmnfidbflcgfcbifjfakgnjppoflffo`                                        |
-| Store page | https://chromewebstore.google.com/detail/kmmnfidbflcgfcbifjfakgnjppoflffo |
-| Dashboard  | https://chrome.google.com/webstore/devconsole (the item, by its ID)       |
-| Visibility | Public                                                                    |
+| Item       | Value                                                                                              |
+| ---------- | -------------------------------------------------------------------------------------------------- |
+| Item ID    | `kmmnfidbflcgfcbifjfakgnjppoflffo`                                                                 |
+| Store page | https://chromewebstore.google.com/detail/book-ratings-for-audible/kmmnfidbflcgfcbifjfakgnjppoflffo |
+| Dashboard  | https://chrome.google.com/webstore/devconsole (the item, by its ID)                                |
+| Visibility | Public                                                                                             |
 
 Later releases upload a new package to this item; they never create a new one.
 
@@ -159,8 +159,8 @@ update from anyone who takes over the developer account without the key
 - **Public key:** `.config/cws-signing-key.pub.pem`; `bun crx` refuses a key
   that doesn't match it. SHA-256 of its DER form: `074fa5ca29271270bde909744381e3e55218fbfdd17da3df5209309cb574c1d3`.
 - **Opt-in:** the item → **Package** → **Verified CRX Uploads** → **Opt In**,
-  then paste the public key below. Status: opted in; the store has accepted the
-  signed CRX of every release since v0.2.0.
+  then paste the public key below. Status: opted in on 2026-11-03; every upload
+  since must be `bun crx`'s signed `.crx`.
 
 ```text
 -----BEGIN PUBLIC KEY-----
