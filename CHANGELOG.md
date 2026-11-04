@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-11-04
+
+### Changed
+
+- A book on Goodreads that nobody has rated yet, often one not yet released, shows `GR: no ratings yet` instead of `★ 0.00 (0)`, and its overview says "No ratings yet". The badge still links to the book on Goodreads.
+
 ## [0.5.0] - 2026-11-04
 
 ### Changed
@@ -175,7 +181,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   extensions page, in place of the working name `audible-ex`. Its description no
   longer mentions filters, which haven't shipped yet.
 
-[Unreleased]: https://github.com/liqweed/audible-ex/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/liqweed/audible-ex/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/liqweed/audible-ex/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/liqweed/audible-ex/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/liqweed/audible-ex/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/liqweed/audible-ex/compare/v0.2.0...v0.3.0
