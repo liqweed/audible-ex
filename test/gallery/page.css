@@ -1,0 +1,74 @@
+/* A stand-in for an Audible page: system fonts, a white page and cards laid out like search results
+   and a carousel. Only the extension's own UI is under test; this is the backdrop. */
+html,
+body {
+  margin: 0;
+  background: #fff;
+  color: #232f3e;
+  font:
+    14px / 1.4 -apple-system,
+    system-ui,
+    sans-serif;
+}
+#stage {
+  padding: 24px 32px;
+}
+.index a {
+  display: block;
+  margin: 4px 0;
+  color: #1d4ed8;
+}
+.results {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px 32px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.productListItem {
+  display: flex;
+  gap: 16px;
+}
+.productListItem img {
+  flex: none;
+  width: 112px;
+  height: 112px;
+  border-radius: 8px;
+}
+.productListItem h3 {
+  margin: 0;
+  font-size: 16px;
+}
+.productListItem h3 a {
+  color: #1d4ed8;
+  text-decoration: none;
+}
+.by {
+  color: #4b5563;
+  font-size: 13px;
+}
+.carousel {
+  display: flex;
+  gap: 24px;
+  padding: 24px;
+  background: #0b0b0b;
+}
+/* Audible's slides hide what lies outside them, which is what the cover's ring is drawn against. */
+.slide {
+  overflow: hidden;
+  width: 140px;
+}
+.slide img {
+  display: block;
+  width: 140px;
+  height: 140px;
+  border-radius: 12px;
+}
+.slide .title {
+  display: block;
+  margin-top: 6px;
+  color: #93c5fd;
+  font-size: 13px;
+  text-decoration: none;
+}

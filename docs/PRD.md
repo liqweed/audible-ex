@@ -58,7 +58,7 @@ catalogue goes unchecked.
 - A panel on Audible pages, isolated from the page's styles.
 - Progress for the current tab: a bar and counts (looked up / total, from
   cache, not found, failed), a "paused — Goodreads is rate limiting (12 s)"
-  state, "Retry failed", and a distinct "Goodreads changed its page format"
+  state, "Retry" for the failed lookups, and a distinct "Goodreads changed its page format"
   error.
 - The panel can be dragged to a corner, collapsed to a small pill (`34/60`) or
   hidden on a site; its placement survives reloads. A hidden panel comes back

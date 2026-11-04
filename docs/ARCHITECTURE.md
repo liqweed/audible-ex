@@ -350,7 +350,8 @@ progress bar appears, which is the one thing `bun test` cannot prove about the s
   never gets details, so the bar can stop short of full; the store cannot tell that from waiting. Once
   every rating is in, the collapsed pill shows `details 12/34` instead of `60/60`.
 - Progress: bar plus `34/60 · 18 cached · 2 not found · 1 failed`; "Paused — Goodreads is rate
-  limiting (12 s)"; "Retry failed".
+  limiting (12 s)"; "Retry" (named "Retry failed" for screen readers), a link in the "Ratings"
+  heading row while something failed, so neither the header nor the counts lose room.
 - Filters (`src/panel/Filters.tsx`, built, below the progress): the master switch and `12 hidden ·
   Show` always; a "Filter settings" area, open with the filters off too (highlights do not depend
   on them), has one row per filter (the rating slider, 3.0–5.0, step 0.1; the minimum number of
@@ -567,12 +568,24 @@ limits are keyed by region, even where several marketplaces share EUR.
 | React UI            | `bun test` + Testing Library                   | Panel states, filter controls, peek.                                                                                                   |
 | Storage             | `bun test` + `wxt/testing/fake-browser`        | Prefs defaults, migrations, watch.                                                                                                     |
 | End to end          | Playwright, built extension loaded in Chromium | Smoke test on live Audible pages; run manually and before releases, not on every push (live sites change).                             |
+| Visual              | Playwright `toHaveScreenshot` over the UI gallery | One screenshot per UI state against a per-platform baseline (`bun run visual`); run when the UI changes, not in CI (D27).          |
 
 `test/preload.ts` (set in `bunfig.toml`) registers happy-dom and `fake-indexeddb` (DECISIONS.md
 D15; each `BookCache` test still gets its own `IDBFactory`, so a restart test reopens the
 same database) and sets `globalThis.browser` and
 `chrome` to WXT's fake browser. `@wxt-dev/storage` reads `browser` from `@wxt-dev/browser`, so mocking
 only `wxt/browser` isn't enough; the global is what works (verified).
+
+**UI gallery.** `test/gallery/` is a Vite page (`bun run gallery`, port 4174) that draws each state
+of the extension's UI as a scene (`?scene=<id>`, listed in `scenes.ts`): badges and labels, a
+highlighted cover in a list and in a clipping carousel, the overview, the label popover's states,
+the panel and the pill. Scenes use the real badge, filter-applier, popover and panel code and
+stylesheets over made-up books, with WXT's fake browser for prefs and the panel mounted in a shadow
+root with its CSS split as `createShadowRootUi` splits it (`@property` rules go to the document). No
+extension, network or Audible page is involved, so a scene draws the same every time. `bun run
+visual` screenshots every scene with Playwright on a fresh server (port 4175) and compares it with
+`test/gallery/__screenshots__/<platform>/`, allowing 10 differing pixels; `bun run visual:update`
+rewrites the baselines after a deliberate change, which are then reviewed and committed.
 
 Fixtures live in `test/fixtures/{audible,goodreads}/` and are refreshed with
 `bun scripts/capture-fixtures.ts` when a site changes. A failing fixture test after refreshing is

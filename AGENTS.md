@@ -109,7 +109,9 @@ bun run build                 # production build (.output/chrome-mv3)
 bun zip                       # store upload zip
 bun crx                       # signed store upload (key from 1Password; docs/STORE-LISTING.md)
 bun test src/core/matching.test.ts   # one test file
-bun e2e                       # Playwright smoke test on live Audible (manual)
+bun e2e                       # Playwright smoke test on live Audible (manual); writes the store screenshots
+bun run gallery               # every UI state, drawn offline (http://localhost:4174)
+bun run visual                # screenshot each gallery scene against its baseline; visual:update rewrites them
 bun scripts/capture-fixtures.ts      # refresh Audible/Goodreads fixtures
 ```
 
@@ -163,6 +165,13 @@ and people: notes, previews, setup pages and scripts, screenshots, and
 `/jig:drive-pr`'s handoff (`.context/pr-drive-<PR>.md`). Nothing there is
 committed or relied on by the build; never put scratch files elsewhere in the
 tree.
+
+## Checking the UI
+
+When a change affects what the extension draws, follow the `ui-gallery` skill
+(`.claude/skills/ui-gallery/SKILL.md`): add or update the gallery scene, run
+`bun run visual`, look at every screenshot that changed, then `bun run visual:update`
+and commit the new baselines with the change.
 
 ## What a terminal cannot verify
 
