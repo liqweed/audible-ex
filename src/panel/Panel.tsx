@@ -2,6 +2,7 @@ import { useStore } from '@tanstack/react-store'
 import { Settings } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { PanelHandle } from '@/content/shared'
+import { regionFromHost } from '@/core/regions'
 import { SOURCE_URL } from '@/lib/links'
 import {
   type Corner,
@@ -219,20 +220,13 @@ export function Panel({
                 title='Drag to move to another corner'
                 className={`group -my-1 flex flex-1 touch-none items-center gap-1 rounded py-1 pl-1 select-none hover:bg-slate-100 ${dragging ? 'cursor-grabbing' : 'cursor-grab'}`}
               >
-                <span className='font-semibold'>Goodreads ratings</span>
+                <span className='font-semibold whitespace-nowrap'>
+                  Goodreads ratings
+                </span>
                 <span className='ml-auto pr-1 text-slate-400 group-hover:text-slate-700'>
                   <Grip />
                 </span>
               </span>
-              {view.kind === 'progress' && view.failed > 0 && (
-                <button
-                  type='button'
-                  onClick={() => handle.retryFailed()}
-                  className='rounded border border-slate-300 px-2 py-0.5 text-xs hover:bg-slate-100'
-                >
-                  Retry failed
-                </button>
-              )}
               {openOptions && (
                 <button
                   type='button'
@@ -274,8 +268,20 @@ export function Panel({
               </p>
             ) : (
               <>
-                <p className='mb-0.5 text-xs font-medium text-slate-700'>
-                  Ratings
+                <p className='mb-0.5 flex justify-between text-xs font-medium text-slate-700'>
+                  <span>Ratings</span>
+                  {/* Above the counts it acts on, so neither the header nor the counts lose room. */}
+                  {view.failed > 0 && (
+                    <button
+                      type='button'
+                      aria-label='Retry failed'
+                      title='Look up the books that failed again'
+                      onClick={() => handle.retryFailed()}
+                      className='font-normal text-slate-700 underline hover:text-slate-900'
+                    >
+                      Retry
+                    </button>
+                  )}
                 </p>
                 <div
                   role='progressbar'
@@ -330,6 +336,7 @@ export function Panel({
                 <Filters
                   handle={handle}
                   panelRef={box}
+                  region={regionFromHost(host)}
                   openOptions={openOptions}
                 />
               </>

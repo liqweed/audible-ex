@@ -19,6 +19,9 @@
     "format": "biome check --write",
     "check": "biome ci && bun run typecheck && bun test",
     "e2e": "wxt build && playwright test --pass-with-no-tests",
+    "gallery": "vite --config test/gallery/vite.config.ts",
+    "visual": "playwright test --config test/gallery/playwright.config.ts",
+    "visual:update": "playwright test --config test/gallery/playwright.config.ts --update-snapshots=all",
     "postinstall": "wxt prepare"
   },
   "dependencies": {
