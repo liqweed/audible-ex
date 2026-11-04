@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-11-04
+
+### Changed
+
+- The Firefox build is ready for addons.mozilla.org: it has a permanent add-on ID, needs Firefox 140 or later, and declares in Firefox's install prompt that the titles and authors of the books on Audible pages are sent to Goodreads to look them up. The Chrome extension is unchanged.
+
 ## [0.6.0] - 2026-11-04
 
 ### Changed
@@ -188,7 +194,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   extensions page, in place of the working name `audible-ex`. Its description no
   longer mentions filters, which haven't shipped yet.
 
-[Unreleased]: https://github.com/liqweed/audible-ex/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/liqweed/audible-ex/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/liqweed/audible-ex/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/liqweed/audible-ex/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/liqweed/audible-ex/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/liqweed/audible-ex/compare/v0.4.0...v0.5.0
