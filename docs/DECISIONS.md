@@ -501,3 +501,36 @@ tolerance is 10 pixels, since one machine renders the same scene identically
 
 The store screenshots stay with `bun e2e` on live Audible, since they must show the
 real site; the gallery is for checking the extension's own UI.
+
+## D28 — Eager filtering: fetch no more for a book a hiding filter already hides (2026-11-04)
+
+Every visible book got its Goodreads search and its book page (~400 KB), even when
+its public price or its rating already hid it: with the default filters (rating
+4.0, hidden) every book under the minimum still had its book page read, for a card
+nobody saw.
+
+A filter's failures only grow as data arrives, so a `hide` verdict on what is known
+is final. The content script decides how far each book's lookup goes
+(`lookupDepth`, `src/core/filter.ts`): nothing while a hiding price limit waits for
+the price or once a `hide` filter fails the book, the rating only (`Lookup` with
+`ratingOnly`) while a hiding rating or count filter could still hide it, and the
+details (`DetailsLookup`) once the rating lets it through. It decides, not the
+background, because only it knows where the cards are (carousels dim instead of
+hiding) and whether the user peeks. A book that would be seen again (filter off or
+dimming, peeking, a new carousel card) is looked up the rest of the way.
+
+For this to hold, the price filter now acts as soon as the price arrives, before
+the rating, and on books not on Goodreads too (the stricter of the price and the
+not-found policy, instead of the policy winning). Otherwise a book hidden on its
+price would be shown again once its lookup said "not found", or never be looked up
+to say so. The rule that a book is never hidden for data it does not have stands.
+
+`DetailsLookup` is a message of its own rather than a second `Lookup`, so the
+progress counters do not count the book twice. Lookups wait for the filters to be
+read, at most 1 s, so the first screen is not looked up in full before the
+settings say how far to go. While a hiding price limit waits for a book's price,
+the content script asks only what the cache has (`cacheOnly`): a cached rating
+costs Goodreads nothing, so it shows at once instead of waiting for the
+catalogue's price batch; only uncached books wait for the price. Rejected: sending the thresholds to the
+background (it would still need the cards' placement and peeking), and cancelling
+queued Goodreads jobs (the queue's work is shared between tabs).

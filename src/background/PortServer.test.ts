@@ -193,6 +193,99 @@ describe('PortServer lookups', () => {
   )
 
   scenario(
+    'a ratingOnly lookup stops at the rating, and DetailsLookup reads the rest without a new lookup',
+    {},
+    h =>
+      Effect.gen(function* () {
+        const port = yield* h.connect()
+        port.say(hello)
+        port.say({
+          _tag: 'Lookup',
+          items: [{ asin: asin(1), pinned: false, ratingOnly: true }],
+        })
+        yield* TestClock.adjust(1_000)
+        yield* settle
+        expect(port.updates).toEqual([`${asin(1)}:loading`, `${asin(1)}:ready`])
+        expect(port.sent[1]?.details).toBeUndefined()
+        expect(h.calls.filter(c => c.kind === 'details')).toEqual([])
+
+        port.say({ _tag: 'DetailsLookup', asins: [asin(1), asin(1)] })
+        yield* TestClock.adjust(1_000)
+        yield* settle
+        expect(port.sent.at(-1)).toEqual({
+          _tag: 'BookUpdate',
+          asin: asin(1),
+          status: 'ready',
+          rating: { r: 4.25, n: 1234, url: matchFor(1).url, loose: false },
+          details: detailsFor(1),
+        })
+        expect(searches(h.calls)).toHaveLength(1)
+        expect(h.calls.filter(c => c.kind === 'details')).toHaveLength(1)
+        // The rating was settled once, by the search, not again by the details.
+        expect(port.progress.at(-1)).toMatchObject({ done: 1, cached: 0 })
+      })
+  )
+
+  scenario(
+    'a cacheOnly lookup answers a cached rating and leaves a book the cache lacks alone',
+    {},
+    h =>
+      Effect.gen(function* () {
+        h.cache.ratings.set(asin(1), {
+          _tag: 'Found',
+          asin: asin(1),
+          savedAt: 0,
+          ...matchFor(1),
+          r: 3.9,
+          n: 77,
+        })
+        const port = yield* h.connect()
+        port.say(hello)
+        port.say({
+          _tag: 'Lookup',
+          items: [
+            { asin: asin(1), pinned: false, cacheOnly: true },
+            { asin: asin(2), pinned: false, cacheOnly: true },
+          ],
+        })
+        yield* TestClock.adjust(1_000)
+        yield* settle
+        // The cached one, rating only; nothing at all for the other, and no request anywhere.
+        expect(port.updates).toEqual([`${asin(1)}:ready`])
+        expect(port.sent[0]?.details).toBeUndefined()
+        expect(h.calls).toEqual([])
+        expect(port.progress.at(-1)).toMatchObject({
+          done: 1,
+          cached: 1,
+          queued: 0,
+          active: 0,
+        })
+
+        // Its price let it through: the plain lookup that follows searches as usual.
+        port.say(lookup(2))
+        yield* TestClock.adjust(1_000)
+        yield* settle
+        expect(port.updates.slice(1)).toEqual([
+          `${asin(2)}:loading`,
+          `${asin(2)}:ready`,
+          `${asin(2)}:ready`,
+        ])
+        expect(searches(h.calls)).toHaveLength(1)
+      })
+  )
+
+  scenario('drops a DetailsLookup that comes before Hello', {}, h =>
+    Effect.gen(function* () {
+      const port = yield* h.connect()
+      port.say({ _tag: 'DetailsLookup', asins: [asin(1)] })
+      yield* TestClock.adjust(1_000)
+      yield* settle
+      expect(port.sent).toEqual([])
+      expect(h.calls).toEqual([])
+    })
+  )
+
+  scenario(
     'answers a book cached with its details at once, in one update',
     {},
     h =>

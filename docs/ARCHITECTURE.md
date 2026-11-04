@@ -161,7 +161,8 @@ Content → background
 | Message  | Fields                                                                                                    |
 | -------- | --------------------------------------------------------------------------------------------------------- |
 | `Hello`  | `region` (a `RegionCode`), `page` (`home`, `search`, `category`, `deals`, `library`, `wishlist`, `other`) |
-| `Lookup` | `items: { asin, pinned }[]` — `pinned` on library/wish list rows                                          |
+| `Lookup` | `items: { asin, pinned, ratingOnly?, cacheOnly? }[]` — `pinned` on library/wish list rows; `ratingOnly` stops after the rating; `cacheOnly` answers the rating only if it is cached (eager filtering, §7) |
+| `DetailsLookup` | `asins` — the details of books whose `ratingOnly` lookup answered with a rating the filters let through |
 | `PriceLookup` | `asins` — visible cards needing fresh public prices while a price limit is active |
 | `Retry`  | `asins`                                                                                                   |
 
@@ -173,7 +174,7 @@ Background → content
 | `PriceUpdate` | `asin`, optional `price: { amount, currency }`; missing means unavailable |
 | `Progress`   | `queued`, `active`, `done`, `cached`, `notFound`, `failed` (counters of this tab) and `pausedUntil?` (epoch milliseconds)                                                                                                                           |
 
-`PortServer` serves each port in its own session. `Hello` records the tab's region, which `Lookup` and `Retry` need; a `Lookup` before `Hello` is dropped and logged. A message that does not decode is dropped and logged as a warning; the port stays open. For each ASIN the server sends `loading` when the cache did not have it, then `ready` with the rating, then `ready` again with the details; a cached book with its details is one `ready` and no `loading`. A book that is not on Goodreads is `notFound`; any lookup failure is `failed` with its reason. If only the details fail, the `ready` with the rating stands. An ASIN already being looked up for the same port is not started twice, so a repeated `Hello` or `Lookup` (the content script re-sending the ASINs that had no answer after a reconnect) is harmless; `Retry` is a lookup again, since failures are not cached. When the port disconnects, only the session's waiting fibres end; lookups other tabs share carry on. The worker buffers a port's early messages (`buffered` in `src/background/port.ts`) because the runtime opens IndexedDB after `onConnect` fires. The server sees the port through the small `PortLike` interface, so tests use a fake. The session reports each lookup to the `ProgressHub`, whose publisher sends the tab a `Progress` when its counters change. `done` counts every ASIN whose rating is settled, so the bar is `done / (done + queued + active)`; `cached`, `notFound` and `failed` are counted inside `done` and may overlap (a miss answered from the cache is both `cached` and `notFound`); of the ASINs still pending, `active` have a Goodreads search running (`LookupQueue.running`) and `queued` are the rest, waiting for the catalogue, a worker or a pause. A `Retry` takes the ASIN's earlier outcome back until it settles again. `pausedUntil` is set only while something is pending.
+`PortServer` serves each port in its own session. `Hello` records the tab's region, which `Lookup`, `DetailsLookup` and `Retry` need; a `Lookup` or `DetailsLookup` before `Hello` is dropped and logged. A message that does not decode is dropped and logged as a warning; the port stays open. For each ASIN the server sends `loading` when the cache did not have it, then `ready` with the rating, then `ready` again with the details; a cached book with its details is one `ready` and no `loading`. A `ratingOnly` lookup ends at the `ready` with the rating; a later `DetailsLookup` takes the rating from the cache and sends the `ready` with the details, and is not a new lookup for the progress counters. A `cacheOnly` item is a `ratingOnly` lookup if the cache has its rating (`LookupQueue.cachedRating`) and is ignored otherwise: no update, no request, not counted. The cache is read before the session takes its next message, so the plain `Lookup` the content script sends once the price lets the book through is never dropped as a repeat of it. A book that is not on Goodreads is `notFound`; any lookup failure is `failed` with its reason. If only the details fail, the `ready` with the rating stands. An ASIN already being looked up for the same port is not started twice, so a repeated `Hello` or `Lookup` (the content script re-sending the ASINs that had no answer after a reconnect) is harmless; `Retry` is a lookup again, since failures are not cached. When the port disconnects, only the session's waiting fibres end; lookups other tabs share carry on. The worker buffers a port's early messages (`buffered` in `src/background/port.ts`) because the runtime opens IndexedDB after `onConnect` fires. The server sees the port through the small `PortLike` interface, so tests use a fake. The session reports each lookup to the `ProgressHub`, whose publisher sends the tab a `Progress` when its counters change. `done` counts every ASIN whose rating is settled, so the bar is `done / (done + queued + active)`; `cached`, `notFound` and `failed` are counted inside `done` and may overlap (a miss answered from the cache is both `cached` and `notFound`); of the ASINs still pending, `active` have a Goodreads search running (`LookupQueue.running`) and `queued` are the rest, waiting for the catalogue, a worker or a pause. A `Retry` takes the ASIN's earlier outcome back until it settles again. `pausedUntil` is set only while something is pending.
 
 `BookUpdate` carries what its `status` implies: `ready` has `rating` (and `details` once the book page has been read), `failed` has `error`, `loading` and `notFound` have neither. The `queued` status of §6's `BookView` exists in the content script's store only; the background never sends it.
 
@@ -254,6 +255,7 @@ type BookView = {
 type ContentState = {
   books: ReadonlyMap<string, BookView>
   progress: Progress | undefined // until the background has sent any
+  held: Set<ASIN> // books eager filtering holds back (§7)
   prefs: Prefs // phase 3
   peek: boolean // phase 3
 }
@@ -347,7 +349,8 @@ progress bar appears, which is the one thing `bun test` cannot prove about the s
   ("Genres, year & overview") is derived in the content store: of the books that are `ready` with a
   rating, how many have `details` (`detailsProgress`, `src/panel/summary.ts`), because the queue reads
   a book's Goodreads page after every rating. A book whose page could not be read keeps its rating and
-  never gets details, so the bar can stop short of full; the store cannot tell that from waiting. Once
+  never gets details, so the bar can stop short of full; the store cannot tell that from waiting. A
+  book eager filtering holds back (`held`, §7) is left out. Once
   every rating is in, the collapsed pill shows `details 12/34` instead of `60/60`.
 - Progress: bar plus `34/60 · 18 cached · 2 not found · 1 failed`; "Paused — Goodreads is rate
   limiting (12 s)"; "Retry" (named "Retry failed" for screen readers), a link in the "Ratings"
@@ -388,9 +391,12 @@ share (`src/schema`, `src/storage`).
 Verdict for one card (pure function in `src/core/filter.ts`):
 
 1. Filters off → `show`.
-2. Book not loaded yet (`queued`/`loading`/`failed`) → `show`. Hiding before data arrives makes the
-   page jump.
-3. `notFound` → the `notFound` policy (default `show`).
+2. Each filter acts as soon as the data it reads has arrived, and not before: the price whatever the
+   lookup's status (it comes from Audible, before the rating), the rating and count once the book is
+   `ready`, labels and year once its details have arrived. A book whose data has not arrived fails
+   nothing, so it is shown; hiding it on a guess and showing it again would make the page jump.
+3. `notFound` → the `notFound` policy (default `show`), or the price filter's verdict if that is
+   stricter.
 4. Rating below `minRating` (`rating`), count below `minRatings` (`count`), any genre in
    `hiddenLabels`, case-insensitive (`labels`): the book fails that filter.
 5. Known first-published year outside the inclusive `minYear` / `maxYear` range (`year`): fails.
@@ -398,7 +404,8 @@ Verdict for one card (pure function in `src/core/filter.ts`):
    this filter. Missing details do not fail it either; other filters still apply.
 6. Known public cash price above the inclusive `maxPrice[region]` ceiling, with currency matching
    the current marketplace (`price`): fails. Absent limit means off; 0 means free only. Missing
-   prices and mismatched currencies do not fail this filter. The not-found policy in step 3 wins.
+   prices and mismatched currencies do not fail this filter. It applies to books not on Goodreads
+   too (step 3).
 7. A book that fails no filter: `show`. Otherwise each filter it fails has its own miss mode,
    `modes[filter]` (`hide` by default, `dim` as an option): `hide` if any of them is `hide`, else
    `dim`. `failures` (`src/core/filter.ts`) lists the filters a book fails, in this order.
@@ -412,8 +419,31 @@ Two adjustments follow the verdict: a card inside a carousel gets `dim` for `hid
 card while `peek` is on (the `12 hidden · Show` counter reveals the hidden books, dimmed, without
 touching the filters). `judge` gives the verdict before the adjustments and is what the counter
 counts; `place` applies them; `verdict` is both (`src/core/filter.ts`, inputs are structural so the
-module needs nothing from the content script or storage). A rating filter acts as soon as the rating
-arrives; hidden-label and year filters act once the details have.
+module needs nothing from the content script or storage). A price filter acts as soon as the price
+arrives, a rating filter as soon as the rating has; hidden-label and year filters act once the details
+have. More data only ever adds failures, so a verdict of `hide` is never taken back by data arriving.
+
+**Eager filtering.** Because a `hide` verdict is final for the data, the content script fetches no
+more for a book it already hides (`lookupDepth`, `src/core/filter.ts`; `lookUp`,
+`src/content/main.ts`). For each book it asks the background for one of:
+
+- nothing, when a `hide` filter already fails the book;
+- what the cache has (`Lookup` with `cacheOnly`), while a hiding price limit is active for the
+  marketplace and the book's price has not been answered: a cached rating shows (and can hide the
+  book) at once, and a book the cache lacks waits for its price before Goodreads is asked;
+- the rating only (`Lookup` with `ratingOnly`), while a hiding rating or count filter could still
+  hide it; when the rating lets it through, the details follow (`DetailsLookup`);
+- everything (`Lookup`), otherwise.
+
+A book that would only be dimmed is still seen, so dimming filters hold nothing back, nor does a book
+with a card in a carousel or any book while peeking. The answer is worked out again whenever it can
+change (a book's price or rating arriving, a new card, the settings, peeking), so a book that would be
+seen again (its filter turned off or set to dim, peeking) is looked up the rest of the way. A lookup
+already sent is not taken back. Lookups wait for the settings to be read, at most
+`FILTERS_WAIT_MS` (1 s); after that they go ahead unfiltered. The books held back are
+`ContentState.held`, which the details bar leaves out so it can finish. With a hiding price limit, a
+book the cache lacks waits for its price (one catalogue batch) before its Goodreads search, and a
+cached book waits for it before its details.
 
 Cards inside carousels get `dim` instead of `hide`; removing slides breaks Audible's carousel
 layout. From the saved pages, a carousel is `adbl-product-carousel`, `adbl-product-featured-carousel`
@@ -435,8 +465,8 @@ have been read nothing is filtered. The panel reads `hidden` and `peek` from the
 calls `setPeek`.
 
 Label filtering needs genres, which come from the Goodreads book page (~400 KB), not the cheap
-autocomplete call. Details are fetched for every visible book by default (they also drive the labels
-under each badge), at lower priority than ratings. Until a book's details arrive, a hidden-label
+autocomplete call. Details are fetched for every visible book the filters do not already hide (they
+also drive the labels under each badge), at lower priority than ratings. Until a book's details arrive, a hidden-label
 filter can't apply to it and the card stays visible.
 
 ## 8. State and persistence

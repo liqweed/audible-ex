@@ -1,8 +1,10 @@
 /**
  * The port server (ARCHITECTURE.md §5): one session per tab's `agx` port. It decodes `Hello`,
- * `Lookup` and `Retry`, asks the `LookupQueue`, and sends a `BookUpdate` as each answer arrives:
- * at once for a cached book, `loading` and then the result for the others, and `ready` again when
- * the details land. Updates are encoded with `BackgroundMessage` before they are posted.
+ * `Lookup`, `DetailsLookup` and `Retry`, asks the `LookupQueue`, and sends a `BookUpdate` as each answer
+ * arrives: at once for a cached book, `loading` and then the result for the others, and `ready`
+ * again when the details land. A `ratingOnly` lookup stops after the rating; the content script asks
+ * for the details with `DetailsLookup` if its filters do not hide the book (eager filtering). Updates are
+ * encoded with `BackgroundMessage` before they are posted.
  *
  * A message that does not decode is dropped and logged; the port stays open and keeps working. A
  * `Lookup` before the `Hello` is dropped too, since the region is unknown. A lookup is shared with
@@ -22,6 +24,7 @@ import type * as Cause from 'effect/Cause'
 import * as Context from 'effect/Context'
 import * as Effect from 'effect/Effect'
 import * as Layer from 'effect/Layer'
+import * as Option from 'effect/Option'
 import * as Queue from 'effect/Queue'
 import * as Schema from 'effect/Schema'
 import type { RegionCode } from '../core/regions'
@@ -94,6 +97,7 @@ export class PortServer extends Context.Service<
               let region: RegionCode | undefined
               /** ASINs this port is waiting on, so a repeated `Lookup` starts nothing new. */
               const inFlight = new Set<string>()
+              const detailsInFlight = new Set<string>()
               const pricesInFlight = new Set<string>()
 
               const send = (update: BackgroundMessage) =>
@@ -156,7 +160,8 @@ export class PortServer extends Context.Service<
               const lookupOne = (
                 lookupRegion: RegionCode,
                 asin: string,
-                pinned: boolean
+                pinned: boolean,
+                ratingOnly: boolean
               ) => {
                 // The queue runs `onMiss` only when the cache did not have the rating.
                 let fromCache = true
@@ -184,7 +189,14 @@ export class PortServer extends Context.Service<
                     Effect.flatMap(result =>
                       result._tag === 'Miss'
                         ? send({ _tag: 'BookUpdate', asin, status: 'notFound' })
-                        : withDetails(asin, result)
+                        : ratingOnly
+                          ? send({
+                              _tag: 'BookUpdate',
+                              asin,
+                              status: 'ready',
+                              rating: ratingOf(result),
+                            })
+                          : withDetails(asin, result)
                     ),
                     Effect.catch(error =>
                       Effect.sync(() =>
@@ -207,8 +219,35 @@ export class PortServer extends Context.Service<
                   )
               }
 
+              /**
+               * The rest of a `ratingOnly` lookup: the rating from the cache, then the details. Not a
+               * new lookup for the progress counters, whose rating is already settled. A failure
+               * leaves the `ready` with the rating standing, as in `withDetails`.
+               */
+              const detailsOne = (lookupRegion: RegionCode, asin: string) =>
+                queue
+                  .rating({ region: lookupRegion, asin, pinned: false })
+                  .pipe(
+                    Effect.flatMap(result =>
+                      result._tag === 'Miss'
+                        ? send({ _tag: 'BookUpdate', asin, status: 'notFound' })
+                        : withDetails(asin, result)
+                    ),
+                    Effect.catch(error =>
+                      Effect.logWarning(`Details of ${asin} failed`, error)
+                    ),
+                    Effect.ensuring(
+                      Effect.sync(() => detailsInFlight.delete(asin))
+                    )
+                  )
+
               const start = (
-                items: ReadonlyArray<{ asin: string; pinned: boolean }>
+                items: ReadonlyArray<{
+                  asin: string
+                  pinned: boolean
+                  ratingOnly?: boolean | undefined
+                  cacheOnly?: boolean | undefined
+                }>
               ) =>
                 Effect.gen(function* () {
                   if (region === undefined) {
@@ -217,11 +256,34 @@ export class PortServer extends Context.Service<
                       { port: port.name, items: items.length }
                     )
                   }
-                  for (const { asin, pinned } of items) {
+                  // Read here, not in the forked lookup: the session takes its next message only
+                  // after this one, so a plain lookup sent once the price is known cannot overtake
+                  // a cache-only one and be dropped as a repeat.
+                  const cached = yield* Effect.forEach(
+                    items,
+                    ({ asin, cacheOnly }) =>
+                      cacheOnly && !inFlight.has(asin)
+                        ? Effect.map(queue.cachedRating(asin), Option.isSome)
+                        : Effect.succeed(true),
+                    { concurrency: 'unbounded' }
+                  )
+                  for (const [
+                    i,
+                    { asin, pinned, ratingOnly, cacheOnly },
+                  ] of items.entries()) {
                     if (inFlight.has(asin)) continue
+                    // Not in the cache: nothing to answer and nothing to count.
+                    if (!cached[i]) continue
                     inFlight.add(asin)
                     progress.begin(asin)
-                    yield* Effect.forkScoped(lookupOne(region, asin, pinned))
+                    yield* Effect.forkScoped(
+                      lookupOne(
+                        region,
+                        asin,
+                        pinned,
+                        ratingOnly === true || cacheOnly === true
+                      )
+                    )
                   }
                 })
 
@@ -233,6 +295,24 @@ export class PortServer extends Context.Service<
                     })
                   case 'Lookup':
                     return start(message.items)
+                  case 'DetailsLookup': {
+                    const lookupRegion = region
+                    if (lookupRegion === undefined) {
+                      return Effect.logWarning(
+                        'Dropped a details request that came before Hello',
+                        { port: port.name, asins: message.asins.length }
+                      )
+                    }
+                    return Effect.forEach(
+                      message.asins,
+                      asin => {
+                        if (detailsInFlight.has(asin)) return Effect.void
+                        detailsInFlight.add(asin)
+                        return Effect.forkScoped(detailsOne(lookupRegion, asin))
+                      },
+                      { discard: true }
+                    )
+                  }
                   case 'PriceLookup': {
                     const lookupRegion = region
                     if (lookupRegion === undefined) return Effect.void

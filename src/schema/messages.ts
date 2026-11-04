@@ -25,9 +25,27 @@ export const Hello = Schema.TaggedStruct('Hello', {
   page: Page,
 })
 
-/** The ASINs that scrolled into view; `pinned` is set on Library and Wish List rows. */
+/**
+ * The ASINs that scrolled into view; `pinned` is set on Library and Wish List rows. `ratingOnly`
+ * stops the lookup after the rating, when the filters may hide the book on it (eager filtering);
+ * the content script asks for the rest with `DetailsLookup` if they do not. `cacheOnly` answers the
+ * rating only if the cache has it and otherwise does nothing, not even count the book: its price may
+ * still hide it, and the content script sends a plain lookup once the price lets it through.
+ */
 export const Lookup = Schema.TaggedStruct('Lookup', {
-  items: Schema.Array(Schema.Struct({ asin: Asin, pinned: Schema.Boolean })),
+  items: Schema.Array(
+    Schema.Struct({
+      asin: Asin,
+      pinned: Schema.Boolean,
+      ratingOnly: Schema.optional(Schema.Boolean),
+      cacheOnly: Schema.optional(Schema.Boolean),
+    })
+  ),
+})
+
+/** Read the Goodreads book page of ASINs whose `ratingOnly` lookup has answered with a rating. */
+export const DetailsLookup = Schema.TaggedStruct('DetailsLookup', {
+  asins: Schema.Array(Asin),
 })
 
 /** Look up again the ASINs whose lookup failed. */
@@ -40,7 +58,13 @@ export const PriceLookup = Schema.TaggedStruct('PriceLookup', {
   asins: Schema.Array(Asin),
 })
 
-export const ContentMessage = Schema.Union([Hello, Lookup, Retry, PriceLookup])
+export const ContentMessage = Schema.Union([
+  Hello,
+  Lookup,
+  DetailsLookup,
+  Retry,
+  PriceLookup,
+])
 export type ContentMessage = typeof ContentMessage.Type
 
 // ---------- background → content script ----------

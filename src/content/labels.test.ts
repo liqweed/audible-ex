@@ -41,6 +41,8 @@ async function open(settings: Partial<FilterSettings> = {}) {
     pathname: '/search',
     filters,
   })
+  // Lookups wait for the filters to be read.
+  await flush()
   world.io.intersect()
   const [a, b, c] = [...new Set(world.port.lookups().flat())]
   const details = (genres: string[]) => ({ genres, year: 2001 })

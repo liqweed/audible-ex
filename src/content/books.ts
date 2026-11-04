@@ -45,6 +45,11 @@ export interface ContentState {
   readonly books: ReadonlyMap<string, BookView>
   /** The latest counters; undefined until the background has sent any. */
   readonly progress: ProgressView | undefined
+  /**
+   * Books whose lookup is held back because the filters already hide them (eager filtering): they
+   * get no more data unless they are shown again, so no bar waits for them.
+   */
+  readonly held: ReadonlySet<string>
 }
 
 export interface BookStore {
@@ -59,12 +64,15 @@ export interface BookStore {
   subscribe(listener: BookListener): () => void
   /** Keeps the background's latest counters; they replace the earlier ones. */
   setProgress(progress: ProgressView): void
+  /** Replaces the held books; tells no book listener, since no book changed. */
+  setHeld(held: ReadonlySet<string>): void
 }
 
 export function createBookStore(): BookStore {
   const state = createStore<ContentState>({
     books: new Map(),
     progress: undefined,
+    held: new Set<string>(),
   })
   const listeners = new Set<BookListener>()
   return {
@@ -87,6 +95,9 @@ export function createBookStore(): BookStore {
     },
     setProgress(progress) {
       state.setState(prev => ({ ...prev, progress }))
+    },
+    setHeld(held) {
+      state.setState(prev => ({ ...prev, held }))
     },
   }
 }

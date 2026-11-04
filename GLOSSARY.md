@@ -25,6 +25,7 @@ term; avoid the listed aliases.
 | **Miss mode**        | What a book that fails one filter gets: `hide` or `dim`. Each filter has its own (`modes` in prefs).                  | filter mode, action                      |
 | **Verdict**          | The filter result for one card: `show`, `dim` or `hide`.                                                              | status (that's the lookup's state)       |
 | **Peek**             | Temporarily revealing hidden cards (dimmed) without changing prefs.                                                   | show all, reveal mode                    |
+| **Eager filtering**  | Fetching no more for a book a `hide` filter already hides; such a book is **held** until it would be seen again.      | lazy loading, skipping                   |
 | **Panel**            | The floating React UI on Audible pages, in a shadow root.                                                             | overlay, widget, sidebar                 |
 | **Progress**         | Per-tab lookup counters the background sends to the panel.                                                            | status, stats                            |
 | **Background**       | The MV3 service worker that owns network access, the queue and the cache.                                             | server, backend                          |

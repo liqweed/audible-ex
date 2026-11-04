@@ -9,6 +9,7 @@ import {
   isHighlighted,
   judge,
   labelKey,
+  lookupDepth,
   place,
   verdict,
 } from './filter'
@@ -247,15 +248,40 @@ describe('maximum price per marketplace', () => {
       'dim'
     )
     expect(judge(book(20), { ...limits, enabled: false }, 'UK')).toBe('show')
-    for (const status of ['queued', 'loading', 'failed'] as const) {
-      expect(judge({ ...book(20), status }, limits, 'UK')).toBe('show')
-    }
     expect(
       verdict(book(20), limits, { inCarousel: true, peek: false }, 'UK')
     ).toBe('dim')
     expect(
       verdict(book(20), limits, { inCarousel: false, peek: true }, 'UK')
     ).toBe('dim')
+  })
+  test('acts as soon as the price is known, before the rating', () => {
+    const priced = (status: FilterBook['status']): FilterBook => ({
+      status,
+      price: { amount: 20, currency: 'GBP' },
+    })
+    for (const status of ['queued', 'loading', 'failed'] as const) {
+      expect(judge(priced(status), limits, 'UK')).toBe('hide')
+    }
+    expect(failures(priced('loading'), limits, 'UK')).toEqual(['price'])
+  })
+  test('a book not on Goodreads gets the stricter of its price and the not-found policy', () => {
+    const missing: FilterBook = {
+      status: 'notFound',
+      price: { amount: 20, currency: 'GBP' },
+    }
+    expect(judge(missing, limits, 'UK')).toBe('hide')
+    expect(judge(missing, { ...limits, modes: dimming('price') }, 'UK')).toBe(
+      'dim'
+    )
+    expect(
+      judge(
+        missing,
+        { ...limits, modes: dimming('price'), notFound: 'hide' },
+        'UK'
+      )
+    ).toBe('hide')
+    expect(judge({ status: 'notFound' }, limits, 'UK')).toBe('show')
   })
 })
 
@@ -282,8 +308,18 @@ describe('failures', () => {
     expect(failures(ready(4.5, 900), s, 'UK')).toEqual([])
   })
 
-  test('a book without its rating fails nothing', () => {
+  test('a book without its rating fails nothing but its price', () => {
     expect(failures({ status: 'loading' }, settings)).toEqual([])
+    expect(
+      failures(
+        {
+          status: 'loading',
+          rating: { r: 1, n: 1 },
+          details: { genres: ['x'] },
+        },
+        with_({ hiddenLabels: ['x'] })
+      )
+    ).toEqual([])
   })
 })
 
@@ -302,5 +338,75 @@ describe('highlighted labels', () => {
     expect(isHighlighted(book, { ...s, enabled: false })).toBe(true)
     expect(judge(book, s)).toBe('hide')
     expect(judge(ready(4.5, 900, ['Science Fiction']), s)).toBe('show')
+  })
+})
+
+describe('lookupDepth (eager filtering)', () => {
+  const limits = with_({ maxPrice: { UK: 10 } })
+  const unpriced = { ...flat, priced: false }
+  const priced = { ...flat, priced: true }
+  const costing = (amount: number): FilterBook => ({
+    status: 'queued',
+    price: { amount, currency: 'GBP' },
+  })
+
+  test('asks only the cache while a hiding price limit waits for the price', () => {
+    expect(lookupDepth({ status: 'queued' }, limits, unpriced, 'UK')).toBe(
+      'cached'
+    )
+    // A rating from the cache can hide it before the price arrives.
+    expect(lookupDepth(ready(3, 900), limits, unpriced, 'UK')).toBe('none')
+    expect(lookupDepth(costing(20), limits, priced, 'UK')).toBe('none')
+    expect(lookupDepth(costing(5), limits, priced, 'UK')).toBe('rating')
+    // An unavailable price fails nothing.
+    expect(lookupDepth({ status: 'queued' }, limits, priced, 'UK')).toBe(
+      'rating'
+    )
+  })
+
+  test('asks for the rating alone while a hiding rating filter could hide the book', () => {
+    expect(lookupDepth({ status: 'queued' }, settings, unpriced, 'UK')).toBe(
+      'rating'
+    )
+    expect(lookupDepth(ready(3, 900), settings, unpriced, 'UK')).toBe('none')
+    expect(lookupDepth(ready(4.5, 10), settings, unpriced, 'UK')).toBe('none')
+    expect(lookupDepth(ready(4.5, 900), settings, unpriced, 'UK')).toBe(
+      'details'
+    )
+  })
+
+  test('asks for everything where nothing can hide the book', () => {
+    const queued: FilterBook = { status: 'queued' }
+    const dimmingAll = with_({
+      maxPrice: { UK: 10 },
+      modes: dimming('rating', 'count', 'price'),
+    })
+    expect(lookupDepth(queued, dimmingAll, unpriced, 'UK')).toBe('details')
+    expect(lookupDepth(ready(2, 1), dimmingAll, unpriced, 'UK')).toBe('details')
+    // The count alone could hide it, as long as it has a minimum.
+    expect(
+      lookupDepth(queued, with_({ modes: dimming('rating') }), unpriced, 'UK')
+    ).toBe('rating')
+    expect(
+      lookupDepth(
+        queued,
+        with_({ modes: dimming('rating'), minRatings: 0 }),
+        unpriced,
+        'UK'
+      )
+    ).toBe('details')
+    expect(
+      lookupDepth(costing(20), { ...limits, enabled: false }, priced, 'UK')
+    ).toBe('details')
+  })
+
+  test('a book in a carousel or while peeking is seen, so it gets everything', () => {
+    for (const where of [
+      { inCarousel: true, peek: false, priced: true },
+      { inCarousel: false, peek: true, priced: true },
+    ]) {
+      expect(lookupDepth(costing(20), limits, where, 'UK')).toBe('details')
+      expect(lookupDepth(ready(2, 1), settings, where, 'UK')).toBe('details')
+    }
   })
 })

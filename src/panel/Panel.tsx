@@ -152,10 +152,13 @@ export function Panel({
 }) {
   const progress = useStore(handle.state, s => s.progress)
   const formatChanged = useStore(handle.state, s => hasFormatChange(s.books))
-  const detailsDone = useStore(handle.state, s => detailsProgress(s.books).done)
+  const detailsDone = useStore(
+    handle.state,
+    s => detailsProgress(s.books, s.held).done
+  )
   const detailsTotal = useStore(
     handle.state,
-    s => detailsProgress(s.books).total
+    s => detailsProgress(s.books, s.held).total
   )
   const details = { done: detailsDone, total: detailsTotal }
   const now = useNow(progress?.pausedUntil !== undefined, clock)

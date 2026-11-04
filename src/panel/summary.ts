@@ -73,15 +73,20 @@ export function counts(view: Extract<PanelView, { kind: 'progress' }>): string {
  * page, after every rating (the queue's `details` lane runs last). `total` is the books that have a
  * rating; `done` the ones whose page has been read. A book whose page could not be read keeps the
  * rating and stays unread, so the bar can stop short of full; the store cannot tell that from waiting.
+ * A book whose lookup is `held` (the filters hide it on its rating) is not read and not counted.
  */
-export function detailsProgress(books: ReadonlyMap<string, BookView>): {
+export function detailsProgress(
+  books: ReadonlyMap<string, BookView>,
+  held: ReadonlySet<string> = new Set()
+): {
   readonly done: number
   readonly total: number
 } {
   let done = 0
   let total = 0
-  for (const view of books.values()) {
+  for (const [asin, view] of books) {
     if (view.status !== 'ready' || !view.rating) continue
+    if (held.has(asin) && !view.details) continue
     total++
     if (view.details) done++
   }

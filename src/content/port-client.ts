@@ -1,6 +1,6 @@
 /**
  * The content script's end of the `agx` port (ARCHITECTURE.md §5): connects, says `Hello` first,
- * sends `Lookup` and `Retry`, and hands every `BackgroundMessage` that decodes to the caller. A
+ * sends `Lookup`, `DetailsLookup`, `Retry` and `PriceLookup`, and hands every `BackgroundMessage` that decodes to the caller. A
  * message that does not decode is dropped with a warning, as the server does.
  *
  * MV3 stops an idle background worker, which closes the port (ARCHITECTURE.md §4, "Service worker
@@ -31,6 +31,10 @@ export interface ClientPort {
 export interface LookupItem {
   readonly asin: string
   readonly pinned: boolean
+  /** Stop after the rating: the filters may hide the book on it (eager filtering). */
+  readonly ratingOnly?: boolean
+  /** The rating only if the cache has it, nothing otherwise: the price may still hide the book. */
+  readonly cacheOnly?: boolean
 }
 
 export interface PortClientOptions {
@@ -52,6 +56,8 @@ export interface PortClientOptions {
 
 export interface PortClient {
   lookup(items: ReadonlyArray<LookupItem>): void
+  /** The rest of `ratingOnly` lookups that answered with a rating. */
+  details(asins: ReadonlyArray<string>): void
   retry(asins: ReadonlyArray<string>): void
   prices(asins: ReadonlyArray<string>): void
   /** Ends the connection for good; nothing is sent or reconnected after this. */
@@ -65,6 +71,10 @@ const STABLE_MS = 10_000
 
 const decode = Schema.decodeUnknownSync(BackgroundMessage)
 
+/** How much an item asks for: the cache only, the rating, or everything. */
+const depthOf = (item: LookupItem) =>
+  item.cacheOnly ? 0 : item.ratingOnly ? 1 : 2
+
 export function createPortClient(options: PortClientOptions): PortClient {
   const now = options.now ?? Date.now
   const pendingPrices = new Set<string>()
@@ -75,13 +85,25 @@ export function createPortClient(options: PortClientOptions): PortClient {
   let connectedAt = 0
   let heard = false
 
-  /** One entry per ASIN, pinned if any of its entries is. */
-  const dedupe = (items: ReadonlyArray<LookupItem>) => {
-    const byAsin = new Map<string, boolean>()
-    for (const { asin, pinned } of items)
-      byAsin.set(asin, pinned || byAsin.get(asin) === true)
-    return [...byAsin].map(([asin, pinned]) => ({ asin, pinned }))
+  /** One entry per ASIN, pinned if any of its entries is, and as deep as the deepest. */
+  const dedupe = (items: ReadonlyArray<LookupItem>): LookupItem[] => {
+    const byAsin = new Map<string, LookupItem>()
+    for (const item of items) {
+      const seen = byAsin.get(item.asin)
+      const deeper = !seen || depthOf(item) > depthOf(seen) ? item : seen
+      byAsin.set(item.asin, {
+        ...deeper,
+        pinned: item.pinned || seen?.pinned === true,
+      })
+    }
+    return [...byAsin.values()]
   }
+
+  /** Does the re-sent `r` ask for at least what `item` asks for? */
+  const covers = (r: LookupItem, item: LookupItem) =>
+    r.asin === item.asin &&
+    (r.pinned || !item.pinned) &&
+    depthOf(r) >= depthOf(item)
 
   const post = (message: unknown): boolean => {
     try {
@@ -163,10 +185,7 @@ export function createPortClient(options: PortClientOptions): PortClient {
       if (state === undefined) return
       // A new connection has just re-sent what was unresolved, which already holds these items.
       const resumed = state === 'open' ? [] : state
-      const fresh = items.filter(
-        item =>
-          !resumed.some(r => r.asin === item.asin && (r.pinned || !item.pinned))
-      )
+      const fresh = items.filter(item => !resumed.some(r => covers(r, item)))
       if (fresh.length > 0) post({ _tag: 'Lookup', items: dedupe(fresh) })
     },
     prices(asins) {
@@ -175,6 +194,10 @@ export function createPortClient(options: PortClientOptions): PortClient {
       // A new connection re-sends all pending prices in ensure().
       if (ensure() === 'open')
         post({ _tag: 'PriceLookup', asins: [...new Set(asins)] })
+    },
+    details(asins) {
+      if (asins.length === 0 || ensure() === undefined) return
+      post({ _tag: 'DetailsLookup', asins: [...new Set(asins)] })
     },
     retry(asins) {
       if (asins.length === 0 || ensure() === undefined) return

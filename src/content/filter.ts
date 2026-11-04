@@ -15,6 +15,7 @@ import {
   hasLabel,
   isHighlighted,
   judge,
+  type Placement,
   place,
 } from '../core/filter'
 import type { RegionCode } from '../core/regions'
@@ -70,6 +71,11 @@ export interface FilterApplier {
   settings(): FilterSettings
   setSettings(settings: FilterSettings): void
   setPeek(peek: boolean): void
+  /**
+   * Where a book with these cards is seen: in a carousel if any of them is, so it is never hidden
+   * while one of its cards shows it.
+   */
+  placement(cards: Iterable<Element>): Placement
   /** Something changed that can change a verdict: a book, or a card that was just attached. */
   refresh(): void
   /** Takes the attribute off every card (the extension was turned off). */
@@ -183,6 +189,15 @@ export function createFilterApplier(options: {
     setPeek(peek) {
       state.setState(prev => ({ ...prev, peek }))
       refresh()
+    },
+    placement(cards) {
+      let slide = false
+      for (const card of cards)
+        if (card.isConnected && inCarousel(card)) {
+          slide = true
+          break
+        }
+      return { inCarousel: slide, peek: state.get().peek }
     },
     refresh,
     remove() {
