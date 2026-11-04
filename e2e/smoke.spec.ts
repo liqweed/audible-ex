@@ -51,6 +51,10 @@ test.beforeAll(async () => {
   worker =
     context.serviceWorkers()[0] ?? (await context.waitForEvent('serviceworker'))
   extensionId = new URL(worker.url()).host
+  // The worker can be found before its extension API is set up.
+  await expect
+    .poll(() => worker.evaluate(() => typeof chrome.storage))
+    .toBe('object')
 })
 
 test.afterAll(async () => {
@@ -109,6 +113,29 @@ async function scrollToBooks(page: Page) {
 }
 
 /**
+ * Waits until the panel's two bars are full: every book in reach has its rating, and every found
+ * one its genres, year and overview. A badge redrawn when its details arrive also closes an open
+ * overview.
+ */
+async function settled(page: Page) {
+  const full = async (name: string) => {
+    const bar = page.getByRole('progressbar', { name })
+    return (
+      (await bar.getAttribute('aria-valuenow')) ===
+      (await bar.getAttribute('aria-valuemax'))
+    )
+  }
+  await expect
+    .poll(
+      async () =>
+        (await full('Ratings looked up')) &&
+        (await full('Genres and details read')),
+      { timeout: 90_000 }
+    )
+    .toBe(true)
+}
+
+/**
  * Replaces the prefs with these filters; every other filter and pref takes its default when read
  * (src/storage/prefs.ts). `prefs$` is WXT's version record for the item.
  */
@@ -131,16 +158,12 @@ test('badges, labels and the overview appear on audible.co.uk; store screenshots
   // The default filters hide books rated below 4.0; this page should show every badge.
   await setFilters({ enabled: false })
   const { page, ready } = await openWithBadges(
-    'https://www.audible.co.uk/search?keywords=Andy%20Weir',
+    'https://www.audible.co.uk/search?keywords=Andy%20Weir&sort=review-rank',
     3
   )
-  // Years and labels arrive after the rating; the screenshot is better with them.
-  await expect
-    .poll(() => page.locator('.agx-year').filter({ visible: true }).count(), {
-      timeout: 60_000,
-    })
-    .toBeGreaterThanOrEqual(2)
+  // Scrolling brings more books in reach; their years and labels arrive after the ratings.
   await scrollToBooks(page)
+  await settled(page)
   await page.screenshot({ path: join(STORE, 'screenshot-1-search.png') })
 
   // The floating panel is a second content script that gets the badge script's state through the
@@ -152,18 +175,6 @@ test('badges, labels and the overview appear on audible.co.uk; store screenshots
   await expect(bar).toHaveAttribute('aria-valuenow', /^[1-9]\d*$/)
   await page.screenshot({ path: join(STORE, 'panel-progress.png') })
 
-  // A badge redrawn when its details arrive closes an open overview, so hover once they are all in.
-  const details = page.getByRole('progressbar', {
-    name: 'Genres and details read',
-  })
-  await expect
-    .poll(
-      async () =>
-        (await details.getAttribute('aria-valuenow')) ===
-        (await details.getAttribute('aria-valuemax')),
-      { timeout: 60_000 }
-    )
-    .toBe(true)
   await ready.first().hover()
   await expect(page.locator('.agx-overview-host [role=tooltip]')).toBeVisible()
   await page.waitForTimeout(300)
