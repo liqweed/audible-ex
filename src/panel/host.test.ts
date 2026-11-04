@@ -7,7 +7,12 @@ import { type MountedPanel, runPanel } from './host'
 
 const handle = (): PanelHandle => ({
   state: createBookStore().state,
-  filter: createStore<FilterState>({ hidden: 0, peek: false }),
+  filter: createStore<FilterState>({
+    hidden: 0,
+    dimmed: 0,
+    highlighted: 0,
+    peek: false,
+  }),
   retryFailed: () => {},
   setPeek: () => {},
 })

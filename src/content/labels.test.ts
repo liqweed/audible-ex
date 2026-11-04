@@ -5,6 +5,7 @@
  */
 import { beforeEach, describe, expect, test } from 'bun:test'
 import type { FilterSettings } from '@/core/filter'
+import { DEFAULT_FILTERS } from '@/storage/prefs'
 import {
   FakeFilters,
   loadFixture,
@@ -22,8 +23,9 @@ const FILTERS: FilterSettings = {
   maxYear: null,
   maxPrice: {},
   hiddenLabels: [],
+  highlightLabels: [],
   notFound: 'show',
-  mode: 'hide',
+  modes: DEFAULT_FILTERS.modes,
 }
 const GOOD = { r: 4.5, n: 900 }
 const flush = () => new Promise(resolve => setTimeout(resolve, 0))
@@ -216,7 +218,7 @@ describe('hiding a label from the popover', () => {
     filters.change({ ...FILTERS, enabled: false })
     openOn(pills('Romance')[0] as Element)
     expect(popover()?.textContent).toContain(
-      'Filters are off; this switches them on.'
+      'Filters are off; hiding switches them on.'
     )
     button().click()
     await flush()
@@ -251,6 +253,60 @@ describe('a label that is already filtered', () => {
     await flush()
     expect(filters.current.hiddenLabels).toEqual([])
     expect(document.querySelectorAll('.agx-filtered')).toHaveLength(0)
+  })
+})
+
+describe('highlighting a label', () => {
+  const highlightButton = () =>
+    [...(popover()?.querySelectorAll('button') ?? [])].find(b =>
+      b.textContent?.startsWith('Highlight')
+    ) as HTMLButtonElement
+
+  test('saves it, says so, and marks the pills without hiding anything', async () => {
+    openOn(pills('Romance')[0] as Element)
+    expect(highlightButton().textContent).toBe(
+      'Highlight books labelled “Romance”'
+    )
+    highlightButton().click()
+    await flush()
+    expect(filters.current.highlightLabels).toEqual(['Romance'])
+    expect(filters.current.hiddenLabels).toEqual([])
+    expect(popover()?.querySelector('.status')?.textContent).toBe(
+      'Highlighting books labelled “Romance”.'
+    )
+    expect(document.querySelectorAll('.agx-highlighted').length).toBe(
+      pills('Romance').length
+    )
+    expect(document.querySelectorAll('[data-agx-filter]')).toHaveLength(0)
+  })
+
+  test('offers to stop highlighting a highlighted label', async () => {
+    filters.change({ ...FILTERS, highlightLabels: ['romance'] })
+    openOn(pills('Romance')[0] as Element)
+    expect(button().textContent).toBe('Stop highlighting “Romance”')
+    button().click()
+    await flush()
+    expect(filters.current.highlightLabels).toEqual([])
+    expect(document.querySelectorAll('.agx-highlighted')).toHaveLength(0)
+  })
+
+  test('hiding one label keeps the others highlighted, and the other way round', async () => {
+    filters.change({ ...FILTERS, highlightLabels: ['Horror'] })
+    openOn(pills('Romance')[0] as Element)
+    button().click()
+    await flush()
+    expect(filters.current.hiddenLabels).toEqual(['Romance'])
+    expect(filters.current.highlightLabels).toEqual(['Horror'])
+    filters.change({
+      ...FILTERS,
+      hiddenLabels: ['Horror'],
+      highlightLabels: [],
+    })
+    openOn(pills('Fantasy')[0] as Element)
+    highlightButton().click()
+    await flush()
+    expect(filters.current.highlightLabels).toEqual(['Fantasy'])
+    expect(filters.current.hiddenLabels).toEqual(['Horror'])
   })
 })
 

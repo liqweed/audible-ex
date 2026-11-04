@@ -103,3 +103,9 @@ export const pillText = (
 /** Whole seconds until `until`, at least 1 while the pause is still ahead. */
 export const secondsLeft = (until: number, now: number): number =>
   Math.max(1, Math.ceil((until - now) / 1000))
+
+/** `12 hidden · 3 dimmed`: what the filters do on this page, the counts that are not zero. */
+export const filteredText = (hidden: number, dimmed: number): string =>
+  [hidden > 0 && `${hidden} hidden`, dimmed > 0 && `${dimmed} dimmed`]
+    .filter(Boolean)
+    .join(' · ')

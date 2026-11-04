@@ -1,6 +1,13 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { createStore } from '@tanstack/store'
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
 import { type BookStore, createBookStore } from '@/content/books'
 import type { FilterState } from '@/content/filter'
 import type { PanelHandle } from '@/content/shared'
@@ -9,7 +16,7 @@ import {
   type PanelState,
   type PanelStorage,
 } from '@/storage/panel'
-import { updateFilters } from '@/storage/prefs'
+import { readPrefs, updateFilters } from '@/storage/prefs'
 import { Panel } from './Panel'
 
 afterEach(cleanup)
@@ -47,7 +54,12 @@ async function show(ui: React.ReactElement) {
 function setup() {
   const books: BookStore = createBookStore()
   let retries = 0
-  const filter = createStore<FilterState>({ hidden: 0, peek: false })
+  const filter = createStore<FilterState>({
+    hidden: 0,
+    dimmed: 0,
+    highlighted: 0,
+    peek: false,
+  })
   const handle: PanelHandle = {
     state: books.state,
     filter,
@@ -182,15 +194,21 @@ describe('the shell', () => {
   /** A panel with books to show, over `stored` state. */
   async function open(
     stored: Partial<PanelState> = {},
-    host = 'www.audible.com'
+    host = 'www.audible.com',
+    openOptions?: () => void
   ) {
-    const { books, handle } = setup()
+    const { books, handle, filter } = setup()
     const memory = memoryStorage(stored)
     await act(async () => books.setProgress(counters({ done: 34, queued: 26 })))
     const view = await show(
-      <Panel handle={handle} storage={memory.storage} host={host} />
+      <Panel
+        handle={handle}
+        storage={memory.storage}
+        host={host}
+        openOptions={openOptions}
+      />
     )
-    return { ...memory, books, view }
+    return { ...memory, books, filter, view }
   }
   const box = (view: { container: HTMLElement }) =>
     view.container.firstElementChild as HTMLElement
@@ -231,7 +249,7 @@ describe('the shell', () => {
     expect(screen.getByRole('slider', { name: 'Minimum rating' })).toBeTruthy()
     // Header and controls elsewhere inside the panel are still inside the boundary.
     fireEvent.click(screen.getByText('Goodreads ratings'))
-    fireEvent.click(screen.getByLabelText(/Minimum number of ratings/))
+    fireEvent.click(screen.getByLabelText('Minimum ratings'))
     expect(
       screen.getByRole('button', { name: 'Hide filter settings' })
     ).toBeTruthy()
@@ -283,6 +301,54 @@ describe('the shell', () => {
   test('is not hidden on another marketplace', async () => {
     await open({ hiddenHosts: ['www.audible.com'] }, 'www.audible.co.uk')
     expect(screen.getByRole('progressbar')).toBeTruthy()
+  })
+
+  test('opens the settings from its header, when it can', async () => {
+    let opened = 0
+    await open({}, 'www.audible.com', () => opened++)
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
+    expect(opened).toBe(1)
+    cleanup()
+    await open()
+    expect(screen.queryByRole('button', { name: 'Settings' })).toBeNull()
+  })
+
+  describe('the pill', () => {
+    const switchButton = () =>
+      screen.getByRole('button', { name: /^Filter books/ })
+
+    test('says whether filtering is on and how many cards it takes out of view', async () => {
+      await updateFilters({ enabled: true })
+      const { filter } = await open({ collapsed: true })
+      const button = await waitFor(switchButton)
+      expect(button.getAttribute('aria-pressed')).toBe('true')
+      expect(button.textContent).toBe('')
+      await act(async () =>
+        filter.setState(prev => ({ ...prev, hidden: 12, dimmed: 3 }))
+      )
+      expect(button.textContent).toBe('15')
+      expect(button.getAttribute('aria-label')).toBe(
+        'Filter books, 12 hidden · 3 dimmed'
+      )
+    })
+
+    test('turns filtering off and on without expanding', async () => {
+      await updateFilters({ enabled: true })
+      const { filter, current } = await open({ collapsed: true })
+      await act(async () => filter.setState(prev => ({ ...prev, hidden: 4 })))
+      fireEvent.click(await waitFor(switchButton))
+      await waitFor(async () =>
+        expect((await readPrefs()).filters.enabled).toBe(false)
+      )
+      expect(switchButton().getAttribute('aria-pressed')).toBe('false')
+      // Off, it counts nothing: the cards are all back.
+      expect(switchButton().textContent).toBe('')
+      fireEvent.click(switchButton())
+      await waitFor(async () =>
+        expect((await readPrefs()).filters.enabled).toBe(true)
+      )
+      expect(current().collapsed).toBe(true)
+    })
   })
 
   test('a changed format is still told when collapsed', async () => {

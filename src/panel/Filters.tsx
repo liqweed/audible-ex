@@ -1,89 +1,61 @@
 import * as Slider from '@radix-ui/react-slider'
 import * as Switch from '@radix-ui/react-switch'
-import { Debouncer } from '@tanstack/pacer/debouncer'
 import { useStore } from '@tanstack/react-store'
-import { type RefObject, useEffect, useMemo, useRef, useState } from 'react'
-import type { PanelHandle } from '@/content/shared'
-import { type Region, regionFromHost } from '@/core/regions'
 import {
-  DEFAULT_FILTERS,
-  type Filters as FilterPrefs,
-  readPrefs,
-  updateFilters,
-  watchPrefs,
-} from '@/storage/prefs'
+  type ReactNode,
+  type RefObject,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
+import type { PanelHandle } from '@/content/shared'
+import { type Dimension, labelKey, type MissMode } from '@/core/filter'
+import { type Region, regionFromHost } from '@/core/regions'
+import type { Filters as FilterPrefs } from '@/storage/prefs'
+import { Choice, InfoTip } from './controls'
 import { genresSeen, suggestions } from './genres'
+import { type FilterChange, useDebouncedValue, useFilterPrefs } from './prefs'
 
-const SAVE_WAIT_MS = 300
 const field =
   'rounded border border-slate-300 bg-white px-1.5 py-0.5 text-xs text-slate-900'
-type FilterChange =
-  | Partial<FilterPrefs>
-  | ((current: FilterPrefs) => Partial<FilterPrefs>)
-
 const quiet = 'text-xs text-slate-600'
+const row = 'flex items-center gap-1.5 whitespace-nowrap'
 
-/** The filters pref, kept in step with storage; `change` shows the change now and saves it. */
-function useFilterPrefs() {
-  const [filters, setFilters] = useState<FilterPrefs>()
-  useEffect(() => {
-    let current = true
-    readPrefs().then(
-      prefs => current && setFilters(known => known ?? prefs.filters),
-      error => {
-        console.error('audible-ex: could not read the filters', error)
-        if (current) setFilters(known => known ?? DEFAULT_FILTERS)
+const MISS_MODES = [
+  { value: 'hide', text: 'Hide' },
+  { value: 'dim', text: 'Dim' },
+] as const
+
+const without = (labels: readonly string[], label: string) =>
+  labels.filter(l => labelKey(l) !== labelKey(label))
+
+/** Hide or dim, for the books that fail one filter. */
+function ModeChoice({
+  dimension,
+  label,
+  filters,
+  change,
+}: {
+  dimension: Dimension
+  /** What the books fail, after "Books that fail", such as "the minimum rating". */
+  label: string
+  filters: FilterPrefs
+  change(patch: FilterChange): void
+}) {
+  return (
+    <Choice<MissMode>
+      name={`agx-mode-${dimension}`}
+      label={`Books that fail ${label}`}
+      value={filters.modes[dimension]}
+      options={MISS_MODES}
+      onChange={mode =>
+        change(current => ({
+          modes: { ...current.modes, [dimension]: mode },
+        }))
       }
-    )
-    const stop = watchPrefs(prefs => setFilters(prefs.filters))
-    return () => {
-      current = false
-      stop()
-    }
-  }, [])
-  const change = useMemo(
-    () => (patch: FilterChange) => {
-      setFilters(
-        known =>
-          known && {
-            ...known,
-            ...(typeof patch === 'function' ? patch(known) : patch),
-          }
-      )
-      updateFilters(patch).catch(error =>
-        console.error('audible-ex: could not save the filters', error)
-      )
-    },
-    []
+    />
   )
-  return { filters, change }
-}
-
-/**
- * A value the user changes continuously (the slider, a number being typed): it shows at once and is
- * saved once the user pauses, and still saved if the panel goes away first. `outside` is the saved
- * value, which replaces the shown one when another tab changes it.
- */
-function useDebouncedValue<T>(outside: T, save: (value: T) => void) {
-  const [value, setValue] = useState(outside)
-  const saver = useRef(save)
-  saver.current = save
-  const debouncer = useMemo(
-    () => new Debouncer((v: T) => saver.current(v), { wait: SAVE_WAIT_MS }),
-    []
-  )
-  useEffect(() => {
-    // The echo of an earlier save must not pull the thumb back while the user is still moving it.
-    if (!debouncer.store.state.isPending) setValue(outside)
-  }, [outside, debouncer])
-  useEffect(() => () => debouncer.flush(), [debouncer])
-  return [
-    value,
-    (next: T) => {
-      setValue(next)
-      debouncer.maybeExecute(next)
-    },
-  ] as const
 }
 
 const tenth = (n: number) => Math.round(n * 10) / 10
@@ -116,7 +88,7 @@ function YearRange({
   change,
 }: {
   filters: FilterPrefs
-  change(patch: Partial<FilterPrefs>): void
+  change(patch: FilterChange): void
 }) {
   const outside = useMemo(
     () => ({
@@ -131,31 +103,47 @@ function YearRange({
   })
   const { error } = yearRange(draft)
   return (
-    <fieldset className='m-0 min-w-0 border-0 p-0'>
-      <legend className={quiet}>First-published year</legend>
-      <div className='mt-1 flex gap-2'>
-        {(['minYear', 'maxYear'] as const).map(bound => (
-          <div key={bound} className='min-w-0 flex-1'>
-            <label htmlFor={`agx-${bound}`} className={quiet}>
-              {bound === 'minYear' ? 'From year' : 'To year'}
-            </label>
-            <input
-              id={`agx-${bound}`}
-              type='text'
-              value={draft[bound]}
-              placeholder='Any'
-              aria-invalid={!!error}
-              aria-describedby={`agx-year-help${error ? ' agx-year-error' : ''}`}
-              onChange={e => setDraft({ ...draft, [bound]: e.target.value })}
-              className={`${field} mt-0.5 w-full`}
-            />
-          </div>
-        ))}
+    <fieldset
+      aria-labelledby='agx-year-label'
+      className='mx-0 min-w-0 border-0 p-0'
+    >
+      <div className={row}>
+        <span id='agx-year-label' className={quiet}>
+          Published
+        </span>
+        <InfoTip label='About the first-published year'>
+          Inclusive years. Blank is any year; negative years are BCE. Books with
+          no known year stay visible unless another filter applies.
+        </InfoTip>
+        <span className='ml-auto flex items-center gap-0.5'>
+          {(['minYear', 'maxYear'] as const).map((bound, i) => (
+            <span key={bound} className='flex items-center gap-0.5'>
+              {i > 0 && (
+                <span aria-hidden='true' className='text-slate-400'>
+                  –
+                </span>
+              )}
+              <input
+                id={`agx-${bound}`}
+                type='text'
+                aria-label={bound === 'minYear' ? 'From year' : 'To year'}
+                value={draft[bound]}
+                placeholder={bound === 'minYear' ? 'From' : 'To'}
+                aria-invalid={!!error}
+                aria-describedby={error ? 'agx-year-error' : undefined}
+                onChange={e => setDraft({ ...draft, [bound]: e.target.value })}
+                className={`${field} w-11 px-1 text-right`}
+              />
+            </span>
+          ))}
+        </span>
+        <ModeChoice
+          dimension='year'
+          label='the year range'
+          filters={filters}
+          change={change}
+        />
       </div>
-      <p id='agx-year-help' className='mt-1 text-[11px] text-slate-500'>
-        Blank is any year; negative years are BCE. Books with no year stay
-        visible unless another filter applies.
-      </p>
       {error && (
         <p
           id='agx-year-error'
@@ -195,25 +183,32 @@ function PriceLimit({
     (!Number.isFinite(Number(draft)) || Number(draft) < 0)
   return (
     <div>
-      <label htmlFor='agx-max-price' className={quiet}>
-        Maximum public price ({region.currency})
-      </label>
-      <input
-        id='agx-max-price'
-        type='text'
-        inputMode='decimal'
-        value={draft}
-        placeholder='Any'
-        aria-invalid={invalid}
-        aria-describedby='agx-price-help'
-        onChange={e => setDraft(e.target.value)}
-        className={`${field} mt-0.5 w-full`}
-      />
-      <p id='agx-price-help' className='mt-1 text-[11px] text-slate-500'>
-        Blank is any price; 0 is free only. Uses public catalogue prices on this
-        marketplace; member offers may differ. Books with no price stay visible
-        unless another filter applies.
-      </p>
+      <div className={row}>
+        <label htmlFor='agx-max-price' className={quiet}>
+          Max price ({region.currency})
+        </label>
+        <InfoTip label='About the maximum price'>
+          Public catalogue prices on this marketplace; member offers may differ.
+          Blank is any price; 0 is free only. Books with no price stay visible
+          unless another filter applies.
+        </InfoTip>
+        <input
+          id='agx-max-price'
+          type='text'
+          inputMode='decimal'
+          value={draft}
+          placeholder='Any'
+          aria-invalid={invalid}
+          onChange={e => setDraft(e.target.value)}
+          className={`${field} ml-auto w-14 text-right`}
+        />
+        <ModeChoice
+          dimension='price'
+          label='the price limit'
+          filters={filters}
+          change={change}
+        />
+      </div>
       {invalid && (
         <p role='alert' className='mt-1 text-xs text-red-700'>
           Use a price of 0 or more.
@@ -223,45 +218,66 @@ function PriceLimit({
   )
 }
 
-/** Hidden labels: chips, and an input that suggests the genres the page's books carry. */
+/** A list of labels: chips, and an input that suggests the genres the page's books carry. */
 function LabelPicker({
-  hidden,
+  id,
+  title,
+  help,
+  aside,
+  labels,
+  other,
   seen,
-  onChange,
+  tone,
+  removeText,
+  onAdd,
+  onRemove,
 }: {
-  hidden: readonly string[]
+  id: string
+  title: string
+  help: ReactNode
+  /** What goes at the end of the title row. */
+  aside?: ReactNode
+  labels: readonly string[]
+  /** The labels of the other list, which are not suggested here either. */
+  other: readonly string[]
   seen: readonly string[]
-  onChange(labels: string[]): void
+  tone: 'hide' | 'highlight'
+  removeText(label: string): string
+  onAdd(label: string): void
+  onRemove(label: string): void
 }) {
   const [typed, setTyped] = useState('')
   const [focused, setFocused] = useState(false)
-  const options = suggestions(seen, hidden, typed)
+  const options = suggestions(seen, [...labels, ...other], typed)
 
   function add(label: string) {
     const clean = label.trim()
     setTyped('')
-    if (!clean || hidden.some(h => h.toLowerCase() === clean.toLowerCase()))
-      return
-    onChange([...hidden, clean])
+    if (!clean || labels.some(l => labelKey(l) === labelKey(clean))) return
+    onAdd(clean)
   }
 
   return (
     <div>
-      <label htmlFor='agx-labels' className={`${quiet} block`}>
-        Hide books labelled
-      </label>
-      {hidden.length > 0 && (
+      <div className={row}>
+        <label htmlFor={id} className={quiet}>
+          {title}
+        </label>
+        <InfoTip label={`About ${title.toLowerCase()}`}>{help}</InfoTip>
+        {aside && <span className='ml-auto flex items-center'>{aside}</span>}
+      </div>
+      {labels.length > 0 && (
         <ul className='my-1 flex flex-wrap gap-1'>
-          {hidden.map(label => (
+          {labels.map(label => (
             <li
               key={label}
-              className='flex items-center gap-1 rounded-full bg-slate-100 py-0.5 pr-1 pl-2 text-xs'
+              className={`flex items-center gap-1 rounded-full py-0.5 pr-1 pl-2 text-xs ${tone === 'highlight' ? 'bg-amber-100 text-amber-900' : 'bg-slate-100'}`}
             >
               {label}
               <button
                 type='button'
-                aria-label={`Stop hiding ${label}`}
-                onClick={() => onChange(hidden.filter(h => h !== label))}
+                aria-label={removeText(label)}
+                onClick={() => onRemove(label)}
                 className='rounded-full px-1 text-slate-500 hover:bg-slate-200'
               >
                 ×
@@ -271,7 +287,7 @@ function LabelPicker({
         </ul>
       )}
       <input
-        id='agx-labels'
+        id={id}
         type='text'
         value={typed}
         placeholder='Type a genre, e.g. Romance'
@@ -313,27 +329,33 @@ function LabelPicker({
 
 /**
  * The filters (PRD R3): the master switch, `12 hidden · Show`, and below them a settings area with
- * the rating slider, the minimum number of ratings, hidden labels and what to do with the rest.
- * They are the `filters` pref, shared by every Audible tab.
+ * one row per filter, each with its own hide-or-dim choice, then the hidden and highlighted labels
+ * and the policy for books not on Goodreads. They are the `filters` pref, shared by every Audible
+ * tab. The settings stay reachable with the filters off, because highlighting does not depend on
+ * them.
  */
 export function Filters({
   handle,
   panelRef,
   region = regionFromHost(location.hostname),
+  openOptions,
 }: {
   handle: PanelHandle
   /** The entire panel is inside the click boundary, including its header and progress. */
   panelRef?: RefObject<HTMLElement | null>
   region?: Region | undefined
+  /** Opens the options page; without it the settings do not link there. */
+  openOptions?: (() => void) | undefined
 }) {
   const { filters, change } = useFilterPrefs()
   const hidden = useStore(handle.filter, s => s.hidden)
+  const highlighted = useStore(handle.filter, s => s.highlighted)
   const peek = useStore(handle.filter, s => s.peek)
   const seen = useStore(handle.state, s => genresSeen(s.books))
   const [open, setOpen] = useState(false)
   const section = useRef<HTMLElement>(null)
   useEffect(() => {
-    if (!open || !filters?.enabled) return
+    if (!open) return
     const boundary = panelRef?.current ?? section.current
     if (!boundary) return
     const outsideClick = (event: MouseEvent) => {
@@ -344,7 +366,7 @@ export function Filters({
     const doc = boundary.ownerDocument
     doc.addEventListener('click', outsideClick, true)
     return () => doc.removeEventListener('click', outsideClick, true)
-  }, [open, filters?.enabled, panelRef])
+  }, [open, panelRef])
   const [rating, setRating] = useDebouncedValue(filters?.minRating ?? 4, v =>
     change({ minRating: v })
   )
@@ -385,120 +407,193 @@ export function Filters({
         )}
       </div>
 
-      {filters.enabled && (
-        <>
-          <button
-            type='button'
-            aria-expanded={open}
-            onClick={() => setOpen(!open)}
-            className={`${quiet} mt-1 underline`}
-          >
-            {open ? 'Hide filter settings' : 'Filter settings'}
-          </button>
-          {open && (
-            <div className='mt-2 space-y-3'>
-              <div>
-                <div className='flex justify-between text-xs'>
-                  <span className={quiet}>Minimum rating</span>
-                  <span className='font-medium'>{rating.toFixed(1)}</span>
-                </div>
-                <Slider.Root
-                  min={3}
-                  max={5}
-                  step={0.1}
-                  value={[rating]}
-                  onValueChange={([v]) => setRating(tenth(v ?? rating))}
-                  className='relative mt-1 flex h-4 w-full touch-none items-center select-none'
-                >
-                  <Slider.Track className='relative h-1.5 grow rounded-full bg-slate-200'>
-                    <Slider.Range className='absolute h-full rounded-full bg-indigo-600' />
-                  </Slider.Track>
-                  <Slider.Thumb
-                    aria-label='Minimum rating'
-                    className='block h-4 w-4 rounded-full border border-indigo-600 bg-white shadow focus:outline-2 focus:outline-indigo-400'
-                  />
-                </Slider.Root>
-              </div>
+      <button
+        type='button'
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+        className={`${quiet} mt-1 underline`}
+      >
+        {open ? 'Hide filter settings' : 'Filter settings'}
+      </button>
+      {open && (
+        <div className='mt-2 space-y-2.5'>
+          <p className='flex items-center justify-end gap-1 text-[11px] text-slate-500'>
+            Books that fail
+            <InfoTip label='About hide and dim'>
+              Each filter hides the books that fail it, or only dims them. A
+              book failing several filters is hidden if any of them hides. In
+              carousels books are always dimmed, and no book is hidden before
+              its rating has loaded.
+            </InfoTip>
+          </p>
 
-              <div className='flex items-center justify-between gap-2'>
-                <label htmlFor='agx-min-ratings' className={quiet}>
-                  Minimum number of ratings (0 is off)
-                </label>
-                <input
-                  id='agx-min-ratings'
-                  type='number'
-                  min={0}
-                  step={10}
-                  value={count}
-                  onChange={e => {
-                    const n = Math.floor(Number(e.target.value))
-                    if (Number.isFinite(n) && n >= 0) setCount(n)
-                  }}
-                  className={`${field} w-16 text-right`}
-                />
-              </div>
-
-              <LabelPicker
-                hidden={filters.hiddenLabels}
-                seen={seen}
-                onChange={hiddenLabels => change({ hiddenLabels })}
+          <div>
+            <div className={row}>
+              <span id='agx-min-rating-label' className={quiet}>
+                Minimum rating
+              </span>
+              <InfoTip label='About the minimum rating'>
+                The Goodreads average a book needs. It applies as soon as the
+                rating arrives.
+              </InfoTip>
+              <span className='ml-auto text-xs font-medium'>
+                {rating.toFixed(1)}
+              </span>
+              <ModeChoice
+                dimension='rating'
+                label='the minimum rating'
+                filters={filters}
+                change={change}
               />
-
-              <YearRange filters={filters} change={change} />
-              {region && (
-                <PriceLimit
-                  key={region.code}
-                  filters={filters}
-                  change={change}
-                  region={region}
-                />
-              )}
-
-              <div className='flex items-center justify-between gap-2'>
-                <label htmlFor='agx-not-found' className={quiet}>
-                  Books not on Goodreads
-                </label>
-                <select
-                  id='agx-not-found'
-                  value={filters.notFound}
-                  onChange={e =>
-                    change({
-                      notFound: e.target.value as FilterPrefs['notFound'],
-                    })
-                  }
-                  className={field}
-                >
-                  <option value='show'>Show</option>
-                  <option value='dim'>Dim</option>
-                  <option value='hide'>Hide</option>
-                </select>
-              </div>
-
-              <div>
-                <div className='flex items-center justify-between gap-2'>
-                  <label htmlFor='agx-mode' className={quiet}>
-                    Books that fail a filter
-                  </label>
-                  <select
-                    id='agx-mode'
-                    value={filters.mode}
-                    onChange={e =>
-                      change({ mode: e.target.value as FilterPrefs['mode'] })
-                    }
-                    className={field}
-                  >
-                    <option value='hide'>Hide</option>
-                    <option value='dim'>Dim</option>
-                  </select>
-                </div>
-                <p className='mt-0.5 text-[11px] text-slate-500'>
-                  In carousels they are always dimmed. A book is never hidden
-                  before its rating has loaded.
-                </p>
-              </div>
             </div>
+            <Slider.Root
+              min={3}
+              max={5}
+              step={0.1}
+              value={[rating]}
+              onValueChange={([v]) => setRating(tenth(v ?? rating))}
+              className='relative mt-1 flex h-4 w-full touch-none items-center select-none'
+            >
+              <Slider.Track className='relative h-1.5 grow rounded-full bg-slate-200'>
+                <Slider.Range className='absolute h-full rounded-full bg-indigo-600' />
+              </Slider.Track>
+              <Slider.Thumb
+                aria-labelledby='agx-min-rating-label'
+                className='block h-4 w-4 rounded-full border border-indigo-600 bg-white shadow focus:outline-2 focus:outline-indigo-400'
+              />
+            </Slider.Root>
+          </div>
+
+          <div className={row}>
+            <label htmlFor='agx-min-ratings' className={quiet}>
+              Minimum ratings
+            </label>
+            <InfoTip label='About the minimum number of ratings'>
+              How many Goodreads ratings a book needs, so a few enthusiastic
+              readers do not decide. 0 turns this off.
+            </InfoTip>
+            <input
+              id='agx-min-ratings'
+              type='number'
+              min={0}
+              step={10}
+              value={count}
+              onChange={e => {
+                const n = Math.floor(Number(e.target.value))
+                if (Number.isFinite(n) && n >= 0) setCount(n)
+              }}
+              className={`${field} ml-auto w-14 text-right`}
+            />
+            <ModeChoice
+              dimension='count'
+              label='the minimum ratings'
+              filters={filters}
+              change={change}
+            />
+          </div>
+
+          <YearRange filters={filters} change={change} />
+          {region && (
+            <PriceLimit
+              key={region.code}
+              filters={filters}
+              change={change}
+              region={region}
+            />
           )}
-        </>
+
+          <LabelPicker
+            id='agx-labels'
+            title='Hide labels'
+            help='Books carrying any of these Goodreads genres fail. Genres arrive after the rating, so this filter acts a moment later.'
+            aside={
+              <ModeChoice
+                dimension='labels'
+                label='the hidden labels'
+                filters={filters}
+                change={change}
+              />
+            }
+            labels={filters.hiddenLabels}
+            other={filters.highlightLabels}
+            seen={seen}
+            tone='hide'
+            removeText={label => `Stop hiding ${label}`}
+            onAdd={label =>
+              change(current => ({
+                hiddenLabels: [...current.hiddenLabels, label],
+                highlightLabels: without(current.highlightLabels, label),
+              }))
+            }
+            onRemove={label =>
+              change(current => ({
+                hiddenLabels: without(current.hiddenLabels, label),
+              }))
+            }
+          />
+
+          <LabelPicker
+            id='agx-highlight-labels'
+            title='Highlight labels'
+            help='Your areas of interest: books carrying any of these genres get an outline. Highlighting never hides a book, and it works with the filters off.'
+            aside={
+              highlighted > 0 && (
+                <span className='text-[11px] text-slate-500'>
+                  {highlighted} on this page
+                </span>
+              )
+            }
+            labels={filters.highlightLabels}
+            other={filters.hiddenLabels}
+            seen={seen}
+            tone='highlight'
+            removeText={label => `Stop highlighting ${label}`}
+            onAdd={label =>
+              change(current => ({
+                highlightLabels: [...current.highlightLabels, label],
+                hiddenLabels: without(current.hiddenLabels, label),
+              }))
+            }
+            onRemove={label =>
+              change(current => ({
+                highlightLabels: without(current.highlightLabels, label),
+              }))
+            }
+          />
+
+          <div className={row}>
+            <span className={quiet}>Not on Goodreads</span>
+            <InfoTip label='About books not on Goodreads'>
+              Books Goodreads has no match for. They have no rating, so the
+              other filters cannot judge them.
+            </InfoTip>
+            <span className='ml-auto'>
+              <Choice<FilterPrefs['notFound']>
+                name='agx-not-found'
+                label='Books not on Goodreads'
+                value={filters.notFound}
+                options={[
+                  { value: 'show', text: 'Show' },
+                  { value: 'dim', text: 'Dim' },
+                  { value: 'hide', text: 'Hide' },
+                ]}
+                onChange={notFound => change({ notFound })}
+              />
+            </span>
+          </div>
+
+          {openOptions && (
+            <p className='text-right'>
+              <button
+                type='button'
+                onClick={openOptions}
+                className={`${quiet} underline`}
+              >
+                More settings
+              </button>
+            </p>
+          )}
+        </div>
       )}
     </section>
   )

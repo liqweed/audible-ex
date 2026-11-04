@@ -1,4 +1,5 @@
 import { useStore } from '@tanstack/react-store'
+import { Settings } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { PanelHandle } from '@/content/shared'
 import { SOURCE_URL } from '@/lib/links'
@@ -11,6 +12,7 @@ import {
 } from '@/storage/panel'
 import { useDrag } from './drag'
 import { Filters } from './Filters'
+import { Pill } from './Pill'
 import {
   counts,
   detailsProgress,
@@ -136,6 +138,7 @@ export function Panel({
   storage = panelStorage,
   host = location.hostname,
   logoSrc,
+  openOptions,
 }: {
   handle: PanelHandle
   clock?: () => number
@@ -143,6 +146,8 @@ export function Panel({
   host?: string
   /** The logo as an image URL; without it the panel has no avatar and no link to the project. */
   logoSrc?: string
+  /** Opens the extension's options page; without it the panel has no settings button. */
+  openOptions?: () => void
 }) {
   const progress = useStore(handle.state, s => s.progress)
   const formatChanged = useStore(handle.state, s => hasFormatChange(s.books))
@@ -182,19 +187,15 @@ export function Panel({
         }
       >
         {state.collapsed ? (
-          <button
-            type='button'
-            aria-label={`Goodreads ratings ${pill}, expand`}
-            title='Click to expand, drag to move'
-            onClick={() => {
-              if (!drag.wasDrag()) change(() => ({ collapsed: false }))
-            }}
-            {...drag.handlers}
-            className={`flex touch-none items-center gap-1.5 rounded-full border border-slate-300 bg-white py-1 pr-3 pl-1 text-xs font-semibold shadow-lg select-none hover:bg-slate-100 ${dragging ? 'cursor-grabbing' : 'cursor-grab'}`}
-          >
-            {logoSrc ? <Avatar src={logoSrc} /> : <span className='w-2' />}
-            {pill}
-          </button>
+          <Pill
+            handle={handle}
+            text={pill}
+            avatar={
+              logoSrc ? <Avatar src={logoSrc} /> : <span className='w-2' />
+            }
+            drag={drag}
+            onExpand={() => change(() => ({ collapsed: false }))}
+          />
         ) : (
           <section
             aria-label='Goodreads ratings'
@@ -230,6 +231,17 @@ export function Panel({
                   className='rounded border border-slate-300 px-2 py-0.5 text-xs hover:bg-slate-100'
                 >
                   Retry failed
+                </button>
+              )}
+              {openOptions && (
+                <button
+                  type='button'
+                  aria-label='Settings'
+                  title='Open the settings: filters, display and the book cache'
+                  onClick={openOptions}
+                  className={iconButton}
+                >
+                  <Settings aria-hidden='true' className='h-3.5 w-3.5' />
                 </button>
               )}
               <button
@@ -315,7 +327,11 @@ export function Panel({
                     </div>
                   </div>
                 )}
-                <Filters handle={handle} panelRef={box} />
+                <Filters
+                  handle={handle}
+                  panelRef={box}
+                  openOptions={openOptions}
+                />
               </>
             )}
           </section>

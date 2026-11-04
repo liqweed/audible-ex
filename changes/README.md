@@ -30,15 +30,18 @@ D17), and 1.0.0 follows 0.4.
 
 ## Cutting a release
 
-A person cuts the release commit by hand on an up-to-date `main` (the release
-App that would do it is not set up yet); the tag then publishes it
-(`.github/workflows/release.yml`, DECISIONS.md D20):
+Merging is releasing (DECISIONS.md D26). After each merge to `main`,
+`.github/workflows/changelog.yml` writes the waiting notes into `CHANGELOG.md`,
+moves the version in `package.json` and pushes the commit
+`chore(release): x.y.z` onto `main` as the release App. Once CI passes on that
+commit, the same workflow tags it `vx.y.z`, and the tag runs
+`.github/workflows/release.yml`, which signs the build and submits it to the
+store (D20). Several notes merged before a run make one release, at the largest
+bump any of them asks for.
 
-1. `bun <jig>/skills/changelog/scripts/release.ts --dry-run`, and read it.
-2. The same without `--dry-run`, then review the diff.
-3. Commit it as `chore(release): x.y.z`, push, and tag `vx.y.z` on that
-   commit once CI has passed on it.
-4. Watch the tag's Actions run. It signs the build and submits it to the store
-   for review; read the review's result in the dashboard. Until the one-time setup in
-   `docs/STORE-LISTING.md` ("Automated releases") is done, upload by hand as
-   that file's "Submitting a release" says.
+- Before merging, `bun <jig>/skills/changelog/scripts/status.ts` shows the
+  version the waiting notes make; `release.ts --dry-run` previews it.
+- After merging, watch the `changelog` and `Release` runs, then read the
+  review's result in the store dashboard. `status.ts` reports a failed release
+  run or a releasing commit whose checks failed (it stays untagged).
+- A note without `release` goes under `Unreleased` instead, in its own commit.

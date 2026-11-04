@@ -1,8 +1,12 @@
 import { describe, expect, test } from 'bun:test'
 import {
+  DIMENSIONS,
+  type Dimension,
   type FilterBook,
   type FilterSettings,
-  isHiddenLabel,
+  failures,
+  hasLabel,
+  isHighlighted,
   judge,
   labelKey,
   place,
@@ -17,13 +21,25 @@ const settings: FilterSettings = {
   maxYear: null,
   maxPrice: {},
   hiddenLabels: [],
+  highlightLabels: [],
   notFound: 'show',
-  mode: 'hide',
+  modes: {
+    rating: 'hide',
+    count: 'hide',
+    labels: 'hide',
+    year: 'hide',
+    price: 'hide',
+  },
 }
 const with_ = (over: Partial<FilterSettings>): FilterSettings => ({
   ...settings,
   ...over,
 })
+/** `settings` with the filters in `dim` dimmed and the others hiding. */
+const dimming = (...dim: Dimension[]): FilterSettings['modes'] =>
+  Object.fromEntries(
+    DIMENSIONS.map(d => [d, dim.includes(d) ? 'dim' : 'hide'])
+  ) as FilterSettings['modes']
 const ready = (r: number, n: number, genres?: string[]): FilterBook => ({
   status: 'ready',
   rating: { r, n },
@@ -62,14 +78,27 @@ describe('judge', () => {
     expect(judge(ready(2, 900), with_({ hiddenLabels: ['x'] }))).toBe('hide')
   })
 
-  test('a failing book gets the mode', () => {
-    expect(judge(ready(3, 900), with_({ mode: 'dim' }))).toBe('dim')
+  test('a failing book gets the mode of the filter it fails', () => {
+    expect(judge(ready(3, 900), with_({ modes: dimming('rating') }))).toBe(
+      'dim'
+    )
+    expect(judge(ready(3, 900), with_({ modes: dimming('count') }))).toBe(
+      'hide'
+    )
+  })
+
+  test('one hiding filter is enough to hide; dimming filters alone dim', () => {
+    const book = ready(3, 10)
+    expect(judge(book, with_({ modes: dimming('rating') }))).toBe('hide')
+    expect(judge(book, with_({ modes: dimming('rating', 'count') }))).toBe(
+      'dim'
+    )
   })
 
   test.each(['queued', 'loading', 'failed'] as const)(
     'never hides a book that is %s',
     status => {
-      const s = with_({ notFound: 'hide', mode: 'hide' })
+      const s = with_({ notFound: 'hide' })
       expect(judge({ status }, s)).toBe('show')
       expect(judge(undefined, s)).toBe('show')
     }
@@ -134,7 +163,7 @@ describe('first-published year', () => {
   })
 
   test('respects dim mode, the master switch, carousels and peek', () => {
-    expect(judge(book(1999), { ...range, mode: 'dim' })).toBe('dim')
+    expect(judge(book(1999), { ...range, modes: dimming('year') })).toBe('dim')
     expect(judge(book(1999), { ...range, enabled: false })).toBe('show')
     expect(verdict(book(1999), range, { inCarousel: true, peek: false })).toBe(
       'dim'
@@ -186,9 +215,9 @@ describe('verdict', () => {
 describe('labels', () => {
   test('compare without regard to case or space', () => {
     expect(labelKey('  Science Fiction ')).toBe('science fiction')
-    expect(isHiddenLabel([' romance'], 'Romance ')).toBe(true)
-    expect(isHiddenLabel(['Romance'], 'Historical Romance')).toBe(false)
-    expect(isHiddenLabel([], 'Romance')).toBe(false)
+    expect(hasLabel([' romance'], 'Romance ')).toBe(true)
+    expect(hasLabel(['Romance'], 'Historical Romance')).toBe(false)
+    expect(hasLabel([], 'Romance')).toBe(false)
   })
 })
 
@@ -214,7 +243,9 @@ describe('maximum price per marketplace', () => {
     const free = with_({ maxPrice: { UK: 0 } })
     expect(judge(book(0), free, 'UK')).toBe('show')
     expect(judge(book(0.01), free, 'UK')).toBe('hide')
-    expect(judge(book(20), { ...limits, mode: 'dim' }, 'UK')).toBe('dim')
+    expect(judge(book(20), { ...limits, modes: dimming('price') }, 'UK')).toBe(
+      'dim'
+    )
     expect(judge(book(20), { ...limits, enabled: false }, 'UK')).toBe('show')
     for (const status of ['queued', 'loading', 'failed'] as const) {
       expect(judge({ ...book(20), status }, limits, 'UK')).toBe('show')
@@ -225,5 +256,51 @@ describe('maximum price per marketplace', () => {
     expect(
       verdict(book(20), limits, { inCarousel: false, peek: true }, 'UK')
     ).toBe('dim')
+  })
+})
+
+describe('failures', () => {
+  test('lists every filter a book fails, in order', () => {
+    const s = with_({
+      hiddenLabels: ['Romance'],
+      maxYear: 2000,
+      maxPrice: { UK: 5 },
+    })
+    const book: FilterBook = {
+      status: 'ready',
+      rating: { r: 3, n: 10 },
+      details: { genres: ['Romance'], year: 2010 },
+      price: { amount: 9, currency: 'GBP' },
+    }
+    expect(failures(book, s, 'UK')).toEqual([
+      'rating',
+      'count',
+      'labels',
+      'year',
+      'price',
+    ])
+    expect(failures(ready(4.5, 900), s, 'UK')).toEqual([])
+  })
+
+  test('a book without its rating fails nothing', () => {
+    expect(failures({ status: 'loading' }, settings)).toEqual([])
+  })
+})
+
+describe('highlighted labels', () => {
+  const s = with_({ highlightLabels: [' science fiction'] })
+
+  test('mark a ready book carrying one, whatever its case', () => {
+    expect(isHighlighted(ready(4.5, 900, ['Science Fiction']), s)).toBe(true)
+    expect(isHighlighted(ready(4.5, 900, ['Fantasy']), s)).toBe(false)
+    expect(isHighlighted(ready(4.5, 900), s)).toBe(false)
+    expect(isHighlighted(undefined, s)).toBe(false)
+  })
+
+  test('hold with the filters off, and never change the verdict', () => {
+    const book = ready(2, 900, ['Science Fiction'])
+    expect(isHighlighted(book, { ...s, enabled: false })).toBe(true)
+    expect(judge(book, s)).toBe('hide')
+    expect(judge(ready(4.5, 900, ['Science Fiction']), s)).toBe('show')
   })
 })

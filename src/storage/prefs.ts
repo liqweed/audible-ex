@@ -5,13 +5,15 @@
  *
  * Each field has a default, so a record written by an older version still decodes. Change the
  * shape → bump `version` and add a migration. Version 2 added `filters`, version 3 the year bounds;
- * version 4 adds marketplace price limits, version 5 the display settings.
+ * version 4 adds marketplace price limits, version 5 the display settings, version 6 a miss mode for
+ * each filter (replacing the single `mode`) and highlighted labels.
  */
 import * as Effect from 'effect/Effect'
 import * as Option from 'effect/Option'
 import * as Schema from 'effect/Schema'
 import { storage } from 'wxt/utils/storage'
 import { DEFAULT_DISPLAY } from '../core/display'
+import type { Dimension, MissMode } from '../core/filter'
 import { GENRES_MAX, Region } from '../schema/common'
 import { serial } from './serial'
 
@@ -23,6 +25,27 @@ const YearBound = Schema.NullOr(
     )
   )
 ).pipe(Schema.withDecodingDefaultKey(Effect.succeed<number | null>(null)))
+
+const Mode = Schema.Literals(['hide', 'dim']).pipe(
+  Schema.withDecodingDefaultKey(Effect.succeed<MissMode>('hide'))
+)
+
+export const DEFAULT_MODES: Readonly<Record<Dimension, MissMode>> = {
+  rating: 'hide',
+  count: 'hide',
+  labels: 'hide',
+  year: 'hide',
+  price: 'hide',
+}
+
+/** What a book that fails each filter gets (carousels always dim). */
+export const Modes = Schema.Struct({
+  rating: Mode,
+  count: Mode,
+  labels: Mode,
+  year: Mode,
+  price: Mode,
+})
 
 /**
  * The filters (PRD R3, ARCHITECTURE.md §7; `src/core/filter.ts` reads them). The slider offers 3.0 to
@@ -51,15 +74,18 @@ export const Filters = Schema.Struct({
   hiddenLabels: Schema.Array(Schema.String).pipe(
     Schema.withDecodingDefaultKey(Effect.succeed<readonly string[]>([]))
   ),
+  /** Goodreads genre names whose books are highlighted; never a reason to hide one. */
+  highlightLabels: Schema.Array(Schema.String).pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed<readonly string[]>([]))
+  ),
   /** What happens to a book that is not on Goodreads. */
   notFound: Schema.Literals(['show', 'dim', 'hide']).pipe(
     Schema.withDecodingDefaultKey(
       Effect.succeed<'show' | 'dim' | 'hide'>('show')
     )
   ),
-  /** What happens to a book that fails a filter (carousels always dim). */
-  mode: Schema.Literals(['hide', 'dim']).pipe(
-    Schema.withDecodingDefaultKey(Effect.succeed<'hide' | 'dim'>('hide'))
+  modes: Modes.pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed(DEFAULT_MODES))
   ),
 }).check(
   Schema.makeFilter(filters =>
@@ -80,8 +106,9 @@ export const DEFAULT_FILTERS: Filters = {
   maxYear: null,
   maxPrice: {},
   hiddenLabels: [],
+  highlightLabels: [],
   notFound: 'show',
-  mode: 'hide',
+  modes: DEFAULT_MODES,
 }
 
 export { DEFAULT_DISPLAY } from '../core/display'
@@ -99,7 +126,7 @@ export const Display = Schema.Struct({
 })
 export type Display = typeof Display.Type
 
-/** Prefs v5. A key missing from the stored record takes its default. */
+/** Prefs v6. A key missing from the stored record takes its default. */
 export const Prefs = Schema.Struct({
   /** The extension's master switch: off removes the badges and stops the lookups. */
   enabled: Schema.Boolean.pipe(
@@ -122,17 +149,40 @@ export const DEFAULT_PREFS: Prefs = {
 
 const decode = Schema.decodeUnknownOption(Prefs)
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+
+/**
+ * Prefs up to v5 had one `mode` for every filter: give each filter that mode. Anything else passes
+ * unchanged. The storage migration and the options page's import both read old records through it.
+ */
+export function upgradeModes(raw: unknown): unknown {
+  if (!isRecord(raw) || !isRecord(raw.filters) || !('mode' in raw.filters))
+    return raw
+  const { mode, ...filters } = raw.filters
+  if (!('modes' in filters) && (mode === 'hide' || mode === 'dim')) {
+    filters.modes = {
+      rating: mode,
+      count: mode,
+      labels: mode,
+      year: mode,
+      price: mode,
+    }
+  }
+  return { ...raw, filters }
+}
+
 /**
  * The prefs a stored value stands for. A value that is not a record of prefs (damaged, or written
  * by a newer version) gives the defaults rather than an error: the UI must always have prefs.
  */
 export function decodePrefs(raw: unknown): Prefs {
-  return Option.getOrElse(decode(raw), () => DEFAULT_PREFS)
+  return Option.getOrElse(decode(upgradeModes(raw)), () => DEFAULT_PREFS)
 }
 
 const item = storage.defineItem<unknown>('sync:prefs', {
   fallback: DEFAULT_PREFS,
-  version: 5,
+  version: 6,
   migrations: {
     // v1 held `enabled` alone. Add the filters with defaults filled in.
     2: decodePrefs,
@@ -142,6 +192,8 @@ const item = storage.defineItem<unknown>('sync:prefs', {
     4: decodePrefs,
     // v4 display was fixed: preserve that appearance.
     5: decodePrefs,
+    // v5 had one miss mode: every filter keeps it. No label is highlighted.
+    6: decodePrefs,
   },
 })
 

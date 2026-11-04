@@ -1,5 +1,6 @@
 import { useForm } from '@tanstack/react-form'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import type { Dimension, MissMode, Verdict } from '@/core/filter'
 import { REGIONS, type RegionCode } from '@/core/regions'
 import { PRIVACY_URL, SOURCE_URL } from '@/lib/links'
 import { CacheInspector } from '@/options/CacheInspector'
@@ -8,7 +9,6 @@ import {
   exportPrefs,
   importPrefs,
   prefsFromDraft,
-  type SettingsDraft,
   saveSettings,
 } from '@/options/settings'
 import {
@@ -47,6 +47,16 @@ type TextKey =
   | 'labels'
   | `prices.${RegionCode}`
 type BooleanKey = 'enabled' | 'filtering' | 'year' | 'overview'
+type PolicyKey = 'notFound' | `modes.${Dimension}`
+
+/** Each filter with its own hide-or-dim choice, as the options page names it. */
+const MODE_FIELDS: ReadonlyArray<readonly [Dimension, string]> = [
+  ['rating', 'Below the minimum rating'],
+  ['count', 'Too few ratings'],
+  ['year', 'Outside the year range'],
+  ['price', 'Above the maximum price'],
+  ['labels', 'Carrying a hidden label'],
+]
 
 function Settings({
   initial,
@@ -172,9 +182,9 @@ function Settings({
     )
   }
   function policy(
-    name: 'notFound' | 'mode',
+    name: PolicyKey,
     label: string,
-    options: readonly string[]
+    options: readonly (Verdict | MissMode)[]
   ) {
     return (
       <form.Field key={name} name={name}>
@@ -189,7 +199,7 @@ function Settings({
               className={field}
               onBlur={f.handleBlur}
               onChange={e =>
-                f.handleChange(e.target.value as SettingsDraft[typeof name])
+                f.handleChange(e.target.value as typeof f.state.value)
               }
             >
               {options.map(option => (
@@ -199,6 +209,37 @@ function Settings({
                 </option>
               ))}
             </select>
+          </div>
+        )}
+      </form.Field>
+    )
+  }
+
+  function labelList(
+    name: 'hiddenLabels' | 'highlightLabels',
+    label: string,
+    help: string
+  ) {
+    return (
+      <form.Field key={name} name={name}>
+        {f => (
+          <div>
+            <label htmlFor={name} className='text-sm font-medium'>
+              {label}
+            </label>
+            <textarea
+              id={name}
+              rows={3}
+              value={f.state.value}
+              onBlur={f.handleBlur}
+              onChange={e => f.handleChange(e.target.value)}
+              aria-describedby={`${name}-help`}
+              className={field}
+            />
+            <p id={`${name}-help`} className='options-hint'>
+              One Goodreads genre per line, compared without regard to case.{' '}
+              {help}
+            </p>
           </div>
         )}
       </form.Field>
@@ -288,37 +329,35 @@ function Settings({
                 'Blank is no upper bound; year 0 is not a publication year.'
               )}
             </div>
-            <form.Field name='hiddenLabels'>
-              {f => (
-                <div>
-                  <label htmlFor='hiddenLabels' className='text-sm font-medium'>
-                    Hidden labels
-                  </label>
-                  <textarea
-                    id='hiddenLabels'
-                    rows={3}
-                    value={f.state.value}
-                    onBlur={f.handleBlur}
-                    onChange={e => f.handleChange(e.target.value)}
-                    aria-describedby='labels-help'
-                    className={field}
-                  />
-                  <p id='labels-help' className='options-hint'>
-                    One Goodreads genre per line. Labels are compared without
-                    regard to case.
-                  </p>
-                </div>
-              )}
-            </form.Field>
             <div className='grid gap-5 sm:grid-cols-2'>
-              {policy('notFound', 'Books not on Goodreads', [
-                'show',
-                'dim',
-                'hide',
-              ])}
-              {policy('mode', 'Books that fail a filter', ['hide', 'dim'])}
+              {labelList(
+                'hiddenLabels',
+                'Hidden labels',
+                'Books carrying any of these fail the label filter.'
+              )}
+              {labelList(
+                'highlightLabels',
+                'Highlighted labels',
+                'Books carrying any of these get an outline, even with filtering off. Highlighting never hides a book.'
+              )}
             </div>
+            <fieldset className='m-0 border-0 p-0'>
+              <legend className='text-sm font-medium'>
+                What happens to a book that fails each filter
+              </legend>
+              <div className='mt-2 grid gap-5 sm:grid-cols-3'>
+                {MODE_FIELDS.map(([dimension, label]) =>
+                  policy(`modes.${dimension}`, label, ['hide', 'dim'])
+                )}
+                {policy('notFound', 'Not on Goodreads', [
+                  'show',
+                  'dim',
+                  'hide',
+                ])}
+              </div>
+            </fieldset>
             <p className='options-hint'>
+              A book that fails several filters is hidden if any of them hides.
               Cards in carousels are always dimmed. Books stay visible until
               their ratings arrive; missing years and prices do not fail those
               filters.

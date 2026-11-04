@@ -63,6 +63,11 @@ catalogue goes unchecked.
 - The panel can be dragged to a corner, collapsed to a small pill (`34/60`) or
   hidden on a site; its placement survives reloads. A hidden panel comes back
   from the toolbar popup.
+- The pill also shows whether filtering is on, turns it on or off, and says how
+  many books the filters hide or dim on the page.
+- The panel opens the options page (a settings button in its header).
+- Explanations of the filter settings sit behind an `i` button, shown on hover
+  or focus, so the panel stays short.
 
 ### R3 — Filters (phase 3)
 
@@ -70,8 +75,14 @@ catalogue goes unchecked.
 - Minimum number of ratings, default **50** (0 turns it off).
 - Hidden labels: hide books carrying any of the chosen Goodreads genres, picked
   with autocomplete from genres already seen.
-- What happens to a book that fails a filter: hidden (default) or dimmed.
-  Books in carousels are always dimmed, never removed.
+- What happens to a book that fails a filter, chosen for each filter (rating,
+  number of ratings, labels, year, price): hidden (default) or dimmed. A book
+  failing several filters is hidden if any of them hides. Books in carousels
+  are always dimmed, never removed.
+- Highlighted labels (areas of interest): books carrying any of the chosen
+  Goodreads genres get an outline and their label is marked. Highlighting
+  never hides a book and works with filtering off. A label is hidden or
+  highlighted, not both; the label popover offers either.
 - Books not found on Goodreads: shown (default), dimmed or hidden.
 - A book whose data hasn't loaded is never hidden.
 - A counter, `12 hidden · Show`, reveals hidden books (dimmed) without changing

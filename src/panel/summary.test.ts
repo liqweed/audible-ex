@@ -1,6 +1,12 @@
 import { describe, expect, test } from 'bun:test'
 import type { BookView, ProgressView } from '@/content/books'
-import { counts, hasFormatChange, panelView, secondsLeft } from './summary'
+import {
+  counts,
+  filteredText,
+  hasFormatChange,
+  panelView,
+  secondsLeft,
+} from './summary'
 
 const progress = (over: Partial<ProgressView> = {}): ProgressView => ({
   queued: 0,
@@ -100,5 +106,14 @@ describe('secondsLeft', () => {
     expect(secondsLeft(12_001, 0)).toBe(13)
     expect(secondsLeft(5_000, 4_999)).toBe(1)
     expect(secondsLeft(5_000, 6_000)).toBe(1)
+  })
+})
+
+describe('filteredText', () => {
+  test('names the counts that are not zero', () => {
+    expect(filteredText(12, 3)).toBe('12 hidden · 3 dimmed')
+    expect(filteredText(12, 0)).toBe('12 hidden')
+    expect(filteredText(0, 3)).toBe('3 dimmed')
+    expect(filteredText(0, 0)).toBe('')
   })
 })

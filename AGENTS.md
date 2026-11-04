@@ -63,7 +63,9 @@ bun scripts/check-content-size.ts   # after the build: gzipped size budgets of c
 
 Run these yourself before pushing; CI repeats them (and builds Firefox) and uploads the unpacked
 extension (`.output/chrome-mv3`) as an artifact for loading in Chrome.
-A `v*` tag on `main` runs `.github/workflows/release.yml`, which signs the build and
+Merging a pull request with a change note releases it: `.github/workflows/changelog.yml`
+pushes the release commit to `main` as the release App and tags it once CI passes
+(DECISIONS.md D26). A `v*` tag on `main` runs `.github/workflows/release.yml`, which signs the build and
 submits it to the Chrome Web Store (DECISIONS.md D20). Biome doesn't check Markdown (DECISIONS.md D4): keep docs tidy by review.
 
 ## Guardrails
@@ -122,6 +124,7 @@ bun scripts/capture-fixtures.ts      # refresh Audible/Goodreads fixtures
 | Filter semantics (`src/core/filter.ts`)         | ARCHITECTURE.md §7 and PRD R3                                                            |
 | A dependency                                    | An entry in `docs/DECISIONS.md` first                                                    |
 | A job name in `.github/workflows/ci.yml`        | `ci.required_checks` in `.config/jig.yaml`                                               |
+| The `name:` of `.github/workflows/ci.yml`       | `workflow_run.workflows` in `.github/workflows/changelog.yml`                            |
 | A phase's scope or order                        | `docs/PLAN.md`                                                                           |
 | Anything a user of the extension notices        | A change note in `changes/` (`/jig:changelog`); never edit `CHANGELOG.md` or the version |
 | What ships (`release_paths`)                    | `changelog.release_paths` in `.config/jig.yaml`                                          |
@@ -152,6 +155,14 @@ request, `/jig:decide` for a design dilemma (record the outcome in
 `docs/DECISIONS.md`), `/jig:changelog` to write a change note and check it
 (`changes/README.md` says which changes need one), `/jig:fix-ci` for a red
 run, `/jig:audit` to re-score the repository.
+
+## Scratch files
+
+`.context/` at the repository root (gitignored) is the scratch area for agents
+and people: notes, previews, setup pages and scripts, screenshots, and
+`/jig:drive-pr`'s handoff (`.context/pr-drive-<PR>.md`). Nothing there is
+committed or relied on by the build; never put scratch files elsewhere in the
+tree.
 
 ## What a terminal cannot verify
 

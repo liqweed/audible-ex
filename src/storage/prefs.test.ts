@@ -37,8 +37,15 @@ describe('decodePrefs', () => {
       maxYear: null,
       maxPrice: {},
       hiddenLabels: [],
+      highlightLabels: [],
       notFound: 'show',
-      mode: 'hide',
+      modes: {
+        rating: 'hide',
+        count: 'hide',
+        labels: 'hide',
+        year: 'hide',
+        price: 'hide',
+      },
     })
   })
 
@@ -57,7 +64,7 @@ describe('decodePrefs', () => {
     ['a rating above 5', { minRating: 6 }],
     ['a negative count', { minRatings: -1 }],
     ['an unknown policy', { notFound: 'remove' }],
-    ['a mode that is not a mode', { mode: 'show' }],
+    ['a mode that is not a mode', { modes: { rating: 'show' } }],
     ['a fractional year', { minYear: 2000.5 }],
     ['an unknown year as a bound', { maxYear: 0 }],
     ['a year stored as a string', { minYear: '2000' }],
@@ -92,6 +99,31 @@ describe('decodePrefs', () => {
       ...DEFAULT_FILTERS,
       ...range,
     })
+  })
+})
+
+describe('the single mode of prefs up to v5', () => {
+  test('becomes the mode of every filter', () => {
+    expect(decodePrefs({ filters: { mode: 'dim' } }).filters.modes).toEqual({
+      rating: 'dim',
+      count: 'dim',
+      labels: 'dim',
+      year: 'dim',
+      price: 'dim',
+    })
+  })
+
+  test('yields to modes already stored', () => {
+    const modes = { ...DEFAULT_FILTERS.modes, year: 'dim' } as const
+    expect(
+      decodePrefs({ filters: { mode: 'dim', modes } }).filters.modes
+    ).toEqual(modes)
+  })
+
+  test('that is not a mode is dropped, keeping the other filters', () => {
+    expect(
+      decodePrefs({ filters: { mode: 'show', minRating: 3 } }).filters
+    ).toEqual({ ...DEFAULT_FILTERS, minRating: 3 })
   })
 })
 
@@ -179,7 +211,7 @@ describe('the version 1 record', () => {
       const meta = (await fakeBrowser.storage.sync.get('prefs$')).prefs$ as
         | { v?: number }
         | undefined
-      if (meta?.v === 5) break
+      if (meta?.v === 6) break
       await Bun.sleep(10)
     }
     const stored = await fakeBrowser.storage.sync.get(['prefs', 'prefs$'])
@@ -188,7 +220,7 @@ describe('the version 1 record', () => {
       enabled: false,
       filters: DEFAULT_FILTERS,
     })
-    expect(stored.prefs$).toEqual({ v: 5 })
+    expect(stored.prefs$).toEqual({ v: 6 })
   })
 })
 
@@ -202,6 +234,7 @@ describe('the version 2 record', () => {
       notFound: 'dim',
       mode: 'dim',
     } as const
+    const { mode: _, ...kept } = filters
     await fakeBrowser.storage.sync.set({
       prefs: { enabled: false, filters },
       prefs$: { v: 2 },
@@ -212,18 +245,31 @@ describe('the version 2 record', () => {
     const expected = {
       display: DEFAULT_DISPLAY,
       enabled: false,
-      filters: { ...filters, minYear: null, maxYear: null, maxPrice: {} },
+      filters: {
+        ...kept,
+        minYear: null,
+        maxYear: null,
+        maxPrice: {},
+        highlightLabels: [],
+        modes: {
+          rating: 'dim',
+          count: 'dim',
+          labels: 'dim',
+          year: 'dim',
+          price: 'dim',
+        } as const,
+      },
     }
     expect(await fresh.readPrefs()).toEqual(expected)
     for (let i = 0; i < 100; i++) {
       const stored = await fakeBrowser.storage.sync.get(['prefs', 'prefs$'])
-      if ((stored.prefs$ as { v?: number } | undefined)?.v === 5) break
+      if ((stored.prefs$ as { v?: number } | undefined)?.v === 6) break
       await Bun.sleep(10)
     }
     const stored = await fakeBrowser.storage.sync.get(['prefs', 'prefs$'])
     expect(stored).toEqual({
       prefs: expected,
-      prefs$: { v: 5 },
+      prefs$: { v: 6 },
     })
   })
 
@@ -252,7 +298,7 @@ describe('quick updates', () => {
   test('started together, they all land', async () => {
     await Promise.all([
       updateFilters({ minRating: 4.5 }),
-      updateFilters({ mode: 'dim' }),
+      updateFilters({ modes: { ...DEFAULT_FILTERS.modes, year: 'dim' } }),
       updatePrefs({ enabled: false }),
       updateFilters({ hiddenLabels: ['Romance'] }),
     ])
@@ -262,7 +308,7 @@ describe('quick updates', () => {
       filters: {
         ...DEFAULT_FILTERS,
         minRating: 4.5,
-        mode: 'dim',
+        modes: { ...DEFAULT_FILTERS.modes, year: 'dim' },
         hiddenLabels: ['Romance'],
       },
     })
@@ -323,13 +369,13 @@ describe('marketplace price prefs', () => {
       const meta = (await fakeBrowser.storage.sync.get('prefs$')).prefs$ as
         | { v?: number }
         | undefined
-      if (meta?.v === 5) break
+      if (meta?.v === 6) break
       await Bun.sleep(10)
     }
     const stored = await fakeBrowser.storage.sync.get(['prefs', 'prefs$'])
     expect(stored).toEqual({
       prefs: expected,
-      prefs$: { v: 5 },
+      prefs$: { v: 6 },
     })
   })
   test('simultaneous edits preserve limits in other marketplaces and notify tabs', async () => {
@@ -364,16 +410,58 @@ describe('display prefs', () => {
       const meta = (await fakeBrowser.storage.sync.get('prefs$')).prefs$ as
         | { v?: number }
         | undefined
-      if (meta?.v === 5) break
+      if (meta?.v === 6) break
       await Bun.sleep(10)
     }
     const stored = await fakeBrowser.storage.sync.get(['prefs', 'prefs$'])
     expect(stored).toEqual({
       prefs: { enabled: false, filters, display: DEFAULT_DISPLAY },
-      prefs$: { v: 5 },
+      prefs$: { v: 6 },
     })
   })
   test.each([-1, 11, 1.5])('rejects label count %s', labels => {
     expect(decodePrefs({ display: { labels } })).toEqual(DEFAULT_PREFS)
+  })
+})
+
+describe('the version 5 record', () => {
+  test('gives every filter the old mode and highlights no label', async () => {
+    const { modes: _, highlightLabels: __, ...v5 } = DEFAULT_FILTERS
+    await fakeBrowser.storage.sync.set({
+      prefs: {
+        enabled: true,
+        display: DEFAULT_DISPLAY,
+        filters: { ...v5, minRating: 4.2, mode: 'dim' },
+      },
+      prefs$: { v: 5 },
+    })
+    const fresh = (await import(
+      `./prefs.ts?fresh=${Math.random()}`
+    )) as typeof import('./prefs')
+    const expected = {
+      enabled: true,
+      display: DEFAULT_DISPLAY,
+      filters: {
+        ...DEFAULT_FILTERS,
+        minRating: 4.2,
+        modes: {
+          rating: 'dim',
+          count: 'dim',
+          labels: 'dim',
+          year: 'dim',
+          price: 'dim',
+        } as const,
+      },
+    }
+    expect(await fresh.readPrefs()).toEqual(expected)
+    for (let i = 0; i < 100; i++) {
+      const meta = (await fakeBrowser.storage.sync.get('prefs$')).prefs$ as
+        | { v?: number }
+        | undefined
+      if (meta?.v === 6) break
+      await Bun.sleep(10)
+    }
+    const stored = await fakeBrowser.storage.sync.get(['prefs', 'prefs$'])
+    expect(stored).toEqual({ prefs: expected, prefs$: { v: 6 } })
   })
 })

@@ -9,7 +9,7 @@
  * known draws it at once, without a second lookup.
  */
 import { DEFAULT_DISPLAY, type DisplaySettings } from '../core/display'
-import { type FilterSettings, isHiddenLabel, labelKey } from '../core/filter'
+import { type FilterSettings, hasLabel, labelKey } from '../core/filter'
 import { isLibraryPath, pageKind } from '../core/page'
 import { regionFromHost } from '../core/regions'
 import {
@@ -286,11 +286,18 @@ export function startContent(deps: ContentDeps): Content | undefined {
   )
 
   const filters = deps.filters
+  const saveFilters: NonNullable<typeof filters>['update'] = change =>
+    filters
+      ? filters.update(change)
+      : Promise.reject(new Error('The filters cannot be saved here'))
+  const without = (labels: readonly string[], label: string) =>
+    labels.filter(l => labelKey(l) !== labelKey(label))
   const labels = createLabelPopover({
     doc,
     css: deps.overviewCss,
     schedule: deps.schedule,
     hiddenLabels: () => filter.settings().hiddenLabels,
+    highlightLabels: () => filter.settings().highlightLabels,
     filtersEnabled: () => filter.settings().enabled,
     booksWith(label) {
       let n = 0
@@ -301,22 +308,25 @@ export function startContent(deps: ContentDeps): Content | undefined {
     },
     // Without a way to save, a label offers nothing: the popover reports that it could not.
     hide: label =>
-      filters
-        ? filters.update(current => ({
-            enabled: true,
-            hiddenLabels: isHiddenLabel(current.hiddenLabels, label)
-              ? current.hiddenLabels
-              : [...current.hiddenLabels, label],
-          }))
-        : Promise.reject(new Error('The filters cannot be saved here')),
-    unhide: label =>
-      filters
-        ? filters.update(current => ({
-            hiddenLabels: current.hiddenLabels.filter(
-              hidden => labelKey(hidden) !== labelKey(label)
-            ),
-          }))
-        : Promise.reject(new Error('The filters cannot be saved here')),
+      saveFilters(current => ({
+        enabled: true,
+        hiddenLabels: hasLabel(current.hiddenLabels, label)
+          ? current.hiddenLabels
+          : [...current.hiddenLabels, label],
+        highlightLabels: without(current.highlightLabels, label),
+      })),
+    highlight: label =>
+      saveFilters(current => ({
+        hiddenLabels: without(current.hiddenLabels, label),
+        highlightLabels: hasLabel(current.highlightLabels, label)
+          ? current.highlightLabels
+          : [...current.highlightLabels, label],
+      })),
+    release: label =>
+      saveFilters(current => ({
+        hiddenLabels: without(current.hiddenLabels, label),
+        highlightLabels: without(current.highlightLabels, label),
+      })),
   })
 
   const handle: PanelHandle = {

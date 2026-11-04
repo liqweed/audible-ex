@@ -2,7 +2,9 @@
  * Applies the user's filters to the cards on the page (ARCHITECTURE.md §7). The verdict for a card
  * is `src/core/filter.ts`'s; this module reads the book store and the settings, sets `data-agx-filter`
  * on each card (`hide` or `dim`, with CSS in badges.css) and counts the cards that are hidden, which
- * the panel's `12 hidden · Show` reports. It touches only that attribute.
+ * the panel's `12 hidden · Show` reports. A card whose book carries a highlighted label gets
+ * `data-agx-highlight`, whatever its verdict. It touches only those attributes and the label pills'
+ * classes.
  *
  * Everything that can change a verdict ends in `refresh`: a book arriving, a card appearing, the
  * settings changing, peeking. Cards on a page are in the hundreds, so a refresh looks at all of them.
@@ -10,7 +12,8 @@
 import { createStore, type Store } from '@tanstack/store'
 import {
   type FilterSettings,
-  isHiddenLabel,
+  hasLabel,
+  isHighlighted,
   judge,
   place,
 } from '../core/filter'
@@ -20,8 +23,12 @@ import type { BookView } from './books'
 import { isInCarousel } from './cards'
 
 export const ATTRIBUTE = 'data-agx-filter'
+/** On a card whose book carries a label the user highlights (outlined by badges.css). */
+export const HIGHLIGHT = 'data-agx-highlight'
 /** On a label pill whose genre the user hides (struck through by badges.css). */
 export const FILTERED = 'agx-filtered'
+/** On a label pill whose genre the user highlights. */
+export const HIGHLIGHTED = 'agx-highlighted'
 
 /** Filters off: what applies until the user's settings have been read. */
 export const NO_FILTERS: FilterSettings = {
@@ -32,14 +39,25 @@ export const NO_FILTERS: FilterSettings = {
   maxYear: null,
   maxPrice: {},
   hiddenLabels: [],
+  highlightLabels: [],
   notFound: 'show',
-  mode: 'hide',
+  modes: {
+    rating: 'hide',
+    count: 'hide',
+    labels: 'hide',
+    year: 'hide',
+    price: 'hide',
+  },
 }
 
 /** What the panel shows of the filters. */
 export interface FilterState {
   /** Cards the filters hide on this page (carousel slides are dimmed, so not counted). */
   readonly hidden: number
+  /** Cards the filters dim: those failing only dimming filters, and failing carousel slides. */
+  readonly dimmed: number
+  /** Cards whose book carries a highlighted label. */
+  readonly highlighted: number
   /** The hidden cards are shown, dimmed (`12 hidden · Show`). */
   readonly peek: boolean
 }
@@ -63,7 +81,12 @@ export function createFilterApplier(options: {
   cards(): ReadonlyMap<string, ReadonlySet<Element>>
   viewOf(asin: string): BookView | undefined
 }): FilterApplier {
-  const state = createStore<FilterState>({ hidden: 0, peek: false })
+  const state = createStore<FilterState>({
+    hidden: 0,
+    dimmed: 0,
+    highlighted: 0,
+    peek: false,
+  })
   let settings = NO_FILTERS
   /** Where a card sits does not change while it is on the page, and `closest` is not free. */
   const carousels = new WeakMap<Element, boolean>()
@@ -76,20 +99,29 @@ export function createFilterApplier(options: {
     return known
   }
 
-  /** Some label pill carries the mark, so a pass that marks nothing still has to clear it. */
+  /** Some label pill carries a mark, so a pass that marks nothing still has to clear them. */
   let pillsMarked = false
 
-  /** Marks the label pills in `card` whose genre is hidden, and clears the others. */
+  /** Marks the label pills in `card` whose genre is hidden or highlighted, and clears the others. */
   function markLabels(card: Element) {
-    const labels = settings.enabled ? settings.hiddenLabels : []
-    if (labels.length === 0 && !pillsMarked) return
+    const hiddenLabels = settings.enabled ? settings.hiddenLabels : []
+    const { highlightLabels } = settings
+    if (
+      hiddenLabels.length === 0 &&
+      highlightLabels.length === 0 &&
+      !pillsMarked
+    )
+      return
     for (const pill of card.querySelectorAll(`.${LABEL}`)) {
-      const filtered = isHiddenLabel(labels, pill.textContent ?? '')
+      const genre = pill.textContent ?? ''
+      const filtered = hasLabel(hiddenLabels, genre)
+      const highlighted = !filtered && hasLabel(highlightLabels, genre)
       pill.classList.toggle(FILTERED, filtered)
-      if (filtered) {
+      pill.classList.toggle(HIGHLIGHTED, highlighted)
+      if (filtered || highlighted) {
         pill.setAttribute(
           'aria-label',
-          `${pill.textContent}, hidden by your filters`
+          `${genre}, ${filtered ? 'hidden by your filters' : 'highlighted'}`
         )
         pillsMarked = true
       } else if (pill.hasAttribute('aria-label')) {
@@ -101,8 +133,12 @@ export function createFilterApplier(options: {
   function refresh() {
     const { peek } = state.get()
     let hidden = 0
+    let dimmed = 0
+    let highlighted = 0
     for (const [asin, cards] of options.cards()) {
-      const judged = judge(options.viewOf(asin), settings, options.region)
+      const view = options.viewOf(asin)
+      const judged = judge(view, settings, options.region)
+      const marked = isHighlighted(view, settings)
       for (const card of cards) {
         if (!card.isConnected) continue
         markLabels(card)
@@ -111,11 +147,20 @@ export function createFilterApplier(options: {
         if (verdict === 'show') card.removeAttribute(ATTRIBUTE)
         else if (card.getAttribute(ATTRIBUTE) !== verdict)
           card.setAttribute(ATTRIBUTE, verdict)
+        if (marked) {
+          if (!card.hasAttribute(HIGHLIGHT)) card.setAttribute(HIGHLIGHT, '')
+          highlighted++
+        } else card.removeAttribute(HIGHLIGHT)
         if (judged === 'hide' && !slide) hidden++
+        else if (judged !== 'show') dimmed++
       }
     }
     state.setState(prev =>
-      prev.hidden === hidden ? prev : { ...prev, hidden }
+      prev.hidden === hidden &&
+      prev.dimmed === dimmed &&
+      prev.highlighted === highlighted
+        ? prev
+        : { ...prev, hidden, dimmed, highlighted }
     )
   }
 
@@ -132,10 +177,16 @@ export function createFilterApplier(options: {
     },
     refresh,
     remove() {
-      for (const el of options.doc.querySelectorAll(`[${ATTRIBUTE}]`))
+      for (const el of options.doc.querySelectorAll(
+        `[${ATTRIBUTE}], [${HIGHLIGHT}]`
+      )) {
         el.removeAttribute(ATTRIBUTE)
-      for (const pill of options.doc.querySelectorAll(`.${FILTERED}`)) {
-        pill.classList.remove(FILTERED)
+        el.removeAttribute(HIGHLIGHT)
+      }
+      for (const pill of options.doc.querySelectorAll(
+        `.${FILTERED}, .${HIGHLIGHTED}`
+      )) {
+        pill.classList.remove(FILTERED, HIGHLIGHTED)
         pill.removeAttribute('aria-label')
       }
     },

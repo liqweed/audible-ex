@@ -165,6 +165,17 @@ collapsing, moving and hiding survive a reload. Release 0.2.
 
 Release 0.3.
 
+3c. Panel follow-ups (prefs v6, DECISIONS.md D25)
+
+- [x] Hide or dim per filter (`modes`), with a compact Hide/Dim choice on each
+      filter's row; narrower year and price fields.
+- [x] Highlighted labels: outlined cards and marked pills, from the panel and
+      the label popover; independent of the filters' switch.
+- [x] `i` explanations instead of help paragraphs; a settings button that
+      opens the options page (`OpenOptions`).
+- [x] The pill shows and toggles filtering, and counts the hidden and dimmed
+      cards.
+
 3b. Price and year
 
 - [x] Public `catalog/products` prices verified without signing in on `.co.uk`
@@ -219,19 +230,18 @@ Release 0.1 (unlisted)
 - [x] Cut release 0.1.0 by hand (`changes/README.md`), `bun zip`, register the
       developer account and upload as unlisted (STORE-LISTING.md, "Submitting a
       release"). Submitted 2026-11-02 as item `kmmnfidbflcgfcbifjfakgnjppoflffo`.
-- [ ] After approval, install from the store link and check badges on two
+- [x] After approval, install from the store link and check badges on two
       marketplaces.
-- [ ] Switch the listing to public after a week of use without reported
+- [x] Switch the listing to public after a week of use without reported
       breakage.
 
 Afterwards, before 1.0
 
-- [ ] Finish the changelog setup (`/jig:changelog setup`, steps 2–4): the
-      release App, the `changelog-release` environment, the rulesets and
-      `.github/workflows/changelog.yml`. Change notes are already on
-      (DECISIONS.md D10); until this lands, releases are cut by hand as
-      `changes/README.md` describes.
-- [ ] Release workflow (see [CI](#ci), DECISIONS.md D20): on a version tag,
+- [x] Finish the changelog setup (`/jig:changelog setup`, DECISIONS.md D26):
+      the release App `audible-ex-release`, the `changelog-release`
+      environment, the rulesets and `.github/workflows/changelog.yml`. Merging
+      a pull request with a change note releases it (`changes/README.md`).
+- [x] Release workflow (see [CI](#ci), DECISIONS.md D20): on a version tag,
       build both zips and attach them to a GitHub release, then sign the Chrome
       build and submit it to the store. `release.yml` is written; the one-time
       setup (environments, Google Workload Identity, variables) is in
@@ -249,6 +259,18 @@ Afterwards, before 1.0
 - Duration and narrator filters.
 - Rating distribution on hover (needs the book page's histogram; check it's in
   `__NEXT_DATA__`).
+- Library and Wish List marks: a badge mark for a book the user owns or has
+  wish-listed, and later the personal collections it is in. Pins already
+  record that an ASIN was seen under `/library`, but not where: `Lookup.pinned`
+  would become the place (`library`, `wishlist`, `collection:<id>`), stored on
+  the pin with when it was last seen there, and sent back on `BookUpdate`.
+  Collection names come from the collections page. The extension only knows
+  what the user has scrolled past on those pages, so the feature needs a
+  visible "last seen in your Library on …" and a prompt to page through the
+  Library once; a background prescan would fetch `www.audible.*` pages with
+  the user's cookies, a new host permission and a privacy change (§11), and is
+  not planned. Removal is unknowable until the page is seen again without it,
+  so the mark expires with the pin.
 - Staged publishing (DECISIONS.md D21): `publishType: STAGED_PUBLISH` in
   `scripts/upload-cws.ts`, so an approved version waits for one click in the
   dashboard before users get it. Decide when the listing is public.
@@ -282,7 +304,8 @@ Added later:
 | 1     | Content-script size budget: `scripts/check-content-size.ts` fails when `content-scripts/content.js` passes 50 KB gzipped (set from a 36 KB build). |
 | 2     | The same script also fails when `content-scripts/panel.js` passes 120 KB gzipped (a 64 KB build; raised in phase 3 for the Schema-decoded prefs and the Radix filter controls, 104.7 KB). |
 | 1     | `bun run build` for Firefox as a second step, so a Chrome-only API is caught early.                                  |
-| 5     | `release.yml` on `v*` tags: gate, build, attach the Chrome and Firefox zips to a GitHub release, sign the CRX and submit it to the store (D20); Jig's changelog check on PRs. |
+| 5     | `release.yml` on `v*` tags: gate, build, attach the Chrome and Firefox zips to a GitHub release, sign the CRX and submit it to the store (D20). |
+| 5     | `changelog.yml`: Jig's change-note check on PRs (job `check`, required); after each merge, the release commit and, once CI passes on it, its `v*` tag (D26). |
 | Later | Nightly (not per-PR) Playwright smoke run against live Audible, reporting to an issue on failure.                    |
 
 End-to-end tests against live sites never gate a pull request: the sites change

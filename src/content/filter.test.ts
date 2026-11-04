@@ -6,6 +6,7 @@
  */
 import { beforeEach, describe, expect, test } from 'bun:test'
 import type { FilterSettings } from '@/core/filter'
+import { DEFAULT_FILTERS } from '@/storage/prefs'
 import {
   FakeFilters,
   loadBody,
@@ -27,8 +28,9 @@ const FILTERS: FilterSettings = {
   maxYear: null,
   maxPrice: {},
   hiddenLabels: [],
+  highlightLabels: [],
   notFound: 'show',
-  mode: 'hide',
+  modes: DEFAULT_FILTERS.modes,
 }
 
 /** Rating and count of the n-th book looked up: every third book is a poor one. */
@@ -120,7 +122,7 @@ describe('filters on the com search fixture (list rows and carousels)', () => {
     handleOf(world).setPeek(true)
     expect(marked('hide')).toHaveLength(0)
     expect(marked('dim').length).toBeGreaterThanOrEqual(hidden)
-    expect(handleOf(world).filter.get()).toEqual({ hidden, peek: true })
+    expect(handleOf(world).filter.get()).toMatchObject({ hidden, peek: true })
     handleOf(world).setPeek(false)
     expect(marked('hide')).toHaveLength(hidden)
   })
@@ -130,11 +132,22 @@ describe('filters on the com search fixture (list rows and carousels)', () => {
     expect(document.querySelectorAll('[data-agx-filter]')).toHaveLength(0)
     expect(handleOf(world).filter.get().hidden).toBe(0)
 
-    filters.change({ ...FILTERS, mode: 'dim' })
+    filters.change({
+      ...FILTERS,
+      modes: { ...FILTERS.modes, rating: 'dim' },
+    })
     expect(marked('hide')).toHaveLength(0)
-    expect(marked('dim').length).toBeGreaterThan(0)
+    const dimmed = marked('dim').length
+    expect(dimmed).toBeGreaterThan(0)
     // Dimmed by choice is not hidden.
-    expect(handleOf(world).filter.get().hidden).toBe(0)
+    expect(handleOf(world).filter.get()).toMatchObject({ hidden: 0, dimmed })
+  })
+
+  test('counts the dimmed carousel slides apart from the hidden cards', () => {
+    expect(handleOf(world).filter.get()).toMatchObject({
+      hidden: marked('hide').length,
+      dimmed: marked('dim').length,
+    })
   })
 
   test("the filters' master switch takes everything back", () => {
@@ -145,6 +158,84 @@ describe('filters on the com search fixture (list rows and carousels)', () => {
   test('turning the extension off takes the marks off the page', () => {
     world.content?.remove()
     expect(document.querySelectorAll('[data-agx-filter]')).toHaveLength(0)
+  })
+})
+
+describe('highlighted labels on the com search fixture', () => {
+  test('outline the cards and mark the pills, with or without filtering', async () => {
+    loadFixture('com', 'search')
+    const filters = new FakeFilters({
+      ...FILTERS,
+      minRating: 1,
+      highlightLabels: ['science fiction'],
+    })
+    const world = startWorld({
+      hostname: 'www.audible.com',
+      pathname: '/search',
+      filters,
+    })
+    world.io.intersect()
+    const asins = [...new Set(world.port.lookups().flat())]
+    const interesting = new Set<string>()
+    asins.forEach((asin, i) => {
+      const genres = i % 2 === 0 ? ['Science Fiction', 'Fantasy'] : ['Fantasy']
+      if (i % 2 === 0) interesting.add(asin)
+      world.port.receive(
+        ready(asin, { r: 4.5, n: 900 }, { genres, year: 2000 })
+      )
+    })
+    await flush()
+    const outlined = () =>
+      mainBadges().filter(badge => badge.closest('[data-agx-highlight]'))
+    expect(outlined().length).toBeGreaterThan(0)
+    for (const badge of outlined())
+      expect(
+        interesting.has((badge as HTMLElement).dataset.asin as string)
+      ).toBe(true)
+    expect(handleOf(world).filter.get().highlighted).toBe(outlined().length)
+    const pills = document.querySelectorAll('.agx-label.agx-highlighted')
+    expect(pills.length).toBeGreaterThan(0)
+    for (const pill of pills) {
+      expect(pill.textContent).toBe('Science Fiction')
+      expect(pill.getAttribute('aria-label')).toBe(
+        'Science Fiction, highlighted'
+      )
+    }
+    // Nothing is filtered: highlighting never hides.
+    expect(document.querySelectorAll('[data-agx-filter]')).toHaveLength(0)
+
+    filters.change({
+      ...FILTERS,
+      enabled: false,
+      highlightLabels: ['science fiction'],
+    })
+    expect(outlined().length).toBeGreaterThan(0)
+
+    filters.change({ ...FILTERS, highlightLabels: [] })
+    expect(document.querySelectorAll('[data-agx-highlight]')).toHaveLength(0)
+    expect(document.querySelectorAll('.agx-highlighted')).toHaveLength(0)
+    expect(handleOf(world).filter.get().highlighted).toBe(0)
+  })
+
+  test('turning the extension off takes the outlines off the page', async () => {
+    loadFixture('com', 'search')
+    const world = startWorld({
+      hostname: 'www.audible.com',
+      pathname: '/search',
+      filters: new FakeFilters({ ...FILTERS, highlightLabels: ['Fantasy'] }),
+    })
+    world.io.intersect()
+    for (const asin of new Set(world.port.lookups().flat()))
+      world.port.receive(
+        ready(asin, { r: 4.5, n: 900 }, { genres: ['Fantasy'], year: 2000 })
+      )
+    await flush()
+    expect(
+      document.querySelectorAll('[data-agx-highlight]').length
+    ).toBeGreaterThan(0)
+    world.content?.remove()
+    expect(document.querySelectorAll('[data-agx-highlight]')).toHaveLength(0)
+    expect(document.querySelectorAll('.agx-highlighted')).toHaveLength(0)
   })
 })
 
