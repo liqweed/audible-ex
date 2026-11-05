@@ -39,6 +39,17 @@ export const CAROUSEL =
 export const isInCarousel = (card: Element): boolean =>
   card.closest(CAROUSEL) !== null
 
+/**
+ * The book a product page (`/pd/…`) is about. Audible draws it as one `adbl-product-hero` component:
+ * its title, cover and buy box are children in named slots. The page never links to its own book, so
+ * the scanner takes the page's ASIN from the address (`scanner.ts`).
+ */
+export const PRODUCT_HERO = 'adbl-product-hero'
+
+/** Is this card the hero of a product page? */
+export const isProductHero = (card: Element): boolean =>
+  card.matches(PRODUCT_HERO)
+
 const PRODUCT_LINKS = 'a[href*="/pd/"]'
 const HEADINGS = 'h1,h2,h3,h4'
 /** How far up from a link the card search climbs before giving up (the userscript's limit). */

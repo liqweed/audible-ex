@@ -3,8 +3,10 @@
  * is `src/core/filter.ts`'s; this module reads the book store and the settings, sets `data-agx-filter`
  * on each card (`hide` or `dim`, with CSS in badges.css) and counts the cards that are hidden, which
  * the panel's `12 hidden · Show` reports. A card whose book carries a highlighted label or is rated at or above the highlight rating gets
- * `data-agx-highlight`, and its cover `data-agx-shine`, whatever its verdict. It touches only those attributes and the label pills'
- * classes.
+ * `data-agx-highlight`, and its cover `data-agx-shine`, whatever its verdict; badges.css draws a highlighted card that is dimmed at
+ * full strength. A price at or under the highlight price gets a chip beside the badge (`markPrice`); the cover is left alone.
+ * The book a product page is about (its hero) is never hidden or dimmed: the reader went there on purpose.
+ * It touches only those attributes and the label pills' classes.
  *
  * Everything that can change a verdict ends in `refresh`: a book arriving, a card appearing, the
  * settings changing, peeking. Cards on a page are in the hundreds, so a refresh looks at all of them.
@@ -14,14 +16,17 @@ import {
   type FilterSettings,
   hasLabel,
   isHighlighted,
+  isPriceHighlighted,
   judge,
   type Placement,
   place,
+  settingsFor,
 } from '../core/filter'
+import type { PageKind } from '../core/page'
 import type { RegionCode } from '../core/regions'
-import { LABEL } from './badges'
+import { LABEL, markPrice, PRICE } from './badges'
 import type { BookView } from './books'
-import { coverOf, isInCarousel } from './cards'
+import { coverOf, isInCarousel, isProductHero } from './cards'
 
 export const ATTRIBUTE = 'data-agx-filter'
 /** On a card whose book carries a label the user highlights, or has the rating they highlight. */
@@ -41,6 +46,8 @@ export const NO_FILTERS: FilterSettings = {
   minYear: null,
   maxYear: null,
   maxPrice: {},
+  highlightPrice: {},
+  priceOnDeals: false,
   hiddenLabels: [],
   highlightLabels: [],
   highlightRating: null,
@@ -68,7 +75,7 @@ export interface FilterState {
 
 export interface FilterApplier {
   readonly state: Store<FilterState>
-  /** The settings in force now. */
+  /** The settings in force now on this page (`settingsFor`), not as stored. */
   settings(): FilterSettings
   setSettings(settings: FilterSettings): void
   setPeek(peek: boolean): void
@@ -86,6 +93,8 @@ export interface FilterApplier {
 export function createFilterApplier(options: {
   doc: Document
   region?: RegionCode
+  /** The kind of page, which decides whether a deals-only price limit is in force (`settingsFor`). */
+  page?: PageKind
   /** The cards on the page, by ASIN. */
   cards(): ReadonlyMap<string, ReadonlySet<Element>>
   viewOf(asin: string): BookView | undefined
@@ -107,6 +116,9 @@ export function createFilterApplier(options: {
     }
     return known
   }
+
+  /** Some card shows a price mark, so a pass that marks nothing still has to clear them. */
+  let pricesMarked = false
 
   /** Some label pill carries a mark, so a pass that marks nothing still has to clear them. */
   let pillsMarked = false
@@ -148,11 +160,22 @@ export function createFilterApplier(options: {
       const view = options.viewOf(asin)
       const judged = judge(view, settings, options.region)
       const marked = isHighlighted(view, settings)
+      const price =
+        view?.price && isPriceHighlighted(view, settings, options.region)
+          ? view.price
+          : undefined
       for (const card of cards) {
         if (!card.isConnected) continue
         markLabels(card)
+        if (price || pricesMarked) {
+          markPrice(card, price)
+          if (price) pricesMarked = true
+        }
         const slide = inCarousel(card)
-        const verdict = place(judged, { inCarousel: slide, peek })
+        const own = isProductHero(card)
+        const verdict = own
+          ? 'show'
+          : place(judged, { inCarousel: slide, peek })
         if (verdict === 'show') card.removeAttribute(ATTRIBUTE)
         else if (card.getAttribute(ATTRIBUTE) !== verdict)
           card.setAttribute(ATTRIBUTE, verdict)
@@ -167,6 +190,7 @@ export function createFilterApplier(options: {
           for (const img of card.querySelectorAll(`[${SHINE}]`))
             img.removeAttribute(SHINE)
         }
+        if (own) continue
         if (judged === 'hide' && !slide) hidden++
         else if (judged !== 'show') dimmed++
       }
@@ -184,7 +208,7 @@ export function createFilterApplier(options: {
     state,
     settings: () => settings,
     setSettings(next) {
-      settings = next
+      settings = settingsFor(next, options.page ?? 'other')
       refresh()
     },
     setPeek(peek) {
@@ -209,6 +233,8 @@ export function createFilterApplier(options: {
         el.removeAttribute(HIGHLIGHT)
         el.removeAttribute(SHINE)
       }
+      for (const chip of options.doc.querySelectorAll(`.${PRICE}`))
+        chip.remove()
       for (const pill of options.doc.querySelectorAll(
         `.${FILTERED}, .${HIGHLIGHTED}`
       )) {

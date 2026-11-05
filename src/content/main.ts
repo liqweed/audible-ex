@@ -14,6 +14,8 @@
  * rest as soon as it would be seen again (a filter off or dimming, peeking).
  * Lookups wait for the user's filters to be read, since those decide how far each one goes.
  */
+
+import { asinFromHref } from '../core/asin'
 import { DEFAULT_DISPLAY, type DisplaySettings } from '../core/display'
 import {
   type Depth,
@@ -21,6 +23,7 @@ import {
   hasLabel,
   labelKey,
   lookupDepth,
+  wantsPrices,
 } from '../core/filter'
 import { isLibraryPath, pageKind } from '../core/page'
 import { regionFromHost } from '../core/regions'
@@ -139,10 +142,11 @@ export function startContent(deps: ContentDeps): Content | undefined {
   /** Lookups wait until the filters are known (or `FILTERS_WAIT_MS`): they decide how far each goes. */
   let filtersRead = deps.filters === undefined
 
+  const page = pageKind(location.pathname)
   const client = createPortClient({
     connect: deps.connect,
     region: region.code,
-    page: pageKind(location.pathname),
+    page,
     unresolved: () =>
       [...asked]
         .filter(([asin]) => isUnresolved(books.get(asin)))
@@ -170,16 +174,13 @@ export function startContent(deps: ContentDeps): Content | undefined {
   const filter = createFilterApplier({
     doc,
     region: region.code,
+    page,
     cards: () => cardsByAsin,
     viewOf: asin => books.get(asin),
   })
   const pricesAsked = new Set<string>()
   const requestPrices = () => {
-    if (
-      !filter.settings().enabled ||
-      filter.settings().maxPrice[region.code] === undefined
-    )
-      return
+    if (!wantsPrices(filter.settings(), region.code)) return
     const fresh = [...cardsByAsin.keys()].filter(asin => !pricesAsked.has(asin))
     for (const asin of fresh) pricesAsked.add(asin)
     client.prices(fresh)
@@ -369,6 +370,7 @@ export function startContent(deps: ContentDeps): Content | undefined {
     createIntersectionObserver: deps.createIntersectionObserver,
     createMutationObserver: deps.createMutationObserver,
     schedule: deps.schedule,
+    pageAsin: asinFromHref(location.pathname),
     onVisible,
     onPrune() {
       for (const [asin, cards] of cardsByAsin) {

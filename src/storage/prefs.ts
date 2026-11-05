@@ -6,7 +6,8 @@
  * Each field has a default, so a record written by an older version still decodes. Change the
  * shape → bump `version` and add a migration. Version 2 added `filters`, version 3 the year bounds;
  * version 4 adds marketplace price limits, version 5 the display settings, version 6 a miss mode for
- * each filter (replacing the single `mode`) and highlighted labels; version 7 adds the highlight rating.
+ * each filter (replacing the single `mode`) and highlighted labels; version 7 adds the highlight rating;
+ * version 8 lets the price limit apply on deals pages only and adds the highlight price.
  */
 import * as Effect from 'effect/Effect'
 import * as Option from 'effect/Option'
@@ -70,6 +71,15 @@ export const Filters = Schema.Struct({
     Region,
     Schema.optionalKey(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)))
   ).pipe(Schema.withDecodingDefaultKey(Effect.succeed({}))),
+  /** Inclusive cash-price ceiling, per marketplace, at or under which a book's price is highlighted; absent means off. */
+  highlightPrice: Schema.Record(
+    Region,
+    Schema.optionalKey(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)))
+  ).pipe(Schema.withDecodingDefaultKey(Effect.succeed({}))),
+  /** The price limit applies only on deals pages (`pageKind`); elsewhere books are not judged by price. */
+  priceOnDeals: Schema.Boolean.pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed(false))
+  ),
   /** Goodreads genre names. */
   hiddenLabels: Schema.Array(Schema.String).pipe(
     Schema.withDecodingDefaultKey(Effect.succeed<readonly string[]>([]))
@@ -109,6 +119,8 @@ export const DEFAULT_FILTERS: Filters = {
   minYear: null,
   maxYear: null,
   maxPrice: {},
+  highlightPrice: {},
+  priceOnDeals: false,
   hiddenLabels: [],
   highlightLabels: [],
   highlightRating: null,
@@ -131,7 +143,7 @@ export const Display = Schema.Struct({
 })
 export type Display = typeof Display.Type
 
-/** Prefs v7. A key missing from the stored record takes its default. */
+/** Prefs v8. A key missing from the stored record takes its default. */
 export const Prefs = Schema.Struct({
   /** The extension's master switch: off removes the badges and stops the lookups. */
   enabled: Schema.Boolean.pipe(
@@ -187,7 +199,7 @@ export function decodePrefs(raw: unknown): Prefs {
 
 const item = storage.defineItem<unknown>('sync:prefs', {
   fallback: DEFAULT_PREFS,
-  version: 7,
+  version: 8,
   migrations: {
     // v1 held `enabled` alone. Add the filters with defaults filled in.
     2: decodePrefs,
@@ -201,6 +213,8 @@ const item = storage.defineItem<unknown>('sync:prefs', {
     6: decodePrefs,
     // v6 had no highlight rating: it stays off.
     7: decodePrefs,
+    // v7 had no deals-only price limit: the limit applies everywhere, as before.
+    8: decodePrefs,
   },
 })
 

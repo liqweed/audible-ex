@@ -7,6 +7,8 @@
  *   collected for 300 ms, roots inside other roots are dropped, and more than 300 roots rescan the
  *   body. A plain timer does the batching; TanStack Pacer would add its bundle to every Audible
  *   page for a delay that needs one `setTimeout`.
+ * - A product page's own book is a card too: the page never links to it, so its `adbl-product-hero`
+ *   is the card and the ASIN comes from the page's address (`pageAsin`).
  * - Our own nodes are ignored, and removed cards are let go: an IntersectionObserver keeps every
  *   observed element alive, even after the page removes it.
  *
@@ -14,7 +16,14 @@
  */
 
 import { hasBadge } from './badges'
-import { type AsinMemo, asinOf, cardFor, NAVIGATION, OUR_NODES } from './cards'
+import {
+  type AsinMemo,
+  asinOf,
+  cardFor,
+  NAVIGATION,
+  OUR_NODES,
+  PRODUCT_HERO,
+} from './cards'
 import type { Schedule } from './schedule'
 
 /** Observe the card; report back when it is within `rootMargin` of the viewport. */
@@ -57,6 +66,8 @@ export interface ScannerOptions {
     callback: (records: MutationRecord[]) => void
   ) => MutationObserverLike
   schedule: Schedule
+  /** The ASIN of the book a product page is about, from its address; none on other pages. */
+  pageAsin?: string | undefined
   /** Cards that came within the margin, once per observer callback. */
   onVisible(cards: ReadonlyArray<VisibleCard>): void
   /** After each scan, when removed cards have been let go. */
@@ -105,6 +116,17 @@ export function createScanner(options: ScannerOptions): Scanner {
   }
 
   function scanRoot(root: Element, memo: AsinMemo) {
+    const { pageAsin } = options
+    if (pageAsin) {
+      for (const hero of root.matches(PRODUCT_HERO)
+        ? [root]
+        : root.querySelectorAll(PRODUCT_HERO)) {
+        if (cards.has(hero) || hasBadge(hero)) continue
+        cards.set(hero, pageAsin)
+        observed.add(hero)
+        intersection.observe(hero)
+      }
+    }
     const links = root.matches('a[href*="/pd/"]')
       ? [root]
       : [...root.querySelectorAll('a[href*="/pd/"]')]
@@ -117,6 +139,12 @@ export function createScanner(options: ScannerOptions): Scanner {
       if (link.closest(NAVIGATION)) continue
       const card = cardFor(link, asin, memo)
       if (!card || cards.has(card) || hasBadge(card)) continue
+      // A link to the page's own book around its hero would badge the book twice.
+      if (
+        asin === pageAsin &&
+        (card.closest(PRODUCT_HERO) || card.querySelector(PRODUCT_HERO))
+      )
+        continue
       cards.set(card, asin)
       observed.add(card)
       intersection.observe(card)

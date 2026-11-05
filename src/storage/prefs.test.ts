@@ -36,6 +36,8 @@ describe('decodePrefs', () => {
       minYear: null,
       maxYear: null,
       maxPrice: {},
+      highlightPrice: {},
+      priceOnDeals: false,
       hiddenLabels: [],
       highlightLabels: [],
       highlightRating: null,
@@ -196,7 +198,7 @@ describe('the version 1 record', () => {
     })
   })
 
-  test('is rewritten as version 5 when the extension starts', async () => {
+  test('is rewritten as version 8 when the extension starts', async () => {
     await seedV1()
     // WXT migrates when the item is defined, which is when the module loads: load a fresh copy.
     const fresh = (await import(
@@ -212,7 +214,7 @@ describe('the version 1 record', () => {
       const meta = (await fakeBrowser.storage.sync.get('prefs$')).prefs$ as
         | { v?: number }
         | undefined
-      if (meta?.v === 7) break
+      if (meta?.v === 8) break
       await Bun.sleep(10)
     }
     const stored = await fakeBrowser.storage.sync.get(['prefs', 'prefs$'])
@@ -221,7 +223,7 @@ describe('the version 1 record', () => {
       enabled: false,
       filters: DEFAULT_FILTERS,
     })
-    expect(stored.prefs$).toEqual({ v: 7 })
+    expect(stored.prefs$).toEqual({ v: 8 })
   })
 })
 
@@ -251,6 +253,8 @@ describe('the version 2 record', () => {
         minYear: null,
         maxYear: null,
         maxPrice: {},
+        highlightPrice: {},
+        priceOnDeals: false,
         highlightLabels: [],
         highlightRating: null,
         modes: {
@@ -265,13 +269,13 @@ describe('the version 2 record', () => {
     expect(await fresh.readPrefs()).toEqual(expected)
     for (let i = 0; i < 100; i++) {
       const stored = await fakeBrowser.storage.sync.get(['prefs', 'prefs$'])
-      if ((stored.prefs$ as { v?: number } | undefined)?.v === 7) break
+      if ((stored.prefs$ as { v?: number } | undefined)?.v === 8) break
       await Bun.sleep(10)
     }
     const stored = await fakeBrowser.storage.sync.get(['prefs', 'prefs$'])
     expect(stored).toEqual({
       prefs: expected,
-      prefs$: { v: 7 },
+      prefs$: { v: 8 },
     })
   })
 
@@ -371,13 +375,13 @@ describe('marketplace price prefs', () => {
       const meta = (await fakeBrowser.storage.sync.get('prefs$')).prefs$ as
         | { v?: number }
         | undefined
-      if (meta?.v === 7) break
+      if (meta?.v === 8) break
       await Bun.sleep(10)
     }
     const stored = await fakeBrowser.storage.sync.get(['prefs', 'prefs$'])
     expect(stored).toEqual({
       prefs: expected,
-      prefs$: { v: 7 },
+      prefs$: { v: 8 },
     })
   })
   test('simultaneous edits preserve limits in other marketplaces and notify tabs', async () => {
@@ -412,13 +416,13 @@ describe('display prefs', () => {
       const meta = (await fakeBrowser.storage.sync.get('prefs$')).prefs$ as
         | { v?: number }
         | undefined
-      if (meta?.v === 7) break
+      if (meta?.v === 8) break
       await Bun.sleep(10)
     }
     const stored = await fakeBrowser.storage.sync.get(['prefs', 'prefs$'])
     expect(stored).toEqual({
       prefs: { enabled: false, filters, display: DEFAULT_DISPLAY },
-      prefs$: { v: 7 },
+      prefs$: { v: 8 },
     })
   })
   test.each([-1, 11, 1.5])('rejects label count %s', labels => {
@@ -460,11 +464,11 @@ describe('the version 5 record', () => {
       const meta = (await fakeBrowser.storage.sync.get('prefs$')).prefs$ as
         | { v?: number }
         | undefined
-      if (meta?.v === 7) break
+      if (meta?.v === 8) break
       await Bun.sleep(10)
     }
     const stored = await fakeBrowser.storage.sync.get(['prefs', 'prefs$'])
-    expect(stored).toEqual({ prefs: expected, prefs$: { v: 7 } })
+    expect(stored).toEqual({ prefs: expected, prefs$: { v: 8 } })
   })
 })
 

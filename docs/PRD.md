@@ -39,7 +39,8 @@ catalogue goes unchecked.
 ### R1 — Ratings on cards (phase 1)
 
 - Every book card on search, category, deals, home (daily deal), library,
-  collections and wish list pages gets a badge: `★ 4.21 (12k)`.
+  collections and wish list pages gets a badge: `★ 4.21 (12k)`. So does the book a
+  product page is about.
 - The badge links to the matched Goodreads book. An approximate match (author
   matched, title only roughly) is marked `?`.
 - Colour: high (≥ 4.2), neutral, low (< 3.7), matching the userscript.
@@ -87,6 +88,13 @@ catalogue goes unchecked.
 - Highlight rating: books rated at least the chosen Goodreads rating (1–5; blank is off, the
   default) get the same outline as highlighted labels. Like them it never hides a book and works
   with filtering off.
+- A highlighted book that a filter only dims is drawn at full strength; one a filter hides stays
+  hidden.
+- The price limit can apply on deals pages only, leaving search, categories and the library
+  unfiltered by price.
+- Highlight price: a book whose public price is at or under the chosen amount for the marketplace
+  shows that price as an amber chip beside its rating. Blank is off, the default. It never hides or
+  dims a book, leaves the cover alone, works with filtering off and on every page.
 - Books not found on Goodreads: shown (default), dimmed or hidden.
 - A book is never hidden for data that hasn't loaded. Each filter applies as
   soon as its data has: the price (from Audible) before the rating, the rating

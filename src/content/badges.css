@@ -57,6 +57,18 @@
   color: #7a6a58;
   padding: 0 2px;
 }
+.agx-price {
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: 9px;
+  font:
+    700 11px / 17px system-ui,
+    sans-serif;
+  background: #fef3c7;
+  color: #78350f;
+  border: 1px solid #fcd34d;
+  white-space: nowrap;
+}
 .agx-label {
   cursor: pointer;
   display: inline-block;
@@ -87,6 +99,13 @@
   /* biome-ignore lint/complexity/noImportantStyles: as above */
   opacity: 0.9 !important;
 }
+/* A book the user highlighted stays at full strength when a filter dims it (a price over the limit,
+   a carousel slide): they asked to be told about it. Its verdict is unchanged, and it is never hidden. */
+[data-agx-filter='dim'][data-agx-highlight] {
+  /* biome-ignore lint/complexity/noImportantStyles: as above */
+  opacity: 1 !important;
+  filter: none;
+}
 
 /* A label pill is a button for the label popover; one the user filters on is struck through. */
 .agx-label:hover,
@@ -104,7 +123,7 @@
    thin ring just inside its rounded edge and a soft glow around it. Carousel slides clip what lies
    outside the cover, so the ring is drawn inside it (an outline follows the radius) and the glow
    shows where there is room. The card itself is untouched, so nothing moves; a highlight never hides
-   a card, and a dimmed card's cover shines faded. */
+   a card, and a dimmed card that is highlighted is drawn at full strength (above). */
 img[data-agx-shine] {
   outline: 2px solid rgb(251 191 36 / 0.95);
   outline-offset: -2px;

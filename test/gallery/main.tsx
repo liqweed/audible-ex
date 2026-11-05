@@ -335,7 +335,19 @@ const FILTER_PREFS = {
 
 const draw: Record<SceneId, () => Promise<void>> = {
   async cards() {
-    drawCards([...BOOKS, UNRATED], 'results')
+    // Orbit of Glass costs under the highlight price: its price is marked, its cover is not.
+    const priced = BOOKS.map(b =>
+      b.asin === 'B0GALLERY8'
+        ? {
+            ...b,
+            view: { ...b.view, price: { amount: 3.99, currency: 'GBP' } },
+          }
+        : b
+    )
+    drawCards([...priced, UNRATED], 'results', {
+      ...SETTINGS,
+      highlightPrice: { UK: 5 },
+    })
   },
   async carousel() {
     drawCards(

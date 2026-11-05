@@ -567,3 +567,61 @@ an AMO API key in its own environment, as D20 does for Chrome. WXT's `wxt submit
 (`publish-browser-extension`, already installed with WXT) can do the upload.
 Rejected for now: MV3 for Firefox (event pages instead of a persistent page, for no
 gain to users) and listing on Android untested.
+
+## D30 — Highlights survive dimming, a deals-only price limit, and the product page's own book (2026-11-05)
+
+A book can be dimmed for a reason the reader weighs differently, such as a price over
+the limit, while its labels make it interesting. A highlighted card that a filter dims
+(or a carousel softens from hide) is now drawn at full strength: `badges.css` lifts the
+dimming where `data-agx-highlight` is set. Its verdict, the counters and the lookups are
+unchanged, and a card that a filter hides is still hidden: highlighting never overrides
+a `hide`, and a book a `hide` filter holds back is not looked up, so it has no labels to
+highlight (use Dim for the filters that should still let a highlight through). Rejected:
+a setting for it (nobody highlights a label to see it faded), and exempting highlighted
+books from `hide` (the "never hide for data it does not have" and "filters never undone"
+rules in D28 depend on `hide` being final).
+
+Prefs v8 adds `filters.priceOnDeals` (default off). When on, the price limit is in force
+only on a deals page, so search, categories and the library are not filtered by price.
+`settingsFor(settings, page)` in `src/core/filter.ts` empties `maxPrice` elsewhere, and the
+content script's applier stores the settings through it, so the verdict, the eager-filtering
+depth and the price requests all agree. The page kind is `pageKind`'s: a path with `deals`
+in it (`/ep/audiobook-deals`, `/ep/summer-deals-2026`). That is reliable for Audible's English
+deals pages and unverified for other languages' paths or the home page's daily deal; the
+setting says so. Rejected: reading the page's heading or markup (it changes between campaigns),
+and a list of paths per marketplace (stale as soon as a campaign is renamed).
+
+A product page (`/pd/<title>/<ASIN>`) never links to its own book, so the scanner found
+no card there. Audible draws the book as one `adbl-product-hero` (title in
+`adbl-title-lockup`'s slots, cover in `adbl-product-image`, the buy box); the scanner takes
+that element as the card, with the ASIN from the page address. The badge goes after the
+`adbl-title-lockup` with `slot="title-lockup"`: a node put after the title heading inside the
+lockup has no slot and is not drawn (measured on audible.co.uk, 0 by 0 against 90 by 22
+pixels). The hero is never hidden or dimmed, and not counted: the reader opened the page for
+that book. It still gets a rating, the overview, the labels and the highlight. Checked only
+on the `.co.uk` page of 2026-11-05, signed out; a template without `adbl-product-hero` still
+shows no badge.
+
+## D31 — A highlight price beside the price limit, drawn as a chip (2026-11-05)
+
+Asked for: mark the price of a book that costs less than a threshold, instead of
+filtering the ones that cost more. It is a control of its own, `filters.highlightPrice`
+(a ceiling per marketplace, in its currency, inclusive, absent is off), next to the
+highlight rating, not a third miss mode of the price limit. The limit acts on prices
+above its ceiling and the highlight on prices at or under its own, so one threshold
+cannot be both, and users can want both (hide above 15, highlight at 5 or less). Like the
+other highlights it is not a filter: it never changes a verdict, works with the filters
+off, and is not restricted to deals pages by `priceOnDeals`. It reads the same public
+catalogue price as the limit (D23), so the panel says member offers can differ.
+
+The mark is a chip the extension draws, `£3.99` in the highlight's amber, after the
+badge and the year (`markPrice`, `src/content/badges.ts`), only on books at or under the
+limit; the cover is left alone, as asked. Rejected: restyling Audible's own price text.
+Its markup is not one thing: search and wish list cards carry `p.buybox-regular-price`
+(the wish list adds a struck-through regular price and a member price), the saved UK
+deals page carries no price on its cards at all, and library rows none, so a selector
+would mark the wrong price or nothing. A chip also stays ours to place and style, as the
+year and labels are. Prices are now requested when the limit is in force or the highlight
+price is set (`wantsPrices`); nothing about the Goodreads lookup changes. Prefs v8 carries
+it with `priceOnDeals`, since v8 had not shipped.
+

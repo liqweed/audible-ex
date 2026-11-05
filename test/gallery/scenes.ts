@@ -6,7 +6,8 @@
 export const SCENES = [
   {
     id: 'cards',
-    title: 'Badges, labels, a highlighted cover and a dimmed card',
+    title:
+      'Badges, labels, a highlighted cover, a highlighted price and a dimmed card',
   },
   { id: 'carousel', title: 'Highlighted covers in a carousel that clips' },
   { id: 'overview', title: 'The rating overview on hover' },
