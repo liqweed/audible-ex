@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-05
+
+### Added
+
+- Highlight price: choose a price for your marketplace and every book that costs that much or less shows its price as an amber chip beside the Goodreads rating. Set it in the panel's filter settings (below the highlight rating) or on the options page, one per marketplace; blank turns it off, which is the default. It is separate from the maximum price: it never hides or dims a book, leaves the cover alone, works with filtering off and applies on every page. Prices are the public catalogue prices, so member offers can differ.
+- Price limit on deals pages only: tick "Only on deals pages" under the maximum price in the panel (or on the options page) and the limit applies on deals pages alone, so search, categories and your library are not filtered by price. A page counts as a deals page when its address contains "deals", like /ep/audiobook-deals.
+
+### Changed
+
+- A highlighted book that a filter only dims, for instance one over your price limit, is now drawn at full strength with its amber outline instead of faded, so a book you are interested in stands out. Books a filter hides stay hidden: set a filter to Dim rather than Hide to let highlights through.
+
+### Fixed
+
+- The book on an Audible product page (/pd/…) now gets its Goodreads rating, genres and highlight like the books in lists; before, the page showed nothing for the book it was about. That book is never hidden or dimmed by your filters.
+
 ## [0.7.0] - 2026-11-05
 
 ### Added
@@ -200,7 +215,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   extensions page, in place of the working name `audible-ex`. Its description no
   longer mentions filters, which haven't shipped yet.
 
-[Unreleased]: https://github.com/liqweed/audible-ex/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/liqweed/audible-ex/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/liqweed/audible-ex/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/liqweed/audible-ex/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/liqweed/audible-ex/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/liqweed/audible-ex/compare/v0.5.1...v0.6.0
