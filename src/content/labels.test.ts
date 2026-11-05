@@ -22,6 +22,8 @@ const FILTERS: FilterSettings = {
   minYear: null,
   maxYear: null,
   maxPrice: {},
+  highlightPrice: {},
+  priceOnDeals: false,
   hiddenLabels: [],
   highlightLabels: [],
   highlightRating: null,

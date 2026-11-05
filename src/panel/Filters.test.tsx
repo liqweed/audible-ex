@@ -662,3 +662,37 @@ describe('maximum public price', () => {
     )
   })
 })
+
+describe('highlight price', () => {
+  async function showHighlight() {
+    await act(async () => {
+      render(<Filters handle={setup().handle} region={regionByCode('UK')} />)
+    })
+    openSettings()
+    return screen.getByLabelText('Highlight price (GBP)') as HTMLInputElement
+  }
+  test('saves zero, keeps the other marketplaces and the price limit, and blank turns it off', async () => {
+    await updateFilters({ maxPrice: { UK: 12 }, highlightPrice: { US: 8 } })
+    const input = await showHighlight()
+    expect(input.value).toBe('')
+    fireEvent.change(input, { target: { value: '0' } })
+    await waitFor(async () =>
+      expect((await saved()).highlightPrice).toEqual({ UK: 0, US: 8 })
+    )
+    expect((await saved()).maxPrice).toEqual({ UK: 12 })
+    fireEvent.change(input, { target: { value: '' } })
+    await waitFor(async () =>
+      expect((await saved()).highlightPrice).toEqual({ US: 8 })
+    )
+  })
+  test('invalid input is not saved', async () => {
+    await updateFilters({ highlightPrice: { UK: 5 } })
+    const input = await showHighlight()
+    fireEvent.change(input, { target: { value: '-2' } })
+    expect(screen.getByRole('alert').textContent).toContain('0 or more')
+    await act(async () => {
+      await Bun.sleep(350)
+    })
+    expect((await saved()).highlightPrice).toEqual({ UK: 5 })
+  })
+})

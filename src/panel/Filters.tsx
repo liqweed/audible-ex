@@ -214,6 +214,21 @@ function PriceLimit({
           Use a price of 0 or more.
         </p>
       )}
+      <label className={`${row} mt-1`}>
+        <input
+          type='checkbox'
+          checked={filters.priceOnDeals}
+          onChange={e => change({ priceOnDeals: e.target.checked })}
+          className='h-3.5 w-3.5 accent-indigo-600'
+        />
+        <span className={quiet}>Only on deals pages</span>
+        <InfoTip label='About deals pages only'>
+          Applies the price limit on deals pages and nowhere else, so search,
+          categories and your library are not filtered by price. A page counts
+          as a deals page when its address has &ldquo;deals&rdquo; in it, like
+          /ep/audiobook-deals.
+        </InfoTip>
+      </label>
     </div>
   )
 }
@@ -264,6 +279,62 @@ function HighlightRating({
       {invalid && (
         <p role='alert' className='mt-1 text-xs text-red-700'>
           Use a rating from 1 to 5.
+        </p>
+      )}
+    </div>
+  )
+}
+
+/** A cash price at or under which a book's price is marked, for this marketplace. Not a filter, so no hide-or-dim choice. */
+function HighlightPrice({
+  filters,
+  change,
+  region,
+}: {
+  filters: FilterPrefs
+  change(patch: FilterChange): void
+  region: Region
+}) {
+  const outside = filters.highlightPrice[region.code]?.toString() ?? ''
+  const [draft, setDraft] = useDebouncedValue(outside, text => {
+    const amount = text.trim() === '' ? undefined : Number(text)
+    if (amount !== undefined && (!Number.isFinite(amount) || amount < 0)) return
+    change(current => {
+      const highlightPrice = { ...current.highlightPrice }
+      if (amount === undefined) delete highlightPrice[region.code]
+      else highlightPrice[region.code] = amount
+      return { highlightPrice }
+    })
+  })
+  const invalid =
+    draft.trim() !== '' &&
+    (!Number.isFinite(Number(draft)) || Number(draft) < 0)
+  return (
+    <div>
+      <div className={row}>
+        <label htmlFor='agx-highlight-price' className={quiet}>
+          Highlight price ({region.currency})
+        </label>
+        <InfoTip label='About the highlight price'>
+          Books priced at or under this show their price in amber beside the
+          rating. Public catalogue prices on this marketplace; member offers may
+          differ. Blank is off; 0 is free only. Highlighting never hides a book,
+          and it works with the filters off.
+        </InfoTip>
+        <input
+          id='agx-highlight-price'
+          type='text'
+          inputMode='decimal'
+          value={draft}
+          placeholder='Off'
+          aria-invalid={invalid}
+          onChange={e => setDraft(e.target.value)}
+          className={`${field} ml-auto w-14 text-right`}
+        />
+      </div>
+      {invalid && (
+        <p role='alert' className='mt-1 text-xs text-red-700'>
+          Use a price of 0 or more.
         </p>
       )}
     </div>
@@ -614,6 +685,14 @@ export function Filters({
           />
 
           <HighlightRating filters={filters} change={change} />
+          {region && (
+            <HighlightPrice
+              key={region.code}
+              filters={filters}
+              change={change}
+              region={region}
+            />
+          )}
 
           <div className={row}>
             <span className={quiet}>Not on Goodreads</span>

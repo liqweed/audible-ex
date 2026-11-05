@@ -51,6 +51,7 @@ describe('options settings', () => {
     change('From year', '-800')
     change('To year', '-700')
     change('audible.co.uk (GBP)', '0')
+    change('Highlight price on audible.com (USD)', '5.5')
     change('Hidden labels', 'Fantasy\nHistory, Politics')
     expect((await readPrefs()).display.labels).toBe(4)
     await save()
@@ -64,6 +65,7 @@ describe('options settings', () => {
       minYear: -800,
       maxYear: -700,
       maxPrice: { UK: 0 },
+      highlightPrice: { US: 5.5 },
       hiddenLabels: ['Fantasy', 'History, Politics'],
     })
   })

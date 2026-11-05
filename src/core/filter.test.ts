@@ -7,11 +7,14 @@ import {
   failures,
   hasLabel,
   isHighlighted,
+  isPriceHighlighted,
   judge,
   labelKey,
   lookupDepth,
   place,
+  settingsFor,
   verdict,
+  wantsPrices,
 } from './filter'
 
 const settings: FilterSettings = {
@@ -21,6 +24,8 @@ const settings: FilterSettings = {
   minYear: null,
   maxYear: null,
   maxPrice: {},
+  highlightPrice: {},
+  priceOnDeals: false,
   hiddenLabels: [],
   highlightLabels: [],
   highlightRating: null,
@@ -443,5 +448,96 @@ describe('lookupDepth (eager filtering)', () => {
       expect(lookupDepth(costing(20), limits, where, 'UK')).toBe('details')
       expect(lookupDepth(ready(2, 1), settings, where, 'UK')).toBe('details')
     }
+  })
+})
+
+describe('the price limit on deals pages only', () => {
+  const limited: FilterSettings = {
+    ...settings,
+    maxPrice: { UK: 5 },
+    priceOnDeals: true,
+  }
+  const pricey: FilterBook = {
+    status: 'ready',
+    rating: { r: 4.5, n: 900 },
+    price: { amount: 9, currency: 'GBP' },
+  }
+
+  test('stays in force on a deals page', () => {
+    expect(settingsFor(limited, 'deals')).toBe(limited)
+    expect(judge(pricey, settingsFor(limited, 'deals'), 'UK')).toBe('hide')
+  })
+
+  test('is off on every other page', () => {
+    for (const page of [
+      'home',
+      'search',
+      'category',
+      'library',
+      'other',
+    ] as const) {
+      const effective = settingsFor(limited, page)
+      expect(effective.maxPrice, page).toEqual({})
+      expect(judge(pricey, effective, 'UK'), page).toBe('show')
+    }
+  })
+
+  test('changes nothing while the setting is off', () => {
+    const everywhere = { ...limited, priceOnDeals: false }
+    expect(settingsFor(everywhere, 'search')).toBe(everywhere)
+  })
+
+  test('leaves the other filters alone', () => {
+    const effective = settingsFor(limited, 'search')
+    expect(effective.minRating).toBe(limited.minRating)
+    expect(effective.modes).toBe(limited.modes)
+  })
+})
+
+describe('the highlight price', () => {
+  const near: FilterSettings = {
+    ...settings,
+    enabled: false,
+    highlightPrice: { UK: 5 },
+  }
+  const priced = (amount: number, currency = 'GBP'): FilterBook => ({
+    status: 'queued',
+    price: { amount, currency },
+  })
+
+  test('marks a price at or under the limit, inclusive, whatever the book’s lookup says', () => {
+    expect(isPriceHighlighted(priced(4.99), near, 'UK')).toBe(true)
+    expect(isPriceHighlighted(priced(5), near, 'UK')).toBe(true)
+    expect(isPriceHighlighted(priced(5.01), near, 'UK')).toBe(false)
+  })
+
+  test('0 means free only', () => {
+    const free = { ...near, highlightPrice: { UK: 0 } }
+    expect(isPriceHighlighted(priced(0), free, 'UK')).toBe(true)
+    expect(isPriceHighlighted(priced(0.01), free, 'UK')).toBe(false)
+  })
+
+  test('needs a price in the marketplace’s currency and a limit for the marketplace', () => {
+    expect(isPriceHighlighted(undefined, near, 'UK')).toBe(false)
+    expect(isPriceHighlighted({ status: 'ready' }, near, 'UK')).toBe(false)
+    expect(isPriceHighlighted(priced(1, 'USD'), near, 'UK')).toBe(false)
+    expect(isPriceHighlighted(priced(1), near, 'US')).toBe(false)
+    expect(isPriceHighlighted(priced(1), near)).toBe(false)
+  })
+
+  test('never changes a verdict, and is not an on-deals-pages setting', () => {
+    expect(judge(priced(1), near, 'UK')).toBe('show')
+    const onDeals = { ...near, priceOnDeals: true }
+    expect(settingsFor(onDeals, 'search').highlightPrice).toEqual({ UK: 5 })
+  })
+
+  test('asks for prices when a limit is in force or a price is highlighted', () => {
+    expect(wantsPrices(settings, 'UK')).toBe(false)
+    expect(wantsPrices({ ...settings, maxPrice: { UK: 9 } }, 'UK')).toBe(true)
+    expect(
+      wantsPrices({ ...settings, enabled: false, maxPrice: { UK: 9 } }, 'UK')
+    ).toBe(false)
+    expect(wantsPrices(near, 'UK')).toBe(true)
+    expect(wantsPrices(near, 'US')).toBe(false)
   })
 })

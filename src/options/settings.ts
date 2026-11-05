@@ -15,6 +15,7 @@ export interface SettingsDraft {
   minRating: string
   minRatings: string
   highlightRating: string
+  priceOnDeals: boolean
   minYear: string
   maxYear: string
   hiddenLabels: string
@@ -22,6 +23,7 @@ export interface SettingsDraft {
   notFound: Prefs['filters']['notFound']
   modes: Prefs['filters']['modes']
   prices: Record<RegionCode, string>
+  highlightPrices: Record<RegionCode, string>
   labels: string
   year: boolean
   overview: boolean
@@ -33,6 +35,7 @@ export const draftFromPrefs = (prefs: Prefs): SettingsDraft => ({
   minRating: String(prefs.filters.minRating),
   minRatings: String(prefs.filters.minRatings),
   highlightRating: prefs.filters.highlightRating?.toString() ?? '',
+  priceOnDeals: prefs.filters.priceOnDeals,
   minYear: prefs.filters.minYear?.toString() ?? '',
   maxYear: prefs.filters.maxYear?.toString() ?? '',
   hiddenLabels: prefs.filters.hiddenLabels.join('\n'),
@@ -41,6 +44,12 @@ export const draftFromPrefs = (prefs: Prefs): SettingsDraft => ({
   modes: prefs.filters.modes,
   prices: Object.fromEntries(
     REGIONS.map(r => [r.code, prefs.filters.maxPrice[r.code]?.toString() ?? ''])
+  ) as Record<RegionCode, string>,
+  highlightPrices: Object.fromEntries(
+    REGIONS.map(r => [
+      r.code,
+      prefs.filters.highlightPrice[r.code]?.toString() ?? '',
+    ])
   ) as Record<RegionCode, string>,
   labels: String(prefs.display.labels),
   year: prefs.display.year,
@@ -85,12 +94,18 @@ export function prefsFromDraft(draft: SettingsDraft): Prefs {
       hiddenLabels: lines(draft.hiddenLabels),
       highlightLabels: lines(draft.highlightLabels),
       notFound: draft.notFound,
+      priceOnDeals: draft.priceOnDeals,
       modes: draft.modes,
       maxPrice: Object.fromEntries(
         REGIONS.filter(r => draft.prices[r.code].trim() !== '').map(r => [
           r.code,
           number(draft.prices[r.code]),
         ])
+      ),
+      highlightPrice: Object.fromEntries(
+        REGIONS.filter(r => draft.highlightPrices[r.code].trim() !== '').map(
+          r => [r.code, number(draft.highlightPrices[r.code])]
+        )
       ),
     },
   })
@@ -108,6 +123,7 @@ export function mergeSettings(base: Prefs, next: Prefs, current: Prefs): Prefs {
     'highlightRating',
     'hiddenLabels',
     'highlightLabels',
+    'priceOnDeals',
     'notFound',
   ] as const) {
     if (!same(base.filters[key], next.filters[key]))
@@ -134,6 +150,17 @@ export function mergeSettings(base: Prefs, next: Prefs, current: Prefs): Prefs {
     if (price === undefined) delete maxPrice[r.code]
     else maxPrice[r.code] = price
   }
+  const highlightPrice = { ...current.filters.highlightPrice }
+  for (const r of REGIONS) {
+    if (
+      base.filters.highlightPrice[r.code] ===
+      next.filters.highlightPrice[r.code]
+    )
+      continue
+    const price = next.filters.highlightPrice[r.code]
+    if (price === undefined) delete highlightPrice[r.code]
+    else highlightPrice[r.code] = price
+  }
   const display = { ...current.display }
   for (const key of ['labels', 'year', 'overview'] as const) {
     if (base.display[key] !== next.display[key])
@@ -141,7 +168,7 @@ export function mergeSettings(base: Prefs, next: Prefs, current: Prefs): Prefs {
   }
   return Schema.decodeSync(PrefsSchema)({
     enabled: base.enabled === next.enabled ? current.enabled : next.enabled,
-    filters: { ...filters, maxPrice, modes },
+    filters: { ...filters, maxPrice, highlightPrice, modes },
     display,
   })
 }

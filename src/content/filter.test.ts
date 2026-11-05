@@ -27,6 +27,8 @@ const FILTERS: FilterSettings = {
   minYear: null,
   maxYear: null,
   maxPrice: {},
+  highlightPrice: {},
+  priceOnDeals: false,
   hiddenLabels: [],
   highlightLabels: [],
   highlightRating: null,
@@ -480,6 +482,149 @@ describe('price filtering on cards', () => {
     expect(world.port.sent.filter(m => m._tag === 'PriceLookup')).toHaveLength(
       1
     )
+    world.content?.remove()
+  })
+})
+
+describe('the price limit on deals pages only', () => {
+  const A = 'B000000001'
+  const settings = { ...FILTERS, maxPrice: { US: 10 }, priceOnDeals: true }
+  const priced = (pathname: string) => {
+    loadBody(`<article><h3><a href="/pd/Book/${A}">Book</a></h3></article>`)
+    const world = startWorld({
+      hostname: 'www.audible.com',
+      pathname,
+      filters: new FakeFilters(settings),
+    })
+    return world
+  }
+
+  test('applies on a deals page', async () => {
+    const world = priced('/ep/audiobook-deals')
+    await flush()
+    world.io.intersect()
+    expect(world.port.sent.some(m => m._tag === 'PriceLookup')).toBe(true)
+    world.port.receive({
+      _tag: 'PriceUpdate',
+      asin: A,
+      price: { amount: 15, currency: 'USD' },
+    })
+    expect(marked('hide')).toHaveLength(1)
+    world.content?.remove()
+  })
+
+  test('is off elsewhere: no price is asked for and nothing is judged by it', async () => {
+    const world = priced('/search')
+    await flush()
+    world.io.intersect()
+    expect(world.port.sent.some(m => m._tag === 'PriceLookup')).toBe(false)
+    world.port.receive(ready(A, { r: 4.5, n: 900 }))
+    expect(marked('hide')).toHaveLength(0)
+    expect(marked('dim')).toHaveLength(0)
+    world.content?.remove()
+  })
+})
+
+describe('the highlight price on cards', () => {
+  const A = 'B000000001'
+  const B = 'B000000002'
+  const chips = () => [...document.querySelectorAll('.agx-price')]
+  async function start(settings: FilterSettings) {
+    loadBody(
+      `<article><h3><a href="/pd/Book/${A}">One</a></h3><img src="https://m.media-amazon.com/images/I/a.jpg"></article>
+       <article><h3><a href="/pd/Book/${B}">Two</a></h3><img src="https://m.media-amazon.com/images/I/b.jpg"></article>`
+    )
+    const filters = new FakeFilters(settings)
+    const world = startWorld({ hostname: 'www.audible.com', filters })
+    await flush()
+    world.io.intersect()
+    return { world, filters }
+  }
+  const price = (asin: string, amount: number) => ({
+    _tag: 'PriceUpdate',
+    asin,
+    price: { amount, currency: 'USD' },
+  })
+
+  test('asks for prices with the filters off, and marks only the books at or under the limit', async () => {
+    const { world } = await start({
+      ...FILTERS,
+      enabled: false,
+      highlightPrice: { US: 5 },
+    })
+    expect(world.port.sent.some(m => m._tag === 'PriceLookup')).toBe(true)
+    world.port.receive(price(A, 4.5))
+    world.port.receive(price(B, 9))
+    expect(chips().map(c => c.textContent)).toEqual(['$4.50'])
+    expect(
+      chips()[0]?.closest('article')?.querySelector('h3 a')?.textContent
+    ).toBe('One')
+    // The price, not the cover: nothing else on the card is marked, and no card is filtered.
+    expect(
+      document.querySelector('[data-agx-highlight], [data-agx-shine]')
+    ).toBeNull()
+    expect(marked('hide')).toHaveLength(0)
+    expect(marked('dim')).toHaveLength(0)
+    world.content?.remove()
+    expect(chips()).toHaveLength(0)
+  })
+
+  test('follows the setting: raised, it marks more; cleared, it takes the chips off', async () => {
+    const { world, filters } = await start({
+      ...FILTERS,
+      enabled: false,
+      highlightPrice: { US: 5 },
+    })
+    world.port.receive(price(A, 4.5))
+    world.port.receive(price(B, 9))
+    filters.change({ ...FILTERS, enabled: false, highlightPrice: { US: 10 } })
+    expect(chips()).toHaveLength(2)
+    filters.change({ ...FILTERS, enabled: false })
+    expect(chips()).toHaveLength(0)
+    world.content?.remove()
+  })
+
+  test('sits beside a price limit that hides: a cheap book is marked, a dear one is hidden', async () => {
+    const { world } = await start({
+      ...FILTERS,
+      maxPrice: { US: 10 },
+      highlightPrice: { US: 5 },
+    })
+    world.port.receive(price(A, 4))
+    world.port.receive(price(B, 12))
+    expect(chips()).toHaveLength(1)
+    expect(marked('hide').map(m => m.asin)).toEqual([B])
+    world.content?.remove()
+  })
+})
+
+describe('a highlighted book that a filter dims', () => {
+  test('keeps its dim verdict and carries the highlight, which the stylesheet draws at full strength', async () => {
+    loadBody(
+      '<article><h3><a href="/pd/Book/B000000001">Book</a></h3><img src="https://m.media-amazon.com/images/I/x.jpg"></article>'
+    )
+    const world = startWorld({
+      hostname: 'www.audible.com',
+      filters: new FakeFilters({
+        ...FILTERS,
+        highlightLabels: ['Fantasy'],
+        modes: { ...FILTERS.modes, rating: 'dim' },
+      }),
+    })
+    await flush()
+    world.io.intersect()
+    world.port.receive(
+      ready(
+        'B000000001',
+        { r: 3, n: 900 },
+        { genres: ['Fantasy'], year: 2000, desc: '' }
+      )
+    )
+    const card = document.querySelector('article') as Element
+    expect(card.getAttribute('data-agx-filter')).toBe('dim')
+    expect(card.hasAttribute('data-agx-highlight')).toBe(true)
+    expect(document.querySelector('img[data-agx-shine]')).not.toBeNull()
+    expect(currentHandle()?.filter.get().dimmed).toBe(1)
     world.content?.remove()
   })
 })

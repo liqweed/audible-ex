@@ -47,7 +47,8 @@ type TextKey =
   | 'maxYear'
   | 'labels'
   | `prices.${RegionCode}`
-type BooleanKey = 'enabled' | 'filtering' | 'year' | 'overview'
+  | `highlightPrices.${RegionCode}`
+type BooleanKey = 'enabled' | 'filtering' | 'priceOnDeals' | 'year' | 'overview'
 type PolicyKey = 'notFound' | `modes.${Dimension}`
 
 /** Each filter with its own hide-or-dim choice, as the options page names it. */
@@ -379,6 +380,33 @@ function Settings({
             <div className='grid gap-5 sm:grid-cols-2'>
               {REGIONS.map(r =>
                 text(`prices.${r.code}`, `audible.${r.tld} (${r.currency})`)
+              )}
+            </div>
+            {toggle(
+              'priceOnDeals',
+              'Apply the price limit on deals pages only'
+            )}
+            <p className='options-hint'>
+              A page is a deals page when its address has “deals” in it, such as
+              /ep/audiobook-deals. Elsewhere books are not filtered by price.
+            </p>
+          </section>
+          <section
+            aria-labelledby='highlight-price-heading'
+            className='options-section'
+          >
+            <h2 id='highlight-price-heading'>Highlight price</h2>
+            <p className='options-hint'>
+              Books priced at or under this show their price in amber beside the
+              rating, whatever the filters do and on every page. One per
+              marketplace, in its own currency; blank is off, 0 is free only.
+            </p>
+            <div className='grid gap-5 sm:grid-cols-2'>
+              {REGIONS.map(r =>
+                text(
+                  `highlightPrices.${r.code}`,
+                  `Highlight price on audible.${r.tld} (${r.currency})`
+                )
               )}
             </div>
           </section>

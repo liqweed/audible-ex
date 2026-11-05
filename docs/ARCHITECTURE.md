@@ -230,6 +230,12 @@ ASIN", known row selectors for library and list pages, observer cleanup. Cards a
 they stay out of the reactive store: a `WeakMap<Element, asin>` (the scanner's) and a
 `Map<asin, Set<Element>>` (redraws every card of a book; pruned of removed cards after each scan).
 
+On a product page (`/pd/…`) the book the page is about is not linked from anywhere, so the scanner
+also takes the page's `adbl-product-hero` as a card, with the ASIN from the address (`pageAsin`,
+`asinFromHref(location.pathname)`). Its badge goes after the `adbl-title-lockup`, in the lockup's
+slot of the hero (`attachBadges`); a node inside the lockup would have no slot and is not drawn.
+The hero is never filtered (D30).
+
 The port does not carry a book's title, which the userscript used to pick the title element, so the
 title comes from the card: the text of a link to the ASIN inside a heading, else the first text link,
 else (cards linked from the cover only) the cover's `alt` text. The element search itself is the
@@ -261,7 +267,7 @@ type ContentState = {
 }
 ```
 
-**Prices.** While `filters.enabled` and `maxPrice[region]` are set, visible ASINs are asked for
+**Prices.** While `filters.enabled` and `maxPrice[region]` are set, or `highlightPrice[region]` is (`wantsPrices`), visible ASINs are asked for
 once per page through `PriceLookup`. `PortServer` calls the same batched `AudibleCatalog` directly,
 without waiting for Goodreads or reading the 30-day metadata cache. `PriceUpdate` updates the
 book's price independently; later rating and details updates preserve it. Pending price requests
@@ -406,7 +412,9 @@ Verdict for one card (pure function in `src/core/filter.ts`):
 6. Known public cash price above the inclusive `maxPrice[region]` ceiling, with currency matching
    the current marketplace (`price`): fails. Absent limit means off; 0 means free only. Missing
    prices and mismatched currencies do not fail this filter. It applies to books not on Goodreads
-   too (step 3).
+   too (step 3). With `priceOnDeals`, the limit is in force only on a deals page (`pageKind`):
+   `settingsFor(settings, page)` empties `maxPrice` elsewhere, and everything on the page reads the
+   settings through it (the verdict, `lookupDepth`, the price requests).
 7. A book that fails no filter: `show`. Otherwise each filter it fails has its own miss mode,
    `modes[filter]` (`hide` by default, `dim` as an option): `hide` if any of them is `hide`, else
    `dim`. `failures` (`src/core/filter.ts`) lists the filters a book fails, in this order.
@@ -414,11 +422,16 @@ Verdict for one card (pure function in `src/core/filter.ts`):
 **Highlights** are not a filter. A `ready` book is highlighted (`isHighlighted`) if it has any
 genre in `highlightLabels` (case-insensitive), or a rating of at least `highlightRating` (inclusive,
 like `minRating`; `null` is off), whether or not the filters are on and whatever its verdict: a
-highlighted book that fails a filter is still hidden or dimmed. Either reason gives the card the same
+highlighted book that fails a `hide` filter is still hidden, and one that is dimmed is drawn at full
+strength (`badges.css`; its verdict and the counters do not change, D30). Either reason gives the card the same
 outline; only the label reason marks a pill. A label is in one of the `hiddenLabels` and
 `highlightLabels` lists at most; the panel and the label popover move it from one to the other. The
 rating acts as soon as the rating arrives; nothing is fetched for it (`lookupDepth` ignores it, since a
 book a `hide` filter holds back is not seen).
+A price at or under `highlightPrice[region]` (`isPriceHighlighted`: the public cash price, in the
+marketplace's currency, inclusive, whatever the verdict or the filters' switch) is a highlight too, but of
+the price alone: the applier adds an `agx-price` chip with the price (`markPrice`) after the badge and the
+year, and leaves the cover and the card unmarked (D31). `priceOnDeals` does not limit it.
 
 Two adjustments follow the verdict: a card inside a carousel gets `dim` for `hide`, and so does every
 card while `peek` is on (the `12 hidden · Show` counter reveals the hidden books, dimmed, without
@@ -508,13 +521,16 @@ importing a backup, so a record or backup written before v6 keeps the user's cho
 `mode` is dropped and the filters take `hide`.
 Version 6 → 7 adds `highlightRating: null`, preserving every existing choice; the Schema accepts
 `null` or a rating from 1 to 5.
+Version 7 → 8 adds `priceOnDeals: false` and `highlightPrice: {}`, preserving every existing choice: the
+price limit stays in force on every page until the user restricts it to deals pages, and no price is
+highlighted.
 The content script runs only while the extension is on
 (`src/content/lifecycle.ts`): turning it off
 removes the badges, the overview and the stylesheet and closes the port, which ends this tab's
 lookups; turning it on starts the script again.
 
 ```ts
-// Prefs v7, defaults shown
+// Prefs v8, defaults shown
 {
   enabled: true,
   filters: {
@@ -531,6 +547,8 @@ lookups; turning it on starts the script again.
       rating: 'hide', count: 'hide', labels: 'hide', year: 'hide', price: 'hide',
     },
     maxPrice: {},            // optional ceilings by region, e.g. { UK: 10, US: 20 }
+    highlightPrice: {},      // optional ceilings by region; a price at or under it is marked, never filtered
+    priceOnDeals: false,     // the price limit applies on deals pages only
   },
   display: { labels: 4, year: true, overview: true },
 }

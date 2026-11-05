@@ -6,7 +6,7 @@
  */
 import { DEFAULT_DISPLAY, type DisplaySettings } from '../core/display'
 import { type BookView, hasOverview } from './books'
-import { POPOVER, placeAfterTitle } from './cards'
+import { isProductHero, POPOVER, placeAfterTitle } from './cards'
 
 /** Genre labels shown after the badge, and the Goodreads shelves that say nothing about a book. */
 export const MAX_LABELS: number = DEFAULT_DISPLAY.labels
@@ -22,6 +22,8 @@ export const SKIP_GENRES: ReadonlySet<string> = new Set([
 export const BADGE = 'agx-badge'
 /** A genre label after the badge; hovering it offers to filter on it (labels.ts). */
 export const LABEL = 'agx-label'
+/** The chip that shows a book's public price when it is at or under the user's highlight price. */
+export const PRICE = 'agx-price'
 const STYLE_ID = 'agx-style'
 
 /** The labels to show: the first genres that are not in `SKIP_GENRES`. */
@@ -170,12 +172,21 @@ export function decorate(
 /**
  * Adds the waiting badge to a card: the main one after the title in the visible card, never inside
  * the hidden hover popover, and an extra one after the title in each popover that belongs to the
- * card. A card with no title element takes the main badge before its popover, else at its end.
+ * card. A card with no title element takes the main badge before its popover, else at its end. The
+ * hero of a product page has its title inside `adbl-title-lockup`'s shadow slots, where a node
+ * placed after the heading would not be drawn: its badge goes after the lockup, in the lockup's own
+ * slot of the hero.
  */
 export function attachBadges(card: Element, asin: string, title: string): void {
   const doc = card.ownerDocument
   const mainWrap = makeWrap(doc, newBadge(doc, asin, title))
-  if (!placeAfterTitle(card, mainWrap, asin, title, false)) {
+  const lockup = isProductHero(card)
+    ? card.querySelector('adbl-title-lockup')
+    : null
+  if (lockup) {
+    mainWrap.slot = lockup.slot
+    lockup.insertAdjacentElement('afterend', mainWrap)
+  } else if (!placeAfterTitle(card, mainWrap, asin, title, false)) {
     const popover = card.querySelector(POPOVER)
     if (popover) popover.insertAdjacentElement('beforebegin', mainWrap)
     else card.appendChild(mainWrap)
@@ -188,6 +199,54 @@ export function attachBadges(card: Element, asin: string, title: string): void {
       title,
       true
     )
+  }
+}
+
+const formatPrice = ({
+  amount,
+  currency,
+}: {
+  amount: number
+  currency: string
+}) => {
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency,
+    }).format(amount)
+  } catch {
+    return `${amount.toFixed(2)} ${currency}`
+  }
+}
+
+/**
+ * Shows `price` as a chip in each of the card's badge lines, after the badge and the year, or takes
+ * the chips off when it is undefined. The text is Audible's catalogue price (the one the price limit
+ * reads), which can differ from what the card itself shows to a member.
+ */
+export function markPrice(
+  card: Element,
+  price: { amount: number; currency: string } | undefined
+): void {
+  for (const wrap of card.querySelectorAll('.agx-wrap')) {
+    const old = wrap.querySelector(`.${PRICE}`)
+    if (!price) {
+      old?.remove()
+      continue
+    }
+    const text = formatPrice(price)
+    const chip = (old ??
+      card.ownerDocument.createElement('span')) as HTMLElement
+    if (!old) {
+      chip.className = PRICE
+      const anchor =
+        wrap.querySelector('.agx-year') ?? wrap.querySelector(`.${BADGE}`)
+      if (anchor) anchor.insertAdjacentElement('afterend', chip)
+      else wrap.appendChild(chip)
+    }
+    if (chip.textContent !== text) chip.textContent = text
+    chip.title =
+      'Public price: at or under your highlight price (member offers can differ)'
   }
 }
 

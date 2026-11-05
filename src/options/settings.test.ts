@@ -28,6 +28,7 @@ describe('settings drafts', () => {
         minYear: -800,
         maxYear: -700,
         maxPrice: { UK: 0, US: 20.5 },
+        highlightPrice: { UK: 3.99, US: 0 },
         hiddenLabels: ['History, Politics', 'Fantasy'],
         highlightLabels: ['Science Fiction', 'Space Opera'],
         highlightRating: 4.6,
@@ -81,6 +82,23 @@ describe('settings drafts', () => {
         maxPrice: { UK: 10, US: 20 },
       },
     })
+  })
+  test('saves an edited highlight price without touching the limit set in another tab', async () => {
+    const base = await readPrefs()
+    const draft = draftFromPrefs(base)
+    draft.highlightPrices.UK = '4.5'
+    await updateFilters({ maxPrice: { UK: 12 }, highlightPrice: { US: 6 } })
+    await saveSettings(base, draft)
+    expect((await readPrefs()).filters).toMatchObject({
+      maxPrice: { UK: 12 },
+      highlightPrice: { UK: 4.5, US: 6 },
+    })
+    expect(() =>
+      prefsFromDraft({
+        ...draft,
+        highlightPrices: { ...draft.highlightPrices, US: '-1' },
+      })
+    ).toThrow()
   })
   test('removes an edited price and treats year bounds as one edit', () => {
     const base = {

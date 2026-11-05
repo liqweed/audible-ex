@@ -11,9 +11,11 @@
  * lookup early (`lookupDepth`, eager filtering).
  *
  * Each filter has its own miss mode: a book that fails a `hide` filter is hidden, one that fails only
- * `dim` filters is dimmed. Highlights (labels, a rating) are not a filter: they never change the verdict.
+ * `dim` filters is dimmed. Highlights (labels, a rating, a price) are not a filter: they never change the verdict;
+ * the content script draws a highlighted book that is dimmed at full strength (badges.css, D30).
  */
 
+import type { PageKind } from './page'
 import { type RegionCode, regionByCode } from './regions'
 
 export type Verdict = 'show' | 'dim' | 'hide'
@@ -45,6 +47,10 @@ export interface FilterSettings {
   readonly minYear: number | null
   readonly maxYear: number | null
   readonly maxPrice: Readonly<Partial<Record<RegionCode, number>>>
+  /** Prices at or under this are marked, never filtered (`isPriceHighlighted`); absent is off. */
+  readonly highlightPrice: Readonly<Partial<Record<RegionCode, number>>>
+  /** The price limit applies on deals pages only (`settingsFor`). */
+  readonly priceOnDeals: boolean
   /** Goodreads genre names, compared without regard to case. */
   readonly hiddenLabels: readonly string[]
   /** Genres the user is interested in: their books are marked, never filtered. */
@@ -74,6 +80,21 @@ export interface Placement {
   /** The user asked to see the hidden books (`12 hidden · Show`): they are drawn dimmed. */
   readonly peek: boolean
 }
+
+/**
+ * The settings in force on a page of this kind: with `priceOnDeals`, the price limit is off
+ * everywhere but on a deals page. Every reader of the settings on a page goes through this, so a
+ * book is never judged, or its price asked for, by a limit that is not in force there.
+ */
+export const settingsFor = (
+  settings: FilterSettings,
+  page: PageKind
+): FilterSettings =>
+  settings.priceOnDeals &&
+  page !== 'deals' &&
+  Object.keys(settings.maxPrice).length > 0
+    ? { ...settings, maxPrice: {} }
+    : settings
 
 /** How labels are compared: without regard to case or surrounding space. */
 export const labelKey = (s: string): string => s.trim().toLowerCase()
@@ -156,7 +177,7 @@ const strictest = (a: Verdict, b: Verdict): Verdict =>
 /**
  * Does `book` carry a label the user highlights, or a rating at or above their highlight rating?
  * Independent of the filters' switch and verdict: a highlighted book that fails a filter is still
- * hidden or dimmed.
+ * hidden; a dimmed one is drawn at full strength.
  */
 export const isHighlighted = (
   book: FilterBook | undefined,
@@ -170,6 +191,34 @@ export const isHighlighted = (
       !!book.details?.genres.some(genre =>
         hasLabel(settings.highlightLabels, genre)
       )))
+
+/**
+ * Is this book's public cash price at or under the user's highlight price for the marketplace? Like
+ * the other highlights it never changes the verdict and works with the filters off. A missing price,
+ * or one in another currency, is not highlighted.
+ */
+export const isPriceHighlighted = (
+  book: FilterBook | undefined,
+  settings: FilterSettings,
+  region?: RegionCode
+): boolean => {
+  const limit = region && settings.highlightPrice[region]
+  return (
+    region !== undefined &&
+    limit !== undefined &&
+    !!book?.price &&
+    book.price.currency === regionByCode(region).currency &&
+    book.price.amount <= limit
+  )
+}
+
+/** Does anything on this marketplace need the books' public prices: a price limit in force, or a highlight? */
+export const wantsPrices = (
+  settings: FilterSettings,
+  region: RegionCode
+): boolean =>
+  (settings.enabled && settings.maxPrice[region] !== undefined) ||
+  settings.highlightPrice[region] !== undefined
 
 /** Carousels and peeking soften `hide` to `dim`; nothing else changes. */
 export function place(verdict: Verdict, where: Placement): Verdict {
