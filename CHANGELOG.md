@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-05
+
+### Added
+
+- Highlight rating: choose a Goodreads rating from 1 to 5 and every book rated at least that gets the same amber outline as your highlighted labels. Set it in the panel's filter settings (below the highlighted labels) or on the options page; blank turns it off, which is the default. Like highlighted labels it never hides or dims a book and works with filtering off.
+
 ## [0.6.1] - 2026-11-04
 
 ### Changed
@@ -194,7 +200,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   extensions page, in place of the working name `audible-ex`. Its description no
   longer mentions filters, which haven't shipped yet.
 
-[Unreleased]: https://github.com/liqweed/audible-ex/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/liqweed/audible-ex/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/liqweed/audible-ex/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/liqweed/audible-ex/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/liqweed/audible-ex/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/liqweed/audible-ex/compare/v0.5.0...v0.5.1
