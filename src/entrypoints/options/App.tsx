@@ -42,6 +42,7 @@ export function downloadPrefs(text: string): void {
 type TextKey =
   | 'minRating'
   | 'minRatings'
+  | 'highlightRating'
   | 'minYear'
   | 'maxYear'
   | 'labels'
@@ -317,6 +318,11 @@ function Settings({
                 'minRatings',
                 'Minimum number of ratings',
                 'A whole number; 0 turns this off.'
+              )}
+              {text(
+                'highlightRating',
+                'Highlight rating',
+                'Books rated at least this get an outline, even with filtering off. 1.0–5.0; blank is off. Highlighting never hides a book.'
               )}
               {text(
                 'minYear',

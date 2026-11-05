@@ -11,7 +11,7 @@
  * lookup early (`lookupDepth`, eager filtering).
  *
  * Each filter has its own miss mode: a book that fails a `hide` filter is hidden, one that fails only
- * `dim` filters is dimmed. Highlighted labels are not a filter: they never change the verdict.
+ * `dim` filters is dimmed. Highlights (labels, a rating) are not a filter: they never change the verdict.
  */
 
 import { type RegionCode, regionByCode } from './regions'
@@ -49,6 +49,8 @@ export interface FilterSettings {
   readonly hiddenLabels: readonly string[]
   /** Genres the user is interested in: their books are marked, never filtered. */
   readonly highlightLabels: readonly string[]
+  /** Books rated at least this are marked, never filtered; null turns it off. */
+  readonly highlightRating: number | null
   readonly notFound: NotFoundPolicy
   /** What a book that fails each filter gets. */
   readonly modes: Readonly<Record<Dimension, MissMode>>
@@ -152,18 +154,22 @@ const strictest = (a: Verdict, b: Verdict): Verdict =>
   STRICTNESS[a] >= STRICTNESS[b] ? a : b
 
 /**
- * Does `book` carry a label the user highlights? Independent of the filters' switch and verdict:
- * a highlighted book that fails a filter is still hidden or dimmed.
+ * Does `book` carry a label the user highlights, or a rating at or above their highlight rating?
+ * Independent of the filters' switch and verdict: a highlighted book that fails a filter is still
+ * hidden or dimmed.
  */
 export const isHighlighted = (
   book: FilterBook | undefined,
   settings: FilterSettings
 ): boolean =>
-  settings.highlightLabels.length > 0 &&
   book?.status === 'ready' &&
-  !!book.details?.genres.some(genre =>
-    hasLabel(settings.highlightLabels, genre)
-  )
+  ((settings.highlightRating !== null &&
+    !!book.rating &&
+    book.rating.r >= settings.highlightRating) ||
+    (settings.highlightLabels.length > 0 &&
+      !!book.details?.genres.some(genre =>
+        hasLabel(settings.highlightLabels, genre)
+      )))
 
 /** Carousels and peeking soften `hide` to `dim`; nothing else changes. */
 export function place(verdict: Verdict, where: Placement): Verdict {

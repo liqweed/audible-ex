@@ -23,6 +23,7 @@ const settings: FilterSettings = {
   maxPrice: {},
   hiddenLabels: [],
   highlightLabels: [],
+  highlightRating: null,
   notFound: 'show',
   modes: {
     rating: 'hide',
@@ -338,6 +339,40 @@ describe('highlighted labels', () => {
     expect(isHighlighted(book, { ...s, enabled: false })).toBe(true)
     expect(judge(book, s)).toBe('hide')
     expect(judge(ready(4.5, 900, ['Science Fiction']), s)).toBe('show')
+  })
+})
+
+describe('the highlight rating', () => {
+  const s = with_({ highlightRating: 4.5 })
+
+  test('marks a ready book rated at least that, the rating itself included', () => {
+    expect(isHighlighted(ready(4.6, 900), s)).toBe(true)
+    expect(isHighlighted(ready(4.5, 900), s)).toBe(true)
+    expect(isHighlighted(ready(4.4, 900), s)).toBe(false)
+  })
+
+  test('is off when null, and waits for the rating', () => {
+    expect(isHighlighted(ready(5, 900), with_({ highlightRating: null }))).toBe(
+      false
+    )
+    expect(isHighlighted({ status: 'loading' }, s)).toBe(false)
+    expect(isHighlighted({ status: 'notFound' }, s)).toBe(false)
+    expect(isHighlighted(undefined, s)).toBe(false)
+  })
+
+  test('adds to the highlighted labels, holds with the filters off and never changes the verdict', () => {
+    const labels = with_({
+      highlightRating: 4.5,
+      highlightLabels: ['Fantasy'],
+    })
+    expect(isHighlighted(ready(3, 900, ['Fantasy']), labels)).toBe(true)
+    expect(isHighlighted(ready(4.8, 900, ['Romance']), labels)).toBe(true)
+    expect(isHighlighted(ready(3, 900, ['Romance']), labels)).toBe(false)
+    expect(isHighlighted(ready(4.8, 900), { ...s, enabled: false })).toBe(true)
+    // Rated above the highlight rating but under a higher minimum: still hidden.
+    const strict = with_({ highlightRating: 3.5, minRating: 4 })
+    expect(isHighlighted(ready(3.7, 900), strict)).toBe(true)
+    expect(judge(ready(3.7, 900), strict)).toBe('hide')
   })
 })
 

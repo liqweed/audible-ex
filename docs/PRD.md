@@ -84,6 +84,9 @@ catalogue goes unchecked.
   Goodreads genres get a soft glow around their cover and their label is marked. Highlighting
   never hides a book and works with filtering off. A label is hidden or
   highlighted, not both; the label popover offers either.
+- Highlight rating: books rated at least the chosen Goodreads rating (1–5; blank is off, the
+  default) get the same outline as highlighted labels. Like them it never hides a book and works
+  with filtering off.
 - Books not found on Goodreads: shown (default), dimmed or hidden.
 - A book is never hidden for data that hasn't loaded. Each filter applies as
   soon as its data has: the price (from Audible) before the rating, the rating

@@ -581,6 +581,45 @@ describe('genresSeen and suggestions', () => {
   })
 })
 
+describe('the highlight rating', () => {
+  async function showRating() {
+    await act(async () => {
+      render(<Filters handle={setup().handle} />)
+    })
+    openSettings()
+    return screen.getByLabelText('Highlight rating') as HTMLInputElement
+  }
+  test('saves a rating, and blank turns it off', async () => {
+    const input = await showRating()
+    expect(input.value).toBe('')
+    fireEvent.change(input, { target: { value: '4.5' } })
+    await waitFor(async () => expect((await saved()).highlightRating).toBe(4.5))
+    fireEvent.change(input, { target: { value: '' } })
+    await waitFor(async () =>
+      expect((await saved()).highlightRating).toBeNull()
+    )
+  })
+  test('an invalid rating leaves the saved one in force, and an external edit updates the field', async () => {
+    await updateFilters({ highlightRating: 4.2 })
+    const input = await showRating()
+    expect(input.value).toBe('4.2')
+    fireEvent.change(input, { target: { value: '6' } })
+    expect(screen.getByRole('alert').textContent).toContain('1 to 5')
+    await act(async () => {
+      await Bun.sleep(350)
+    })
+    expect((await saved()).highlightRating).toBe(4.2)
+    await act(() => updateFilters({ highlightRating: 4.8 }))
+    await waitFor(() => expect(input.value).toBe('4.8'))
+  })
+  test('works with the filters off', async () => {
+    await updateFilters({ enabled: false })
+    const input = await showRating()
+    fireEvent.change(input, { target: { value: '4' } })
+    await waitFor(async () => expect((await saved()).highlightRating).toBe(4))
+  })
+})
+
 describe('maximum public price', () => {
   async function showPrice() {
     await act(async () => {

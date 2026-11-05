@@ -24,6 +24,7 @@ const FILTERS: FilterSettings = {
   maxPrice: {},
   hiddenLabels: [],
   highlightLabels: [],
+  highlightRating: null,
   notFound: 'show',
   modes: DEFAULT_FILTERS.modes,
 }
@@ -321,6 +322,7 @@ describe('highlighting a label', () => {
       ...FILTERS,
       hiddenLabels: ['Horror'],
       highlightLabels: [],
+      highlightRating: null,
     })
     openOn(pills('Fantasy')[0] as Element)
     await pick('Highlight')

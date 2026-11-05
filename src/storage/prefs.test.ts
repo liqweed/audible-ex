@@ -38,6 +38,7 @@ describe('decodePrefs', () => {
       maxPrice: {},
       hiddenLabels: [],
       highlightLabels: [],
+      highlightRating: null,
       notFound: 'show',
       modes: {
         rating: 'hide',
@@ -211,7 +212,7 @@ describe('the version 1 record', () => {
       const meta = (await fakeBrowser.storage.sync.get('prefs$')).prefs$ as
         | { v?: number }
         | undefined
-      if (meta?.v === 6) break
+      if (meta?.v === 7) break
       await Bun.sleep(10)
     }
     const stored = await fakeBrowser.storage.sync.get(['prefs', 'prefs$'])
@@ -220,7 +221,7 @@ describe('the version 1 record', () => {
       enabled: false,
       filters: DEFAULT_FILTERS,
     })
-    expect(stored.prefs$).toEqual({ v: 6 })
+    expect(stored.prefs$).toEqual({ v: 7 })
   })
 })
 
@@ -251,6 +252,7 @@ describe('the version 2 record', () => {
         maxYear: null,
         maxPrice: {},
         highlightLabels: [],
+        highlightRating: null,
         modes: {
           rating: 'dim',
           count: 'dim',
@@ -263,13 +265,13 @@ describe('the version 2 record', () => {
     expect(await fresh.readPrefs()).toEqual(expected)
     for (let i = 0; i < 100; i++) {
       const stored = await fakeBrowser.storage.sync.get(['prefs', 'prefs$'])
-      if ((stored.prefs$ as { v?: number } | undefined)?.v === 6) break
+      if ((stored.prefs$ as { v?: number } | undefined)?.v === 7) break
       await Bun.sleep(10)
     }
     const stored = await fakeBrowser.storage.sync.get(['prefs', 'prefs$'])
     expect(stored).toEqual({
       prefs: expected,
-      prefs$: { v: 6 },
+      prefs$: { v: 7 },
     })
   })
 
@@ -369,13 +371,13 @@ describe('marketplace price prefs', () => {
       const meta = (await fakeBrowser.storage.sync.get('prefs$')).prefs$ as
         | { v?: number }
         | undefined
-      if (meta?.v === 6) break
+      if (meta?.v === 7) break
       await Bun.sleep(10)
     }
     const stored = await fakeBrowser.storage.sync.get(['prefs', 'prefs$'])
     expect(stored).toEqual({
       prefs: expected,
-      prefs$: { v: 6 },
+      prefs$: { v: 7 },
     })
   })
   test('simultaneous edits preserve limits in other marketplaces and notify tabs', async () => {
@@ -410,13 +412,13 @@ describe('display prefs', () => {
       const meta = (await fakeBrowser.storage.sync.get('prefs$')).prefs$ as
         | { v?: number }
         | undefined
-      if (meta?.v === 6) break
+      if (meta?.v === 7) break
       await Bun.sleep(10)
     }
     const stored = await fakeBrowser.storage.sync.get(['prefs', 'prefs$'])
     expect(stored).toEqual({
       prefs: { enabled: false, filters, display: DEFAULT_DISPLAY },
-      prefs$: { v: 6 },
+      prefs$: { v: 7 },
     })
   })
   test.each([-1, 11, 1.5])('rejects label count %s', labels => {
@@ -458,10 +460,30 @@ describe('the version 5 record', () => {
       const meta = (await fakeBrowser.storage.sync.get('prefs$')).prefs$ as
         | { v?: number }
         | undefined
-      if (meta?.v === 6) break
+      if (meta?.v === 7) break
       await Bun.sleep(10)
     }
     const stored = await fakeBrowser.storage.sync.get(['prefs', 'prefs$'])
-    expect(stored).toEqual({ prefs: expected, prefs$: { v: 6 } })
+    expect(stored).toEqual({ prefs: expected, prefs$: { v: 7 } })
+  })
+})
+
+describe('the highlight rating', () => {
+  test('is off by default, also in a record that predates it', () => {
+    const { highlightRating: _, ...v6 } = DEFAULT_FILTERS
+    expect(DEFAULT_FILTERS.highlightRating).toBeNull()
+    expect(decodePrefs({ filters: { ...v6, minRating: 4.2 } })).toEqual({
+      ...DEFAULT_PREFS,
+      filters: { ...DEFAULT_FILTERS, minRating: 4.2 },
+    })
+  })
+  test('keeps a rating from 1 to 5 and rejects anything else', () => {
+    const filters = (highlightRating: unknown) => ({
+      filters: { ...DEFAULT_FILTERS, highlightRating },
+    })
+    expect(decodePrefs(filters(4.5)).filters.highlightRating).toBe(4.5)
+    expect(decodePrefs(filters(5)).filters.highlightRating).toBe(5)
+    for (const bad of [0.5, 5.1, '4.5', Number.NaN])
+      expect(decodePrefs(filters(bad))).toEqual(DEFAULT_PREFS)
   })
 })

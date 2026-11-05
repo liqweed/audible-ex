@@ -2,7 +2,7 @@
  * Applies the user's filters to the cards on the page (ARCHITECTURE.md §7). The verdict for a card
  * is `src/core/filter.ts`'s; this module reads the book store and the settings, sets `data-agx-filter`
  * on each card (`hide` or `dim`, with CSS in badges.css) and counts the cards that are hidden, which
- * the panel's `12 hidden · Show` reports. A card whose book carries a highlighted label gets
+ * the panel's `12 hidden · Show` reports. A card whose book carries a highlighted label or is rated at or above the highlight rating gets
  * `data-agx-highlight`, and its cover `data-agx-shine`, whatever its verdict. It touches only those attributes and the label pills'
  * classes.
  *
@@ -24,7 +24,7 @@ import type { BookView } from './books'
 import { coverOf, isInCarousel } from './cards'
 
 export const ATTRIBUTE = 'data-agx-filter'
-/** On a card whose book carries a label the user highlights. */
+/** On a card whose book carries a label the user highlights, or has the rating they highlight. */
 export const HIGHLIGHT = 'data-agx-highlight'
 /** On that card's cover image, which badges.css makes glow. */
 export const SHINE = 'data-agx-shine'
@@ -43,6 +43,7 @@ export const NO_FILTERS: FilterSettings = {
   maxPrice: {},
   hiddenLabels: [],
   highlightLabels: [],
+  highlightRating: null,
   notFound: 'show',
   modes: {
     rating: 'hide',
@@ -59,7 +60,7 @@ export interface FilterState {
   readonly hidden: number
   /** Cards the filters dim: those failing only dimming filters, and failing carousel slides. */
   readonly dimmed: number
-  /** Cards whose book carries a highlighted label. */
+  /** Cards whose book is highlighted, by a label or by its rating. */
   readonly highlighted: number
   /** The hidden cards are shown, dimmed (`12 hidden · Show`). */
   readonly peek: boolean

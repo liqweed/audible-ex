@@ -6,7 +6,7 @@
  * Each field has a default, so a record written by an older version still decodes. Change the
  * shape → bump `version` and add a migration. Version 2 added `filters`, version 3 the year bounds;
  * version 4 adds marketplace price limits, version 5 the display settings, version 6 a miss mode for
- * each filter (replacing the single `mode`) and highlighted labels.
+ * each filter (replacing the single `mode`) and highlighted labels; version 7 adds the highlight rating.
  */
 import * as Effect from 'effect/Effect'
 import * as Option from 'effect/Option'
@@ -78,6 +78,10 @@ export const Filters = Schema.Struct({
   highlightLabels: Schema.Array(Schema.String).pipe(
     Schema.withDecodingDefaultKey(Effect.succeed<readonly string[]>([]))
   ),
+  /** Books rated at least this are highlighted, never filtered; null is off. */
+  highlightRating: Schema.NullOr(
+    Schema.Finite.check(Schema.isBetween({ minimum: 1, maximum: 5 }))
+  ).pipe(Schema.withDecodingDefaultKey(Effect.succeed<number | null>(null))),
   /** What happens to a book that is not on Goodreads. */
   notFound: Schema.Literals(['show', 'dim', 'hide']).pipe(
     Schema.withDecodingDefaultKey(
@@ -107,6 +111,7 @@ export const DEFAULT_FILTERS: Filters = {
   maxPrice: {},
   hiddenLabels: [],
   highlightLabels: [],
+  highlightRating: null,
   notFound: 'show',
   modes: DEFAULT_MODES,
 }
@@ -126,7 +131,7 @@ export const Display = Schema.Struct({
 })
 export type Display = typeof Display.Type
 
-/** Prefs v6. A key missing from the stored record takes its default. */
+/** Prefs v7. A key missing from the stored record takes its default. */
 export const Prefs = Schema.Struct({
   /** The extension's master switch: off removes the badges and stops the lookups. */
   enabled: Schema.Boolean.pipe(
@@ -182,7 +187,7 @@ export function decodePrefs(raw: unknown): Prefs {
 
 const item = storage.defineItem<unknown>('sync:prefs', {
   fallback: DEFAULT_PREFS,
-  version: 6,
+  version: 7,
   migrations: {
     // v1 held `enabled` alone. Add the filters with defaults filled in.
     2: decodePrefs,
@@ -194,6 +199,8 @@ const item = storage.defineItem<unknown>('sync:prefs', {
     5: decodePrefs,
     // v5 had one miss mode: every filter keeps it. No label is highlighted.
     6: decodePrefs,
+    // v6 had no highlight rating: it stays off.
+    7: decodePrefs,
   },
 })
 
