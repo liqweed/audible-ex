@@ -360,7 +360,8 @@ progress bar appears, which is the one thing `bun test` cannot prove about the s
   on them), has one row per filter (the rating slider, 3.0–5.0, step 0.1; the minimum number of
   ratings; the first-published year range; the marketplace public-price limit; the hidden labels),
   each ending in its own Hide/Dim choice, then the highlighted labels with how many cards on the
-  page they mark, and the not-found policy (Show/Dim/Hide). The choices are radio buttons drawn as
+  page are highlighted, the highlight rating (a number from 1 to 5, blank is off; no Hide/Dim choice,
+  since it is not a filter), and the not-found policy (Show/Dim/Hide). The choices are radio buttons drawn as
   one bar (`Choice`, `src/panel/controls.tsx`). Explanations sit behind an `i` button
   (`InfoTip`): shown while it is hovered or focused, positioned fixed to the window above the button
   (below it near the top), and named by the button's `aria-describedby` while shown. It is
@@ -410,10 +411,14 @@ Verdict for one card (pure function in `src/core/filter.ts`):
    `modes[filter]` (`hide` by default, `dim` as an option): `hide` if any of them is `hide`, else
    `dim`. `failures` (`src/core/filter.ts`) lists the filters a book fails, in this order.
 
-**Highlighted labels** are not a filter. A `ready` book with any genre in `highlightLabels`
-(case-insensitive) is highlighted (`isHighlighted`), whether or not the filters are on and whatever
-its verdict: a highlighted book that fails a filter is still hidden or dimmed. A label is in one of
-the two lists at most; the panel and the label popover move it from one to the other.
+**Highlights** are not a filter. A `ready` book is highlighted (`isHighlighted`) if it has any
+genre in `highlightLabels` (case-insensitive), or a rating of at least `highlightRating` (inclusive,
+like `minRating`; `null` is off), whether or not the filters are on and whatever its verdict: a
+highlighted book that fails a filter is still hidden or dimmed. Either reason gives the card the same
+outline; only the label reason marks a pill. A label is in one of the `hiddenLabels` and
+`highlightLabels` lists at most; the panel and the label popover move it from one to the other. The
+rating acts as soon as the rating arrives; nothing is fetched for it (`lookupDepth` ignores it, since a
+book a `hide` filter holds back is not seen).
 
 Two adjustments follow the verdict: a card inside a carousel gets `dim` for `hide`, and so does every
 card while `peek` is on (the `12 hidden · Show` counter reveals the hidden books, dimmed, without
@@ -486,7 +491,7 @@ The panel's own state (`src/storage/panel.ts`: `corner`, `collapsed`, `hiddenHos
 `local:panel` item, version 1, decoded with defaults like the prefs.
 
 `src/storage/prefs.ts` holds `enabled` (the extension's master switch), `filters` and `display`,
-version 6. The options page edits all of them; the popup edits the master switch and the panel
+version 7. The options page edits all of them; the popup edits the master switch and the panel
 edits filters.
 WXT runs the version 1 → 2 migration when the
 module loads (it was `enabled` alone; the migrated record has the filters at their defaults).
@@ -501,13 +506,15 @@ Version 5 → 6 replaces the single `mode` with `modes`, one miss mode per filte
 `mode`, and adds `highlightLabels: []`. The same upgrade (`upgradeModes`) runs on every decode and on
 importing a backup, so a record or backup written before v6 keeps the user's choice; an invalid old
 `mode` is dropped and the filters take `hide`.
+Version 6 → 7 adds `highlightRating: null`, preserving every existing choice; the Schema accepts
+`null` or a rating from 1 to 5.
 The content script runs only while the extension is on
 (`src/content/lifecycle.ts`): turning it off
 removes the badges, the overview and the stylesheet and closes the port, which ends this tab's
 lookups; turning it on starts the script again.
 
 ```ts
-// Prefs v6, defaults shown
+// Prefs v7, defaults shown
 {
   enabled: true,
   filters: {
@@ -518,6 +525,7 @@ lookups; turning it on starts the script again.
     maxYear: null,           // inclusive; null is no upper bound
     hiddenLabels: [],        // Goodreads genre names
     highlightLabels: [],     // Goodreads genre names; marked, never filtered
+    highlightRating: null,   // 1–5; books rated at least this are marked, never filtered; null is off
     notFound: 'show',        // 'show' | 'dim' | 'hide'
     modes: {                 // each 'hide' | 'dim', per filter
       rating: 'hide', count: 'hide', labels: 'hide', year: 'hide', price: 'hide',

@@ -29,6 +29,7 @@ const FILTERS: FilterSettings = {
   maxPrice: {},
   hiddenLabels: [],
   highlightLabels: [],
+  highlightRating: null,
   notFound: 'show',
   modes: DEFAULT_FILTERS.modes,
 }
@@ -251,6 +252,62 @@ describe('highlighted labels on the com search fixture', () => {
     expect(document.querySelectorAll('[data-agx-highlight]')).toHaveLength(0)
     expect(document.querySelectorAll('[data-agx-shine]')).toHaveLength(0)
     expect(document.querySelectorAll('.agx-highlighted')).toHaveLength(0)
+  })
+})
+
+describe('the highlight rating on the com search fixture', () => {
+  test('outlines the cards rated at least that, marks no pill and never hides', async () => {
+    loadFixture('com', 'search')
+    const filters = new FakeFilters({
+      ...FILTERS,
+      minRating: 1,
+      highlightRating: 4.5,
+    })
+    const world = startWorld({
+      hostname: 'www.audible.com',
+      pathname: '/search',
+      filters,
+    })
+    // Lookups wait for the filters to be read.
+    await flush()
+    world.io.intersect()
+    const asins = [...new Set(world.port.lookups().flat())]
+    const loved = new Set<string>()
+    asins.forEach((asin, i) => {
+      if (i % 2 === 0) loved.add(asin)
+      world.port.receive(
+        ready(
+          asin,
+          { r: i % 2 === 0 ? 4.5 : 4.4, n: 900 },
+          { genres: ['Fantasy'], year: 2000 }
+        )
+      )
+    })
+    await flush()
+    const outlined = () =>
+      mainBadges().filter(badge => badge.closest('[data-agx-highlight]'))
+    expect(outlined().length).toBeGreaterThan(0)
+    for (const badge of outlined())
+      expect(loved.has((badge as HTMLElement).dataset.asin as string)).toBe(
+        true
+      )
+    expect(handleOf(world).filter.get().highlighted).toBe(outlined().length)
+    expect(document.querySelectorAll('img[data-agx-shine]')).toHaveLength(
+      outlined().length
+    )
+    expect(document.querySelectorAll('.agx-highlighted')).toHaveLength(0)
+    expect(document.querySelectorAll('[data-agx-filter]')).toHaveLength(0)
+
+    // Works with the filters off, and a lower threshold outlines every rated card.
+    filters.change({ ...FILTERS, enabled: false, highlightRating: 4.5 })
+    expect(outlined().length).toBeGreaterThan(0)
+    filters.change({ ...FILTERS, highlightRating: 4 })
+    expect(handleOf(world).filter.get().highlighted).toBe(mainBadges().length)
+
+    filters.change({ ...FILTERS, highlightRating: null })
+    expect(document.querySelectorAll('[data-agx-highlight]')).toHaveLength(0)
+    expect(document.querySelectorAll('[data-agx-shine]')).toHaveLength(0)
+    expect(handleOf(world).filter.get().highlighted).toBe(0)
   })
 })
 

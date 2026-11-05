@@ -218,6 +218,58 @@ function PriceLimit({
   )
 }
 
+/** Parses the highlight rating: blank is off (`null`), else a rating from 1 to 5; `undefined` is invalid. */
+function ratingBound(text: string): number | null | undefined {
+  if (text.trim() === '') return null
+  const n = Number(text)
+  return Number.isFinite(n) && n >= 1 && n <= 5 ? n : undefined
+}
+
+/** The rating from which books are highlighted. Not a filter, so no hide-or-dim choice. */
+function HighlightRating({
+  filters,
+  change,
+}: {
+  filters: FilterPrefs
+  change(patch: FilterChange): void
+}) {
+  const outside = filters.highlightRating?.toString() ?? ''
+  const [draft, setDraft] = useDebouncedValue(outside, text => {
+    const value = ratingBound(text)
+    if (value !== undefined) change({ highlightRating: value })
+  })
+  const invalid = ratingBound(draft) === undefined
+  return (
+    <div>
+      <div className={row}>
+        <label htmlFor='agx-highlight-rating' className={quiet}>
+          Highlight rating
+        </label>
+        <InfoTip label='About the highlight rating'>
+          Books rated at least this get an outline, like the highlighted labels.
+          Blank is off. Highlighting never hides a book, and it works with the
+          filters off.
+        </InfoTip>
+        <input
+          id='agx-highlight-rating'
+          type='text'
+          inputMode='decimal'
+          value={draft}
+          placeholder='Off'
+          aria-invalid={invalid}
+          onChange={e => setDraft(e.target.value)}
+          className={`${field} ml-auto w-14 text-right`}
+        />
+      </div>
+      {invalid && (
+        <p role='alert' className='mt-1 text-xs text-red-700'>
+          Use a rating from 1 to 5.
+        </p>
+      )}
+    </div>
+  )
+}
+
 /** A list of labels: chips, and an input that suggests the genres the page's books carry. */
 function LabelPicker({
   id,
@@ -560,6 +612,8 @@ export function Filters({
               }))
             }
           />
+
+          <HighlightRating filters={filters} change={change} />
 
           <div className={row}>
             <span className={quiet}>Not on Goodreads</span>

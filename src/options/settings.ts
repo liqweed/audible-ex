@@ -14,6 +14,7 @@ export interface SettingsDraft {
   filtering: boolean
   minRating: string
   minRatings: string
+  highlightRating: string
   minYear: string
   maxYear: string
   hiddenLabels: string
@@ -31,6 +32,7 @@ export const draftFromPrefs = (prefs: Prefs): SettingsDraft => ({
   filtering: prefs.filters.enabled,
   minRating: String(prefs.filters.minRating),
   minRatings: String(prefs.filters.minRatings),
+  highlightRating: prefs.filters.highlightRating?.toString() ?? '',
   minYear: prefs.filters.minYear?.toString() ?? '',
   maxYear: prefs.filters.maxYear?.toString() ?? '',
   hiddenLabels: prefs.filters.hiddenLabels.join('\n'),
@@ -74,6 +76,10 @@ export function prefsFromDraft(draft: SettingsDraft): Prefs {
       enabled: draft.filtering,
       minRating: number(draft.minRating),
       minRatings: number(draft.minRatings),
+      highlightRating:
+        draft.highlightRating.trim() === ''
+          ? null
+          : number(draft.highlightRating),
       minYear: draft.minYear.trim() === '' ? null : number(draft.minYear),
       maxYear: draft.maxYear.trim() === '' ? null : number(draft.maxYear),
       hiddenLabels: lines(draft.hiddenLabels),
@@ -99,6 +105,7 @@ export function mergeSettings(base: Prefs, next: Prefs, current: Prefs): Prefs {
     'enabled',
     'minRating',
     'minRatings',
+    'highlightRating',
     'hiddenLabels',
     'highlightLabels',
     'notFound',

@@ -30,6 +30,7 @@ describe('settings drafts', () => {
         maxPrice: { UK: 0, US: 20.5 },
         hiddenLabels: ['History, Politics', 'Fantasy'],
         highlightLabels: ['Science Fiction', 'Space Opera'],
+        highlightRating: 4.6,
         modes: { ...DEFAULT_PREFS.filters.modes, labels: 'dim', price: 'dim' },
       },
     } as const
@@ -40,6 +41,9 @@ describe('settings drafts', () => {
     ['minRating', '6'],
     ['minRatings', '-1'],
     ['minRatings', '1.5'],
+    ['highlightRating', '0.5'],
+    ['highlightRating', '5.5'],
+    ['highlightRating', 'high'],
     ['minYear', '0'],
     ['minYear', '1990.5'],
     ['labels', '11'],
@@ -123,6 +127,32 @@ describe('settings drafts', () => {
     expect(mergeSettings(base, next, current).filters).toMatchObject({
       highlightLabels: ['Fantasy'],
       modes: { ...base.filters.modes, rating: 'dim', year: 'dim' },
+    })
+  })
+})
+
+describe('the highlight rating draft', () => {
+  test('blank is off', () => {
+    const draft = draftFromPrefs(DEFAULT_PREFS)
+    expect(draft.highlightRating).toBe('')
+    expect(
+      prefsFromDraft({ ...draft, highlightRating: '  ' }).filters
+        .highlightRating
+    ).toBeNull()
+  })
+  test('merges on its own', () => {
+    const base = DEFAULT_PREFS
+    const next = {
+      ...base,
+      filters: { ...base.filters, highlightRating: 4.5 },
+    }
+    const current = {
+      ...base,
+      filters: { ...base.filters, minRating: 3.5 },
+    }
+    expect(mergeSettings(base, next, current).filters).toMatchObject({
+      highlightRating: 4.5,
+      minRating: 3.5,
     })
   })
 })
