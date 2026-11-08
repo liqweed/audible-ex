@@ -10,6 +10,7 @@ import {
   Save,
   ShieldCheck,
   SlidersHorizontal,
+  Star,
   Store,
   Tag,
   Undo2,
@@ -21,7 +22,13 @@ import { type Dimension, labelKey } from '@/core/filter'
 import { REGIONS, type RegionCode } from '@/core/regions'
 import { currencySymbol } from '@/lib/format'
 import { Logo } from '@/lib/Logo'
-import { PRIVACY_URL, SOURCE_URL, STORE_URL } from '@/lib/links'
+import {
+  LISTING_URL,
+  PRIVACY_URL,
+  REVIEW_STORE,
+  REVIEW_URL,
+  SOURCE_URL,
+} from '@/lib/links'
 import { CacheInspector } from '@/options/CacheInspector'
 import { CacheSummary } from '@/options/CacheSummary'
 import { type CacheBackend, cacheBackend } from '@/options/cache-backend'
@@ -1029,12 +1036,16 @@ export function App({
           <Github aria-hidden='true' className={icon} />
           GitHub repository
         </a>
-        {!import.meta.env.FIREFOX && (
-          <a className={link} href={STORE_URL} target='_blank' rel='noreferrer'>
-            <Store aria-hidden='true' className={icon} />
-            Chrome Web Store page
-          </a>
-        )}
+        <a className={link} href={LISTING_URL} target='_blank' rel='noreferrer'>
+          <Store aria-hidden='true' className={icon} />
+          {import.meta.env.FIREFOX
+            ? 'Firefox Add-ons page'
+            : 'Chrome Web Store page'}
+        </a>
+        <a className={link} href={REVIEW_URL} target='_blank' rel='noreferrer'>
+          <Star aria-hidden='true' className={icon} />
+          Rate it on {REVIEW_STORE}
+        </a>
       </nav>
     </footer>
   )

@@ -9,8 +9,9 @@ import {
 } from '@testing-library/react'
 import { fakeBrowser } from 'wxt/testing/fake-browser'
 import type { ClearScope, Stats } from '@/schema/popup'
+import { markNudgeShown, readNudge, recordRatings } from '@/storage/nudge'
 import { readPanel, updatePanel } from '@/storage/panel'
-import { readPrefs, updatePrefs } from '@/storage/prefs'
+import { readPrefs, updateFilters, updatePrefs } from '@/storage/prefs'
 import { App } from './App'
 import type { Backend } from './backend'
 
@@ -271,5 +272,61 @@ describe('the footer', () => {
     expect(
       screen.getByRole('link', { name: 'Source' }).getAttribute('href')
     ).toBe('https://github.com/liqweed/audible-ex')
+  })
+})
+
+describe('the request to rate the extension', () => {
+  const used = async (ratings: number) => {
+    await recordRatings(ratings, '2026-11-01')
+    await recordRatings(1, '2026-11-02')
+    await recordRatings(1, '2026-11-03')
+  }
+  const request = () =>
+    screen.queryByRole('region', { name: 'Rate this extension' })
+
+  test('always has a quiet "Rate" link in the footer', async () => {
+    render(<App backend={fakeBackend(0, 0).backend} />)
+    const link = await screen.findByRole('link', {
+      name: 'Rate it on the Chrome Web Store',
+    })
+    expect(link.getAttribute('href')).toMatch(/\/reviews$/)
+    expect(request()).toBeNull()
+  })
+
+  test('is shown once to someone who has used the extension, and then never again', async () => {
+    await used(200)
+    const first = render(<App backend={fakeBackend(0, 0).backend} />)
+    expect(
+      await screen.findByRole('region', { name: 'Rate this extension' })
+    ).toBeDefined()
+    await waitFor(async () => expect((await readNudge()).shown).toBe(true))
+    fireEvent.click(screen.getByRole('button', { name: 'Not now' }))
+    expect(request()).toBeNull()
+    first.unmount()
+    render(<App backend={fakeBackend(0, 0).backend} />)
+    await screen.findByText('Not affiliated with Audible, Amazon or Goodreads.')
+    expect(request()).toBeNull()
+  })
+
+  test('follows a changed setting instead of the ratings seen', async () => {
+    await used(3)
+    await updateFilters({ highlightLabels: ['Fantasy'] })
+    render(<App backend={fakeBackend(0, 0).backend} />)
+    expect(
+      await screen.findByRole('region', { name: 'Rate this extension' })
+    ).toBeDefined()
+  })
+
+  test('stays away from someone who has not used it enough, or was asked already', async () => {
+    await recordRatings(900, '2026-11-01')
+    render(<App backend={fakeBackend(0, 0).backend} />)
+    await screen.findByText('Not affiliated with Audible, Amazon or Goodreads.')
+    expect(request()).toBeNull()
+    cleanup()
+    await used(200)
+    await markNudgeShown()
+    render(<App backend={fakeBackend(0, 0).backend} />)
+    await screen.findByText('Not affiliated with Audible, Amazon or Goodreads.')
+    expect(request()).toBeNull()
   })
 })

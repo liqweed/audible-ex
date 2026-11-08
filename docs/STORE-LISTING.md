@@ -80,15 +80,19 @@ Not affiliated with, endorsed or sponsored by Audible, Amazon or Goodreads. Audi
 | Screenshots      | 1280 × 800 | `.output/store/screenshot-<n>-<…>.png` |
 | Small promo tile | 440 × 280  | `.output/store/promo-small.png`        |
 
-Upload the screenshots in this order, which is the order of their file names:
+Upload the first five screenshots, in the order of their file names. The Chrome Web Store
+takes five; the sixth is for the AMO listing, which takes more.
 
-1. `screenshot-1-search.png`: badges, years and genres on a search page.
+1. `screenshot-1-search.png`: badges, years and genres on a search page, with the amber
+   price chip of a highlight price.
 2. `screenshot-2-overview.png`: the overview on hovering a rating.
-3. `screenshot-3-filters.png`: the panel's filter settings, with books dimmed
-   and a genre highlighted.
+3. `screenshot-3-filters.png`: the panel's filter settings, with books dimmed, a genre,
+   the best rated books and the cheap ones highlighted.
 4. `screenshot-4-popover.png`: a highlighted genre's popover (Hide, Show or
    Highlight), with the panel collapsed to its pill.
-5. `screenshot-5-cache.png`: the cache inspector in the settings.
+5. `screenshot-5-settings.png`: the settings page, with the Display preview of one book
+   that follows the choices.
+6. `screenshot-6-cache.png` (AMO only): the cache inspector in the settings.
 
 **Official URL:** none. **Homepage URL:** https://github.com/liqweed/audible-ex.
 **Support URL:** https://github.com/liqweed/audible-ex/issues.
@@ -138,10 +142,11 @@ Free. Visibility: **Public**. Regions: all.
 
 `bun e2e` builds the extension, loads `.output/chrome-mv3` into Playwright's
 bundled Chromium, checks badges on live `audible.com` and `audible.co.uk`, and
-writes the five screenshots and the promo tile to `.output/store/`. It sets the
-filters itself: off for the search and overview screenshots, and dimming, with
-the page's commonest genre highlighted, for the filters and popover
-screenshots. It opens a browser window: Goodreads answers 403 to headless
+writes the six screenshots and the promo tile to `.output/store/`. It sets the
+filters itself: off, with a highlight price, for the search and overview
+screenshots, and dimming, with the page's commonest genre, a highlight rating and a
+highlight price, for the filters and popover screenshots. The settings and cache
+screenshots then show those prefs, so run the tests in order (`bun e2e` does). It opens a browser window: Goodreads answers 403 to headless
 Chromium. Outside the US, `audible.com` serves its error page for search and
 book pages, so the `.com` check uses the home page and the screenshots come from
 `.co.uk`. Look at every image before uploading: the pages show whatever Audible

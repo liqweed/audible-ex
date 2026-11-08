@@ -496,6 +496,8 @@ filter can't apply to it and the card stays visible.
 | ------------------------------------------------------ | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | Preferences: enabled, filters, display options         | `storage.sync` via WXT `storage.defineItem('sync:prefs', { version, migrations })` | Personal preference; follows the user across devices and Audible regions. Well within sync quotas. |
 | Panel placement, collapsed state, hidden-on-site flags | `storage.local`                                                                    | Specific to this screen and device.                                                                |
+| Usage counters for the rating request (days, ratings shown) | `storage.local`, `local:engagement`                                           | Change often and belong to this device (D32).                                                      |
+| Whether the rating request was shown                   | `storage.sync`, `sync:nudge`                                                       | One boolean, written once, so a user with two computers is asked once.                             |
 | Cache: ratings, meta, details, pins, overrides, housekeeping      | IndexedDB in the background, through `idb` (DECISIONS.md D13)                      | Thousands of records; needs an index on timestamp for purging. `unlimitedStorage` permission.      |
 | Peek, progress, book views                             | Memory (TanStack Store)                                                            | Per page.                                                                                          |
 
@@ -505,6 +507,16 @@ older field never crashes the UI.
 
 The panel's own state (`src/storage/panel.ts`: `corner`, `collapsed`, `hiddenHosts`) is the
 `local:panel` item, version 1, decoded with defaults like the prefs.
+
+The request to rate the extension (D32, `src/storage/nudge.ts`, rules in `src/core/nudge.ts`) keeps two
+version-1 items. `local:engagement` is `{ days, ratings }`: the first three distinct local dates on which
+the panel script saw a rating, and the ratings it has seen in all (`src/panel/engagement.ts` counts the
+books that turned `ready` with a rating and writes in batches of two seconds, so the worker and the
+port are not involved). `sync:nudge` is `{ shown }`. The request is eligible when `days` has three
+entries and either the prefs differ from their defaults, the master switch aside
+(`isCustomized`, `src/lib/nudge.ts`), or `ratings` is at least 200. `useRatingNudge` shows it at most
+once: the panel when its lookups are done and it is open, the popup when it is opened, whichever is first;
+it sets `shown` as it appears, so ignoring it also uses it up. Neither item is ever sent anywhere.
 
 `src/storage/prefs.ts` holds `enabled` (the extension's master switch), `filters` and `display`,
 version 7. The options page edits all of them; the popup edits the master switch and the panel

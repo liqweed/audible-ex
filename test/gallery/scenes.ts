@@ -19,6 +19,7 @@ export const SCENES = [
   { id: 'panel-filters', title: 'Panel: filter settings open' },
   { id: 'panel-info', title: 'Panel: an explanation open' },
   { id: 'panel-paused', title: 'Panel: Goodreads is rate limiting' },
+  { id: 'panel-rate', title: 'Panel: the one request to rate the extension' },
   { id: 'pill-on', title: 'Pill: filtering on, with counts' },
   { id: 'pill-off', title: 'Pill: filtering off' },
 ] as const

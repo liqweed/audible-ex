@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { PanelHandle } from '@/content/shared'
 import { regionFromHost } from '@/core/regions'
 import { SOURCE_URL } from '@/lib/links'
+import { useRatingNudge } from '@/lib/nudge'
+import { RateNudge } from '@/lib/RateNudge'
 import {
   type Corner,
   DEFAULT_PANEL,
@@ -12,6 +14,7 @@ import {
   panelStorage,
 } from '@/storage/panel'
 import { useDrag } from './drag'
+import { useCountRatings } from './engagement'
 import { Filters } from './Filters'
 import { Pill } from './Pill'
 import {
@@ -170,6 +173,15 @@ export function Panel({
     [change]
   )
   const drag = useDrag(box, dock)
+  useCountRatings(handle)
+  // Asked once, when the lookups are done and the panel is open: never in the middle of the work.
+  const nudge = useRatingNudge(
+    view.kind === 'progress' &&
+      view.finished &&
+      state !== undefined &&
+      !state.collapsed &&
+      !state.hiddenHosts.includes(host)
+  )
   if (view.kind === 'hidden' || !state || state.hiddenHosts.includes(host))
     return null
 
@@ -342,6 +354,9 @@ export function Panel({
                   region={regionFromHost(host)}
                   openOptions={openOptions}
                 />
+                {nudge.visible && (
+                  <RateNudge variant='panel' close={nudge.close} />
+                )}
               </>
             )}
           </section>

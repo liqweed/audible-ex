@@ -38,7 +38,10 @@ Later releases add a version to this add-on; they never create a new one. Until
 
 ## Listing
 
-**Name:** Book Ratings for Audible. **Add-on URL:** `book-ratings-for-audible`.
+**Name:** Book Ratings for Audible. **Add-on URL:** `book-ratings-for-audible`. Keep that
+slug: the Firefox build links to `https://addons.mozilla.org/firefox/addon/book-ratings-for-audible/reviews/`
+for its request to rate the extension (DECISIONS.md D32, `src/lib/links.ts`), and the link
+works only after the first submission is approved.
 
 **Summary** (at most 250 characters):
 
@@ -65,8 +68,8 @@ takes the text, not a link).
 required. The titles, authors and ASINs of the books on Audible pages go to
 Goodreads and Audible's catalogue API to look the books up. Nothing else.
 
-**Screenshots:** the five from `bun e2e` (`.output/store/`), in the Chrome
-order. They show Chrome, which is fine: the extension looks the same.
+**Screenshots:** the six from `bun e2e` (`.output/store/`), in the Chrome
+order, with the cache inspector sixth. They show Chrome, which is fine: the extension looks the same.
 
 ## Notes for reviewers
 
