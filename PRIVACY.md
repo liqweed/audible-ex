@@ -1,6 +1,6 @@
 # Privacy policy — Book Ratings for Audible
 
-Last updated: 2026-11-04
+Last updated: 2026-11-08
 
 Book Ratings for Audible is a browser extension that shows Goodreads ratings,
 genres and first-published years on Audible book cards. It is free, open source
@@ -45,6 +45,12 @@ identifies you beyond that address.
   is sent anywhere.
 - **The panel's place** (its corner, whether it is collapsed, and the sites you
   hid it on) is kept on your device only.
+- **A usage count** (the days on which the extension showed ratings, the first
+  three of them, and how many ratings it showed) is kept on your device only. It
+  decides when the extension asks, once, whether you would rate it in the store;
+  a flag that it asked is kept in your browser's sync storage so that it does
+  not ask again on another device. The extension offers nothing in return for a
+  rating and never sees whether you gave one.
 - **A cache of lookups** (each book's Goodreads rating, number of ratings, link,
   genres, first-published year and a short overview of at most 600 characters)
   is kept on your device only, so the same book isn't looked up again. A found

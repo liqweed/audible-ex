@@ -1,2 +1,4 @@
 @import 'tailwindcss' source(none);
 @source './**/*.tsx';
+/* The request to rate the extension is drawn by a component shared with the popup. */
+@source '../lib/RateNudge.tsx';

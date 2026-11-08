@@ -539,6 +539,11 @@ describe('options page design', () => {
         .getByRole('link', { name: 'Chrome Web Store page' })
         .getAttribute('href')
     ).toContain('chromewebstore.google.com')
+    expect(
+      within(nav)
+        .getByRole('link', { name: 'Rate it on the Chrome Web Store' })
+        .getAttribute('href')
+    ).toMatch(/chromewebstore\.google\.com\/detail\/.+\/reviews$/)
   })
 })
 

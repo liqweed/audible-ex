@@ -136,13 +136,31 @@ async function settled(page: Page) {
 }
 
 /**
+ * Gives the highlight price's amber chips time to arrive: prices come from Audible's catalogue after
+ * the ratings. A page with nothing at or under the limit has none, which is not a failure, so this
+ * only waits.
+ */
+async function waitForPriceChips(page: Page) {
+  try {
+    await page
+      .locator('.agx-price')
+      .filter({ visible: true })
+      .first()
+      .waitFor({ state: 'visible', timeout: 20_000 })
+  } catch (error) {
+    if (error instanceof errors.TimeoutError) return
+    throw error
+  }
+}
+
+/**
  * Replaces the prefs with these filters; every other filter and pref takes its default when read
  * (src/storage/prefs.ts). `prefs$` is WXT's version record for the item.
  */
 async function setFilters(filters: Record<string, unknown>) {
   await worker.evaluate(
     filters =>
-      chrome.storage.sync.set({ prefs: { filters }, prefs$: { v: 6 } }),
+      chrome.storage.sync.set({ prefs: { filters }, prefs$: { v: 8 } }),
     filters
   )
 }
@@ -156,7 +174,9 @@ test('badges appear on audible.com', async () => {
 
 test('badges, labels and the overview appear on audible.co.uk; store screenshots', async () => {
   // The default filters hide books rated below 4.0; this page should show every badge.
-  await setFilters({ enabled: false })
+  // A highlight price works with the filters off (DECISIONS.md D31): books at or under it get an
+  // amber price chip, so the screenshot shows it beside the rating.
+  await setFilters({ enabled: false, highlightPrice: { UK: 10 } })
   const { page, ready } = await openWithBadges(
     'https://www.audible.co.uk/search?keywords=Andy%20Weir&sort=review-rank',
     3
@@ -164,6 +184,7 @@ test('badges, labels and the overview appear on audible.co.uk; store screenshots
   // Scrolling brings more books in reach; their years and labels arrive after the ratings.
   await scrollToBooks(page)
   await settled(page)
+  await waitForPriceChips(page)
   await page.screenshot({ path: join(STORE, 'screenshot-1-search.png') })
 
   // The floating panel is a second content script that gets the badge script's state through the
@@ -187,6 +208,10 @@ test('filters dim books and a highlighted genre makes covers glow; store screens
   // books on the page reach, so it shows passing, dimmed and highlighted books together.
   const filters = {
     minRating: 3.8,
+    // The highlights are not filters (0.7, 0.8): the best rated books and the cheap ones are marked
+    // at full strength, even where a filter would dim them.
+    highlightRating: 4.5,
+    highlightPrice: { UK: 10 },
     modes: {
       rating: 'dim',
       count: 'dim',
@@ -219,6 +244,7 @@ test('filters dim books and a highlighted genre makes covers glow; store screens
   await expect(page.locator('[data-agx-highlight]').first()).toBeAttached()
   await scrollToBooks(page)
   await settled(page)
+  await waitForPriceChips(page)
 
   await page.getByRole('button', { name: 'Filter settings' }).click()
   await page.waitForTimeout(500)
@@ -239,7 +265,21 @@ test('filters dim books and a highlighted genre makes covers glow; store screens
   await page.close()
 })
 
-test('the cache inspector in the settings; store screenshot', async () => {
+test('the settings page; store screenshot', async () => {
+  // The earlier tests left filters and a highlighted genre in the prefs, so the page shows a
+  // customized extension, with the preview of one book that follows them (0.9).
+  const page = await context.newPage()
+  await page.goto(`chrome-extension://${extensionId}/options.html`)
+  await expect(page.getByText('Preview', { exact: true })).toBeVisible()
+  await page
+    .getByRole('heading', { name: 'Display' })
+    .evaluate(h => window.scrollBy(0, h.getBoundingClientRect().top - 24))
+  await page.waitForTimeout(300)
+  await page.screenshot({ path: join(STORE, 'screenshot-5-settings.png') })
+  await page.close()
+})
+
+test('the cache inspector in the settings; extra store screenshot', async () => {
   const page = await context.newPage()
   await page.goto(`chrome-extension://${extensionId}/options.html`)
   await page.getByRole('button', { name: 'Open cache inspector' }).click()
@@ -249,7 +289,7 @@ test('the cache inspector in the settings; store screenshot', async () => {
     .getByRole('heading', { name: 'Cached books' })
     .evaluate(h => window.scrollBy(0, h.getBoundingClientRect().top - 24))
   await page.waitForTimeout(300)
-  await page.screenshot({ path: join(STORE, 'screenshot-5-cache.png') })
+  await page.screenshot({ path: join(STORE, 'screenshot-6-cache.png') })
   await page.close()
 })
 

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { createStore } from '@tanstack/store'
 import {
   act,
@@ -8,9 +8,11 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react'
+import { fakeBrowser } from 'wxt/testing/fake-browser'
 import { type BookStore, createBookStore } from '@/content/books'
 import type { FilterState } from '@/content/filter'
 import type { PanelHandle } from '@/content/shared'
+import { markNudgeShown, readNudge, recordRatings } from '@/storage/nudge'
 import {
   DEFAULT_PANEL,
   type PanelState,
@@ -546,5 +548,101 @@ describe('the shell', () => {
         wrapper.parentElement?.querySelectorAll('[aria-hidden] > div')
       ).toHaveLength(0)
     })
+  })
+})
+
+describe('the request to rate the extension', () => {
+  /** Three days of use and `ratings` ratings, as the panel's counter would have written them. */
+  const used = async (ratings: number) => {
+    await recordRatings(ratings, '2026-11-01')
+    await recordRatings(1, '2026-11-02')
+    await recordRatings(1, '2026-11-03')
+  }
+  const finished = (books: BookStore) =>
+    act(async () => books.setProgress(counters({ done: 12 })))
+
+  beforeEach(() => fakeBrowser.reset())
+
+  test('appears once the lookups are done, for someone who customized a filter', async () => {
+    await used(3)
+    await updateFilters({ minRating: 3.5 })
+    const { books, handle } = setup()
+    await show(<Panel handle={handle} storage={memoryStorage().storage} />)
+    await finished(books)
+    const link = await screen.findByRole('link', { name: /^Rate it on/ })
+    expect(link.getAttribute('href')).toContain('/reviews')
+    expect(link.getAttribute('target')).toBe('_blank')
+    await waitFor(async () => expect((await readNudge()).shown).toBe(true))
+  })
+
+  test('appears after enough ratings without any customization', async () => {
+    await used(200)
+    const { books, handle } = setup()
+    await show(<Panel handle={handle} storage={memoryStorage().storage} />)
+    await finished(books)
+    expect(
+      await screen.findByRole('link', { name: /^Rate it on/ })
+    ).toBeTruthy()
+  })
+
+  test('waits while lookups are still running', async () => {
+    await used(200)
+    const { books, handle } = setup()
+    await show(<Panel handle={handle} storage={memoryStorage().storage} />)
+    await act(async () => books.setProgress(counters({ done: 4, queued: 8 })))
+    expect(screen.queryByRole('link', { name: /^Rate it on/ })).toBeNull()
+    expect((await readNudge()).shown).toBe(false)
+    await finished(books)
+    expect(
+      await screen.findByRole('link', { name: /^Rate it on/ })
+    ).toBeTruthy()
+  })
+
+  test('does not appear for a new user, or one with little use', async () => {
+    await recordRatings(500, '2026-11-01')
+    const { books, handle } = setup()
+    await show(<Panel handle={handle} storage={memoryStorage().storage} />)
+    await finished(books)
+    expect(screen.queryByRole('link', { name: /^Rate it on/ })).toBeNull()
+    expect((await readNudge()).shown).toBe(false)
+  })
+
+  test('does not appear when it was shown before', async () => {
+    await used(200)
+    await markNudgeShown()
+    const { books, handle } = setup()
+    await show(<Panel handle={handle} storage={memoryStorage().storage} />)
+    await finished(books)
+    expect(screen.queryByRole('link', { name: /^Rate it on/ })).toBeNull()
+  })
+
+  test('does not appear in a collapsed pill, and has not been used up by it', async () => {
+    await used(200)
+    const { books, handle } = setup()
+    await show(
+      <Panel
+        handle={handle}
+        storage={memoryStorage({ collapsed: true }).storage}
+      />
+    )
+    await finished(books)
+    expect(screen.queryByRole('link', { name: /^Rate it on/ })).toBeNull()
+    expect((await readNudge()).shown).toBe(false)
+  })
+
+  test('goes away on "Not now" and does not come back', async () => {
+    await used(200)
+    const { books, handle } = setup()
+    const { unmount } = await show(
+      <Panel handle={handle} storage={memoryStorage().storage} />
+    )
+    await finished(books)
+    fireEvent.click(await screen.findByRole('button', { name: 'Not now' }))
+    expect(screen.queryByRole('link', { name: /^Rate it on/ })).toBeNull()
+    unmount()
+    const next = setup()
+    await show(<Panel handle={next.handle} storage={memoryStorage().storage} />)
+    await finished(next.books)
+    expect(screen.queryByRole('link', { name: /^Rate it on/ })).toBeNull()
   })
 })

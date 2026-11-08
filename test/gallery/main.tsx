@@ -21,6 +21,7 @@ import type { PanelHandle } from '@/content/shared'
 import type { FilterSettings } from '@/core/filter'
 import { Panel } from '@/panel/Panel'
 import panelCss from '@/panel/panel.css?inline'
+import { recordRatings } from '@/storage/nudge'
 import {
   DEFAULT_PANEL,
   type PanelState,
@@ -253,13 +254,15 @@ function drawPanel(options: {
   stored?: Partial<PanelState>
   filter?: Partial<FilterState>
   pausedUntil?: number
+  /** Every lookup is done, so the panel may ask for a rating. */
+  finished?: boolean
 }): ShadowRoot {
   const books = createBookStore()
   for (const book of BOOKS) books.set(book.asin, book.view)
   books.setProgress({
-    queued: 9,
-    active: 3,
-    done: 48,
+    queued: options.finished ? 0 : 9,
+    active: options.finished ? 0 : 3,
+    done: options.finished ? 60 : 48,
     cached: 30,
     notFound: 2,
     failed: 1,
@@ -416,6 +419,16 @@ const draw: Record<SceneId, () => Promise<void>> = {
     drawCards(BOOKS, 'results')
     const root = drawPanel({ pausedUntil: NOW + 12_000 })
     await until(() => root.querySelector('[role="status"]'))
+  },
+  async 'panel-rate'() {
+    // Three days of use and a changed filter: the one request to rate the extension.
+    await recordRatings(40, '2026-11-01')
+    await recordRatings(30, '2026-11-02')
+    await recordRatings(30, '2026-11-03')
+    await updateFilters(FILTER_PREFS)
+    drawCards(BOOKS, 'results')
+    const root = drawPanel({ finished: true })
+    await until(() => root.querySelector('[aria-label="Rate this extension"]'))
   },
   async 'pill-on'() {
     drawCards(BOOKS, 'results')

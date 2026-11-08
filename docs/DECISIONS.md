@@ -625,3 +625,36 @@ year and labels are. Prices are now requested when the limit is in force or the 
 price is set (`wantsPrices`); nothing about the Goodreads lookup changes. Prefs v8 carries
 it with `priceOnDeals`, since v8 had not shipped.
 
+## D32 — One gentle request to rate the extension (2026-11-08)
+
+Ratings in the stores are how a small extension is found, and a person who has used it for
+days is the one whose rating means something. The extension asks once, and only that person.
+
+- **When.** Ratings were shown on three different local days, and either the user changed a
+  setting (any difference from the defaults but the master switch: a filter, a highlight, the
+  display) or the extension has shown 200 ratings, which stands for heavy use with no need to
+  change anything. A day without a rating is not a day of use.
+- **Once.** The request counts as used when it appears, not when it is answered: ignoring it
+  does not earn another. Its flag is `sync:nudge`, one boolean, so a user with several
+  computers is asked once. "Rate it" and "Not now" both end it.
+- **Where.** The panel, in its footer, only when its lookups are done and it is open (never in
+  the middle of the work, never in the collapsed pill), and the toolbar popup when it is opened,
+  whichever comes first. Never in Audible's own page, and never a notification or a tab. A quiet
+  "Rate" link in the popup's footer and a link on the options page stay for anyone who looks.
+- **What it says.** A sentence and two choices. It asks for a rating, not a good one, offers
+  nothing in return and does not send the unhappy elsewhere: Chrome Web Store policy forbids
+  incentivized or manipulated ratings, and asking everyone who qualifies is the honest version.
+- **Where the link goes.** The reviews tab of the store this build is in: the Chrome Web Store
+  listing's `/reviews`, or the AMO listing's `/reviews/` in Firefox (`REVIEW_URL`,
+  `src/lib/links.ts`). Opening it is a plain link the user clicks; no permission is needed.
+- **How it counts.** The panel script counts the books that become ready with a rating and
+  writes `local:engagement` in batches (`src/panel/engagement.ts`). It lives there because the
+  panel already has the page's books; the worker, the port and the queue are untouched, so
+  nothing near Goodreads changes. The counters never leave the device (PRIVACY.md says so).
+
+Rejected: a badge or a number on the toolbar icon (a constant reminder, and it needs the
+worker to track state); a page on first install (no use to judge yet); a notification
+(needs a permission); asking again after "Not now" after some months (the request was
+"no more than a single nudge"; the permanent links cover the rest); counting in the worker
+(couples the lookup path to a product feature). The 200 ratings and three days are
+starting points, not measured.

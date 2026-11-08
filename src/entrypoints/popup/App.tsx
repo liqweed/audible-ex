@@ -5,7 +5,9 @@ import { browser } from 'wxt/browser'
 import { CacheBar } from '@/lib/CacheBar'
 import { books, formatBytes } from '@/lib/format'
 import { Logo } from '@/lib/Logo'
-import { PRIVACY_URL, SOURCE_URL } from '@/lib/links'
+import { PRIVACY_URL, REVIEW_STORE, REVIEW_URL, SOURCE_URL } from '@/lib/links'
+import { useRatingNudge } from '@/lib/nudge'
+import { RateNudge } from '@/lib/RateNudge'
 import type { ClearScope, Stats } from '@/schema/popup'
 import { readPanel, updatePanel, watchPanel } from '@/storage/panel'
 import { readPrefs, updatePrefs, watchPrefs } from '@/storage/prefs'
@@ -195,6 +197,7 @@ function Cache({ backend }: { backend: Backend }) {
 export function App({ backend = extensionBackend }: { backend?: Backend }) {
   const { enabled, change, error } = useEnabled()
   const hidden = useHiddenSites()
+  const nudge = useRatingNudge(true)
   return (
     <main className='w-80 space-y-4 p-4'>
       <header className='flex items-center gap-3'>
@@ -247,6 +250,7 @@ export function App({ backend = extensionBackend }: { backend?: Backend }) {
         Settings
       </button>
       <Cache backend={backend} />
+      {nudge.visible && <RateNudge variant='popup' close={nudge.close} />}
       <footer className='space-y-1 border-t border-border pt-3 text-xs text-muted-foreground'>
         <p>Not affiliated with Audible, Amazon or Goodreads.</p>
         <p className='flex gap-3'>
@@ -265,6 +269,15 @@ export function App({ backend = extensionBackend }: { backend?: Backend }) {
             className='underline'
           >
             Source
+          </a>
+          <a
+            href={REVIEW_URL}
+            target='_blank'
+            rel='noreferrer'
+            aria-label={`Rate it on ${REVIEW_STORE}`}
+            className='underline'
+          >
+            Rate
           </a>
         </p>
       </footer>
