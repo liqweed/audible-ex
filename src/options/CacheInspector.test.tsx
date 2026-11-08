@@ -62,6 +62,10 @@ async function show(
       if (broken) throw new Error('Cache blocked')
       return stored
     },
+    genres: async () => [],
+    stats: async () => {
+      throw new Error('not used by the inspector')
+    },
     correct: async (asin, url) => {
       calls.push({ asin, url })
       if (url.includes('/999')) throw new Error('Goodreads unavailable')

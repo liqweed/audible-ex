@@ -73,6 +73,8 @@ export interface MemoryCache {
   readonly meta: Map<string, Meta>
   readonly details: Map<string, StoredDetails>
   readonly pins: string[]
+  /** The list each pin named, in order, `undefined` when the request named none. */
+  readonly pinLists: (string | undefined)[]
 }
 
 /**
@@ -86,6 +88,7 @@ export const memoryCache = (
   const meta = new Map<string, Meta>()
   const details = new Map<string, StoredDetails>()
   const pins: string[] = []
+  const pinLists: (string | undefined)[] = []
   const unused = Effect.die('not used by the lookup tests')
   const service: BookCacheService = {
     getOverride: () => Effect.succeedNone,
@@ -109,14 +112,16 @@ export const memoryCache = (
       Effect.sync(() => {
         details.set(record.bookId, { ...record, savedAt: 0 })
       }),
-    pin: asin =>
+    pin: (asin, list) =>
       Effect.sync(() => {
+        pinLists.push(list)
         pins.push(asin)
       }),
     purge: unused,
     purgeIfDue: unused,
     clear: () => unused,
     stats: unused,
+    genres: unused,
   }
   const broken = (operation: string) =>
     Effect.fail(new CacheError({ operation, cause: 'broken on purpose' }))
@@ -139,6 +144,7 @@ export const memoryCache = (
     meta,
     details,
     pins,
+    pinLists,
   }
 }
 

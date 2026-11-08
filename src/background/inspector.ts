@@ -22,6 +22,8 @@ export const answerInspector = (
     switch (request._tag) {
       case 'ListCachedBooks':
         return { _tag: 'CachedBooks', books: yield* cache.list } as const
+      case 'ListGenres':
+        return { _tag: 'Genres', genres: yield* cache.genres } as const
       case 'DeleteCachedBook':
         yield* cache.deleteBook(request.asin)
         break

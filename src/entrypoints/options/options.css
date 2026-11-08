@@ -4,7 +4,10 @@
   @apply space-y-4 rounded-xl border border-slate-200 bg-white p-5;
 }
 .options-section h2 {
-  @apply text-lg font-semibold;
+  @apply flex items-center gap-2 text-lg font-semibold;
+}
+.options-section h2 > svg {
+  @apply h-5 w-5 shrink-0 text-indigo-600;
 }
 .options-hint {
   @apply text-xs leading-relaxed text-slate-500;
@@ -26,4 +29,9 @@
   gap: 0.75rem;
   padding: 0.75rem;
   border-bottom: 1px solid var(--color-slate-200);
+}
+
+/* The bar of unsaved changes sticks to the bottom; keep a focused field from hiding behind it. */
+html {
+  scroll-padding-bottom: 6rem;
 }

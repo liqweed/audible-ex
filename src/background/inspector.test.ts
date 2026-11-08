@@ -13,6 +13,7 @@ test('inspector requests validate identifiers before accessing the cache', () =>
     })._tag
   ).toBe('None')
   expect(decodeInspectorRequest({ _tag: 'ListCachedBooks' })._tag).toBe('Some')
+  expect(decodeInspectorRequest({ _tag: 'ListGenres' })._tag).toBe('Some')
 })
 test('web pages and other extensions cannot read or mutate cached books', () => {
   let called = false
@@ -27,6 +28,7 @@ test('web pages and other extensions cannot read or mutate cached books', () => 
   ]) {
     for (const request of [
       { _tag: 'ListCachedBooks' },
+      { _tag: 'ListGenres' },
       { _tag: 'DeleteCachedBook', asin: 'B08G9PRS1K' },
       {
         _tag: 'CorrectCachedBook',

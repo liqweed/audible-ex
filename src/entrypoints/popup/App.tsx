@@ -1,15 +1,20 @@
 import * as Switch from '@radix-ui/react-switch'
+import { Database, Eraser, Eye, Settings, Trash2, X } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { browser } from 'wxt/browser'
+import { CacheBar } from '@/lib/CacheBar'
+import { books, formatBytes } from '@/lib/format'
+import { Logo } from '@/lib/Logo'
 import { PRIVACY_URL, SOURCE_URL } from '@/lib/links'
 import type { ClearScope, Stats } from '@/schema/popup'
 import { readPanel, updatePanel, watchPanel } from '@/storage/panel'
 import { readPrefs, updatePrefs, watchPrefs } from '@/storage/prefs'
 import { type Backend, extensionBackend } from './backend'
-import { books, formatBytes } from './format'
 
 const button =
-  'rounded-md border border-border bg-secondary px-3 py-1.5 text-left text-sm hover:bg-accent disabled:opacity-50'
+  'flex items-center gap-2 rounded-md border border-border bg-secondary px-3 py-1.5 text-left text-sm hover:bg-accent disabled:opacity-50'
+/** Every button leads with an icon of this size; it is decoration, the text names the button. */
+const icon = 'h-4 w-4 shrink-0'
 
 const messageOf = (error: unknown) =>
   error instanceof Error ? error.message : String(error)
@@ -116,6 +121,7 @@ function Cache({ backend }: { backend: Backend }) {
             ? 'The cache is empty.'
             : `${books(cache.stats.books)} cached (${formatBytes(cache.stats.bytes)}), ${cache.stats.pinned} from Library and Wish List.`)}
       </p>
+      {cache.kind === 'ready' && <CacheBar {...cache.stats} />}
       <div className='flex flex-col gap-2'>
         <button
           type='button'
@@ -123,6 +129,7 @@ function Cache({ backend }: { backend: Backend }) {
           disabled={busy}
           onClick={() => clear('unpinned')}
         >
+          <Eraser aria-hidden='true' className={icon} />
           Clear, keeping Library, Wish List and manual matches
         </button>
         {confirming ? (
@@ -138,6 +145,7 @@ function Cache({ backend }: { backend: Backend }) {
                 disabled={busy}
                 onClick={() => clear('all')}
               >
+                <Trash2 aria-hidden='true' className={icon} />
                 Clear everything
               </button>
               <button
@@ -145,6 +153,7 @@ function Cache({ backend }: { backend: Backend }) {
                 className={button}
                 onClick={() => setConfirming(false)}
               >
+                <X aria-hidden='true' className={icon} />
                 Cancel
               </button>
             </div>
@@ -156,9 +165,23 @@ function Cache({ backend }: { backend: Backend }) {
             disabled={busy}
             onClick={() => setConfirming(true)}
           >
+            <Trash2 aria-hidden='true' className={icon} />
             Clear everything…
           </button>
         )}
+        <button
+          type='button'
+          className={button}
+          onClick={() => {
+            // The options page scrolls to its Cache section for this address.
+            void browser.tabs.create({
+              url: `${browser.runtime.getURL('/options.html')}#cache`,
+            })
+          }}
+        >
+          <Database aria-hidden='true' className={icon} />
+          Open the cache overview
+        </button>
       </div>
       {result && (
         <p className='text-sm' role='status'>
@@ -174,11 +197,16 @@ export function App({ backend = extensionBackend }: { backend?: Backend }) {
   const hidden = useHiddenSites()
   return (
     <main className='w-80 space-y-4 p-4'>
-      <header>
-        <h1 className='text-lg font-semibold'>Book Ratings for Audible</h1>
-        <p className='text-sm text-muted-foreground'>
-          Goodreads ratings on Audible.
-        </p>
+      <header className='flex items-center gap-3'>
+        <Logo size={40} />
+        <div>
+          <h1 className='text-lg leading-tight font-semibold'>
+            Book Ratings for Audible
+          </h1>
+          <p className='text-sm text-muted-foreground'>
+            Goodreads ratings on Audible.
+          </p>
+        </div>
       </header>
       <div className='flex items-center justify-between gap-3'>
         <label htmlFor='enabled' className='text-sm'>
@@ -197,6 +225,7 @@ export function App({ backend = extensionBackend }: { backend?: Backend }) {
       {hidden.hosts.length > 0 && (
         <div className='space-y-1'>
           <button type='button' className={button} onClick={hidden.showAgain}>
+            <Eye aria-hidden='true' className={icon} />
             Show the panel again
           </button>
           <p className='text-xs text-muted-foreground'>
@@ -214,6 +243,7 @@ export function App({ backend = extensionBackend }: { backend?: Backend }) {
         className={button}
         onClick={() => browser.runtime.openOptionsPage()}
       >
+        <Settings aria-hidden='true' className={icon} />
         Settings
       </button>
       <Cache backend={backend} />

@@ -295,6 +295,59 @@ describe('pins', () => {
     )
   )
 
+  scenario(
+    'a pin remembers its list, and an older pin learns it when seen again',
+    factory =>
+      worker(factory, cache =>
+        Effect.gen(function* () {
+          yield* cache.pin(found.asin)
+          expect(yield* cache.stats).toMatchObject({
+            pinned: 1,
+            library: 0,
+            wishlist: 0,
+          })
+          // Within the day, but the list is new information: written at once.
+          yield* advance(HOUR)
+          yield* cache.pin(found.asin, 'wishlist')
+          expect(yield* peek(factory, 'pins', found.asin)).toEqual({
+            asin: found.asin,
+            lastSeen: START + HOUR,
+            list: 'wishlist',
+          })
+          // The same list within the day writes nothing.
+          yield* advance(HOUR)
+          yield* cache.pin(found.asin, 'wishlist')
+          expect(yield* peek(factory, 'pins', found.asin)).toMatchObject({
+            lastSeen: START + HOUR,
+          })
+          // A wish-listed book that was bought moves to the Library.
+          yield* cache.pin(found.asin, 'library')
+          yield* cache.pin(otherBook.rating.asin, 'wishlist')
+          yield* cache.pin('197865085X', 'library')
+          expect(yield* cache.stats).toMatchObject({
+            pinned: 3,
+            library: 2,
+            wishlist: 1,
+          })
+        })
+      )
+  )
+
+  scenario('a daily refresh keeps the list the pin already had', factory =>
+    worker(factory, cache =>
+      Effect.gen(function* () {
+        yield* cache.pin(found.asin, 'wishlist')
+        yield* advance(DAY)
+        yield* cache.pin(found.asin)
+        expect(yield* peek(factory, 'pins', found.asin)).toEqual({
+          asin: found.asin,
+          lastSeen: START + DAY,
+          list: 'wishlist',
+        })
+      })
+    )
+  )
+
   scenario('a pin lapses 180 days after it was last seen', factory =>
     worker(factory, cache =>
       Effect.gen(function* () {
@@ -656,6 +709,8 @@ describe('clear', () => {
             entries: 0,
             bytes: 0,
             pinned: 0,
+            library: 0,
+            wishlist: 0,
           })
         })
       )
@@ -682,6 +737,8 @@ describe('stats', () => {
           entries: 0,
           bytes: 0,
           pinned: 0,
+          library: 0,
+          wishlist: 0,
         })
 
         yield* store(cache, pinnedBook, true)
@@ -946,5 +1003,47 @@ describe('cache inspector', () => {
         })
       )
     })
+  )
+})
+
+describe('genres', () => {
+  scenario(
+    'lists the genres of the stored details, the most common first',
+    factory =>
+      worker(factory, cache =>
+        Effect.gen(function* () {
+          expect(yield* cache.genres).toEqual([])
+          yield* cache.setDetails({
+            ...details,
+            genres: ['Science Fiction', 'Fiction', 'Fiction'],
+          })
+          yield* cache.setDetails({
+            ...details,
+            bookId: '7',
+            genres: ['Fantasy', 'Fiction'],
+          })
+          yield* cache.setDetails({
+            ...details,
+            bookId: '8',
+            genres: ['Fantasy'],
+          })
+          // A genre counts once per book, and ties fall back to alphabetical order.
+          expect(yield* cache.genres).toEqual([
+            'Fantasy',
+            'Fiction',
+            'Science Fiction',
+          ])
+        })
+      )
+  )
+
+  scenario('a genre goes with the last book that had it', factory =>
+    worker(factory, cache =>
+      Effect.gen(function* () {
+        yield* store(cache, pinnedBook)
+        yield* cache.clear('all')
+        expect(yield* cache.genres).toEqual([])
+      })
+    )
   )
 })

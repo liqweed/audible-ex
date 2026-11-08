@@ -28,6 +28,7 @@ import * as Option from 'effect/Option'
 import * as Queue from 'effect/Queue'
 import * as Schema from 'effect/Schema'
 import type { RegionCode } from '../core/regions'
+import type { PinList } from '../schema/cache'
 import {
   BackgroundMessage,
   type BookError,
@@ -95,6 +96,8 @@ export class PortServer extends Context.Service<
             Effect.gen(function* () {
               /** Set by `Hello`; the `Lookup` messages do not carry it. */
               let region: RegionCode | undefined
+              /** Set by `Hello`; a pinned book is on the Wish List when this page is. */
+              let list: PinList = 'library'
               /** ASINs this port is waiting on, so a repeated `Lookup` starts nothing new. */
               const inFlight = new Set<string>()
               const detailsInFlight = new Set<string>()
@@ -167,7 +170,7 @@ export class PortServer extends Context.Service<
                 let fromCache = true
                 return queue
                   .rating(
-                    { region: lookupRegion, asin, pinned },
+                    { region: lookupRegion, asin, pinned, list },
                     Effect.suspend(() => {
                       fromCache = false
                       return send({
@@ -292,6 +295,8 @@ export class PortServer extends Context.Service<
                   case 'Hello':
                     return Effect.sync(() => {
                       region = message.region
+                      list =
+                        message.page === 'wishlist' ? 'wishlist' : 'library'
                     })
                   case 'Lookup':
                     return start(message.items)

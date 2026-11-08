@@ -385,6 +385,20 @@ describe('PortServer lookups', () => {
     })
   )
 
+  scenario('records which list a pinned row is on', {}, h =>
+    Effect.gen(function* () {
+      const port = yield* h.connect()
+      port.say({ ...hello, page: 'wishlist' })
+      port.say({ _tag: 'Lookup', items: [{ asin: asin(1), pinned: true }] })
+      yield* settle
+      const library = yield* h.connect()
+      library.say({ ...hello, page: 'library' })
+      library.say({ _tag: 'Lookup', items: [{ asin: asin(2), pinned: true }] })
+      yield* settle
+      expect(h.cache.pinLists).toEqual(['wishlist', 'library'])
+    })
+  )
+
   scenario(
     'keeps the rating when only the details fail',
     {

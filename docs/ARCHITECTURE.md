@@ -199,7 +199,10 @@ one too.
 
 The options inspector uses `src/schema/inspector.ts`: `ListCachedBooks` returns
 `CachedBooks { books }` (title, author, ASIN, saved time, optional rating and
-Goodreads id, manual-match and live-pin flags); `DeleteCachedBook { asin }` and
+Goodreads id, manual-match and live-pin flags); `ListGenres` returns
+`Genres { genres }`, every genre of the cached books' stored details, the most common
+first, which suggest labels on the options page (it is a read of `details`, so a genre
+goes with the last book that has it; no separate store); `DeleteCachedBook { asin }` and
 `CorrectCachedBook { asin, url }` return `CacheChanged`, or `Failed { message }`.
 The same extension-page sender check protects all three. Listing joins a consistent
 snapshot of ratings, metadata, overrides and pins, including expired entries.
@@ -571,7 +574,11 @@ Pinned means: for `ratings` and `meta`, the ASIN has a live pin; for `details`, 
 `bookId` of a found rating of a pinned ASIN. The purge, and `clear`, run in one readwrite
 transaction over all stores. `clear('all')` deletes every entry, manual override and pin (the userscript's
 "everything" left its pin list); it leaves `housekeeping`. `stats` counts entries (ratings, meta,
-details, overrides) and pins separately and sizes everything as the JSON of its records.
+details, overrides) and pins separately and sizes everything as the JSON of its records. A pin
+records the list it was seen on (`list`: `library` or `wishlist`, optional so older pins still
+decode); the port server takes it from the tab's `Hello` page, and a pin is rewritten at once when
+its list is new or changes. `stats` counts the pins of each list (`library`, `wishlist`); a pin
+without a list counts in neither until the book is seen again.
 
 ### Options settings
 
@@ -582,7 +589,20 @@ Only edited values are merged with the latest saved prefs through the same seria
 marketplace price and each filter's miss mode is merged separately, and the year bounds are one edit. Clean forms follow
 storage changes; a dirty form keeps its draft, announces the external change and offers to reload.
 Save errors keep the draft and appear on the page. Display choices redraw badges through the
-content script's prefs watcher.
+content script's prefs watcher. The Display section ends with a preview: one made-up book drawn with the form's draft, saved or
+not (rating, year, as many labels as chosen, highlight outline and hidden or highlighted labels;
+`src/options/Preview.tsx`, counts, labels and the overview's rating line from the content script's code, only the look imitated). Hovering its rating shows the overview box, or the plain tooltip when the overview is off. Keyboard order follows the fields: the − and +
+buttons, the label picker's add button and the marketplace links are for the pointer (arrow keys
+step a number field, and move from a label field into its suggestions). A bar fixed to the bottom of the window appears with the first
+unsaved edit (Save, Discard, the external-change notice, errors) and gives way to a short
+confirmation. The hidden and highlighted labels are chip lists (a click removes) with a field
+that suggests the genres of the cached books (`ListGenres`, §5) and takes any text; a label
+added to one list leaves the other. Each filter's hide-or-dim choice is a row in a scrolling
+list, the year range sits last in the filters, and the maximum and highlight prices share one
+table with a row per marketplace. Number fields have − and + buttons where a step makes sense
+(ratings 0.1, the minimum number of ratings 10) and labels per book also has a slider. The Cache
+section shows `CacheStats` (the popup's request) as text and a bar of Library and Wish List
+against the rest, which the popup draws too (`src/lib/CacheBar.tsx`).
 
 Export downloads the saved prefs, rather than the draft, as `{ format: 'audible-ex-prefs',
 version: 1, prefs }`. The envelope is independent of the WXT storage version, so older backups

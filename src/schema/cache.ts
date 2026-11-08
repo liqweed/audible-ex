@@ -36,10 +36,18 @@ export const DetailsRecord = Schema.Struct({
   ...Details.fields,
 })
 
-/** Store `pins`, keyed by ASIN: a book last seen in the Library or Wish List at `lastSeen`. */
+/** Which of the user's lists a pinned book was last seen on. */
+export const PinList = Schema.Literals(['library', 'wishlist'])
+export type PinList = typeof PinList.Type
+
+/**
+ * Store `pins`, keyed by ASIN: a book last seen in the Library or Wish List at `lastSeen`. `list` says
+ * which; a pin written before the cache told them apart has none until the book is seen again.
+ */
 export const PinRecord = Schema.Struct({
   asin: Asin,
   lastSeen: EpochMs,
+  list: Schema.optional(PinList),
 })
 
 /**

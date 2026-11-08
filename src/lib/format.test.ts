@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { books, formatBytes } from './format'
+import { books, currencySymbol, formatBytes } from './format'
 
 describe('formatBytes', () => {
   test.each([
@@ -17,4 +17,18 @@ test('books is singular for one', () => {
   expect(books(1)).toBe('1 book')
   expect(books(0)).toBe('0 books')
   expect(books(12)).toBe('12 books')
+})
+
+describe('currencySymbol', () => {
+  test.each([
+    ['USD', '$'],
+    ['EUR', '€'],
+    ['GBP', '£'],
+    ['JPY', '¥'],
+    ['INR', '₹'],
+    ['CAD', 'CA$'],
+    ['AUD', 'A$'],
+  ])('%s is %s', (currency, symbol) => {
+    expect(currencySymbol(currency)).toBe(symbol)
+  })
 })

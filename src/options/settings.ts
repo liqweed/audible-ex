@@ -1,6 +1,6 @@
 /** Options drafts and prefs-only backups. Invalid input throws before a storage write. */
 import * as Schema from 'effect/Schema'
-import { DIMENSIONS } from '@/core/filter'
+import { DIMENSIONS, labelKey } from '@/core/filter'
 import { REGIONS, type RegionCode } from '@/core/regions'
 import {
   type Prefs,
@@ -18,8 +18,8 @@ export interface SettingsDraft {
   priceOnDeals: boolean
   minYear: string
   maxYear: string
-  hiddenLabels: string
-  highlightLabels: string
+  hiddenLabels: string[]
+  highlightLabels: string[]
   notFound: Prefs['filters']['notFound']
   modes: Prefs['filters']['modes']
   prices: Record<RegionCode, string>
@@ -38,8 +38,8 @@ export const draftFromPrefs = (prefs: Prefs): SettingsDraft => ({
   priceOnDeals: prefs.filters.priceOnDeals,
   minYear: prefs.filters.minYear?.toString() ?? '',
   maxYear: prefs.filters.maxYear?.toString() ?? '',
-  hiddenLabels: prefs.filters.hiddenLabels.join('\n'),
-  highlightLabels: prefs.filters.highlightLabels.join('\n'),
+  hiddenLabels: [...prefs.filters.hiddenLabels],
+  highlightLabels: [...prefs.filters.highlightLabels],
   notFound: prefs.filters.notFound,
   modes: prefs.filters.modes,
   prices: Object.fromEntries(
@@ -56,15 +56,18 @@ export const draftFromPrefs = (prefs: Prefs): SettingsDraft => ({
   overview: prefs.display.overview,
 })
 
-/** One label per line, trimmed, without blanks or repeats. */
-const lines = (text: string): string[] => [
-  ...new Set(
-    text
-      .split('\n')
-      .map(s => s.trim())
-      .filter(Boolean)
-  ),
-]
+/** The labels trimmed, without blanks or repeats (the first spelling of a label stays). */
+const distinct = (labels: readonly string[]): string[] => {
+  const seen = new Set<string>()
+  return labels
+    .map(l => l.trim())
+    .filter(l => {
+      const key = labelKey(l)
+      if (!l || seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+}
 
 function number(text: string): number {
   if (!text.trim()) throw new Error('A required number is blank.')
@@ -91,8 +94,8 @@ export function prefsFromDraft(draft: SettingsDraft): Prefs {
           : number(draft.highlightRating),
       minYear: draft.minYear.trim() === '' ? null : number(draft.minYear),
       maxYear: draft.maxYear.trim() === '' ? null : number(draft.maxYear),
-      hiddenLabels: lines(draft.hiddenLabels),
-      highlightLabels: lines(draft.highlightLabels),
+      hiddenLabels: distinct(draft.hiddenLabels),
+      highlightLabels: distinct(draft.highlightLabels),
       notFound: draft.notFound,
       priceOnDeals: draft.priceOnDeals,
       modes: draft.modes,
@@ -109,6 +112,28 @@ export function prefsFromDraft(draft: SettingsDraft): Prefs {
       ),
     },
   })
+}
+
+const bce = (year: number) => (year < 0 ? `${-year} BCE` : String(year))
+
+/**
+ * The year range as a sentence, from the two texts of the form; undefined while either is not a
+ * year. A reversed range is not described, the form says it is wrong.
+ */
+export function describeYears(from: string, to: string): string | undefined {
+  const bound = (text: string) => {
+    if (text.trim() === '') return null
+    const n = Number(text)
+    return Number.isInteger(n) && n !== 0 ? n : undefined
+  }
+  const lo = bound(from)
+  const hi = bound(to)
+  if (lo === undefined || hi === undefined) return undefined
+  if (lo !== null && hi !== null && lo > hi) return undefined
+  if (lo === null && hi === null) return 'Any year'
+  if (hi === null) return `${bce(lo as number)} or later`
+  if (lo === null) return `${bce(hi)} or earlier`
+  return lo === hi ? bce(lo) : `${bce(lo)} to ${bce(hi)}`
 }
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
