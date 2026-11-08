@@ -492,6 +492,23 @@ describe('options page design', () => {
       Element.prototype.scrollIntoView = original
     }
   })
+  test('leaving the page asks first only while there are unsaved changes', async () => {
+    await show()
+    const leave = () => {
+      const event = new Event('beforeunload', { cancelable: true })
+      window.dispatchEvent(event)
+      return event.defaultPrevented
+    }
+    expect(leave()).toBe(false)
+    click('Increase Minimum rating')
+    expect(leave()).toBe(true)
+    click('Discard changes')
+    expect(leave()).toBe(false)
+    click('Increase Minimum rating')
+    await save()
+    await screen.findByText('Settings saved.')
+    expect(leave()).toBe(false)
+  })
   test('the preview says when ratings are off', async () => {
     await show()
     fireEvent.click(screen.getByLabelText('Show ratings on Audible'))
