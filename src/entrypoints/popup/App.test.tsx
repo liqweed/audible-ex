@@ -20,6 +20,8 @@ const stats = (books: number, pinned = 0, bytes = 2048): Stats => ({
   entries: books * 3,
   bytes,
   pinned,
+  library: Math.ceil(pinned / 2),
+  wishlist: Math.floor(pinned / 2),
 })
 
 /** A backend with a cache of `books` books, `pinned` of them from Library and Wish List. */
@@ -118,13 +120,60 @@ describe('the panel', () => {
   })
 })
 
+test('every button leads with an icon, hidden from assistive technology', async () => {
+  await updatePanel({ hiddenHosts: ['www.audible.com'] })
+  render(<App backend={fakeBackend(120, 7).backend} />)
+  await screen.findByText('Show the panel again')
+  fireEvent.click(screen.getByRole('button', { name: 'Clear everything…' }))
+  const buttons = screen.getAllByRole('button')
+  expect(buttons.length).toBeGreaterThanOrEqual(6)
+  for (const button of buttons) {
+    const icon = button.querySelector('svg')
+    expect(icon, button.textContent ?? '').not.toBeNull()
+    expect(icon?.getAttribute('aria-hidden')).toBe('true')
+  }
+})
+
 describe('the cache', () => {
+  test('a button below the clearing buttons opens the options page at its cache overview', async () => {
+    const created: unknown[] = []
+    const original = fakeBrowser.tabs.create
+    fakeBrowser.tabs.create = (async (props: unknown) => {
+      created.push(props)
+      return {}
+    }) as unknown as typeof original
+    try {
+      render(<App backend={fakeBackend(120, 7).backend} />)
+      const buttons = await screen.findAllByRole('button')
+      const names = buttons.map(b => b.textContent)
+      expect(names.indexOf('Open the cache overview')).toBe(
+        names.indexOf('Clear everything…') + 1
+      )
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Open the cache overview' })
+      )
+      expect(created).toHaveLength(1)
+      expect(JSON.stringify(created[0])).toContain('options.html#cache')
+    } finally {
+      fakeBrowser.tabs.create = original
+    }
+  })
+
   test('says how many books are cached, how big, and how many are pinned', async () => {
     render(<App backend={fakeBackend(120, 7).backend} />)
     expect(
       await screen.findByText(
         '120 books cached (2 KB), 7 from Library and Wish List.'
       )
+    ).toBeDefined()
+  })
+
+  test('draws the split between Library and Wish List and the rest', async () => {
+    render(<App backend={fakeBackend(120, 7).backend} />)
+    expect(
+      await screen.findByRole('img', {
+        name: 'Cached books: 4 Library, 3 Wish List, 113 Everything else',
+      })
     ).toBeDefined()
   })
 

@@ -25,7 +25,11 @@ export const Stats = Schema.TaggedStruct('Stats', {
   books: Count,
   entries: Count,
   bytes: Count,
+  /** Books pinned from Library or Wish List, of any kind. */
   pinned: Count,
+  /** Of those, the ones last seen in the Library, and the ones last seen in the Wish List. */
+  library: Count,
+  wishlist: Count,
 })
 
 export type Stats = typeof Stats.Type

@@ -104,7 +104,15 @@ describe('handlePopupMessage', () => {
     const { handled, replies } = await ask({ _tag: 'CacheStats' })
     expect(handled).toBe(true)
     expect(replies).toEqual([
-      { _tag: 'Stats', books: 0, entries: 0, bytes: 0, pinned: 0 },
+      {
+        _tag: 'Stats',
+        books: 0,
+        entries: 0,
+        bytes: 0,
+        pinned: 0,
+        library: 0,
+        wishlist: 0,
+      },
     ])
   })
 

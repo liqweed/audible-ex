@@ -45,6 +45,7 @@ import {
   startProbe,
 } from '../core/breaker'
 import type { RegionCode } from '../core/regions'
+import type { PinList } from '../schema/cache'
 import type { Details } from '../schema/common'
 import { AudibleCatalog, type AudibleCatalogError } from './AudibleCatalog'
 import { BookCache, type CacheError } from './BookCache'
@@ -88,6 +89,8 @@ export interface RatingRequest {
   readonly asin: string
   /** Seen in Library or Wish List: records the pin even when the rating is already cached. */
   readonly pinned: boolean
+  /** Which of the two, when the page says; recorded with the pin. */
+  readonly list?: PinList
 }
 
 export interface LookupQueueService {
@@ -486,7 +489,7 @@ const make = Effect.gen(function* () {
     rating: (request, onMiss = Effect.void) =>
       Effect.gen(function* () {
         if (request.pinned) {
-          yield* soft('pin', cache.pin(request.asin), undefined)
+          yield* soft('pin', cache.pin(request.asin, request.list), undefined)
         }
         const stored = yield* cachedRating(request.asin)
         if (Option.isSome(stored)) return stored.value as RatingResult

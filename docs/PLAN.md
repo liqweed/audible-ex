@@ -204,6 +204,18 @@ loaded.
       pasting a Goodreads URL (stored as a manual override that the cache purge
       keeps).
 - [x] About: privacy statement, "not affiliated" notice, source link.
+- [x] Settings page redesign: logo, one Display section with a preview of a
+      book that follows the unsaved draft (including the hover overview), a
+      bar of unsaved changes fixed to the window's bottom, steppers and a
+      slider on numbers, hidden and highlighted labels as removable pills with
+      an autocompleting picker fed by the genres of cached books
+      (`ListGenres`), Hide/Dim switches in one list, the year range last, one
+      price table with currency signs, keyboard order through the fields only,
+      the cache's state as a bar, and the project links at the bottom. The
+      popup has the logo, the same bar and an icon on every button, and opens
+      the options page at its Cache section.
+- [x] Pins record the list they were seen on (`library` or `wishlist`) and the
+      cache counts each; older pins have none until the book is seen again.
 
 Release 0.4 (with 3b).
 
@@ -264,9 +276,9 @@ Afterwards, before 1.0
   `__NEXT_DATA__`).
 - Library and Wish List marks: a badge mark for a book the user owns or has
   wish-listed, and later the personal collections it is in. Pins already
-  record that an ASIN was seen under `/library`, but not where: `Lookup.pinned`
-  would become the place (`library`, `wishlist`, `collection:<id>`), stored on
-  the pin with when it was last seen there, and sent back on `BookUpdate`.
+  record whether an ASIN was last seen in the Library or the Wish List (the
+  `list` of the pin, taken from the page the tab is on); what is left is
+  collections (`collection:<id>`) and sending the place back on `BookUpdate`.
   Collection names come from the collections page. The extension only knows
   what the user has scrolled past on those pages, so the feature needs a
   visible "last seen in your Library on …" and a prompt to page through the
@@ -274,6 +286,25 @@ Afterwards, before 1.0
   the user's cookies, a new host permission and a privacy change (§11), and is
   not planned. Removal is unknowable until the page is seen again without it,
   so the mark expires with the pin.
+- Settings page follow-ups, in the order worth doing them:
+  - Warn before leaving the page with unsaved changes (`beforeunload`), now
+    that a bar says there are some.
+  - Show the filters in the preview: a few sample books that are hidden or
+    dimmed, with the reason, and a price chip, using `judge` and `failures`
+    from `src/core/filter.ts` (a first version was drawn and dropped as too
+    much beside the Display settings; put it under Filters if it comes back).
+  - Gallery scenes and baselines for the options page and the popup
+    (`test/gallery`, D27); today only the page-side UI is covered, and the
+    settings page was checked by hand in a browser.
+  - Keep the genre suggestions for longer than the cache keeps the books: a
+    store of genres seen (a database upgrade), since `ListGenres` reads the
+    stored details, which the daily purge shrinks to Library and Wish List
+    books plus the last month.
+  - Marketplace flags beside the currency signs, if a font or an image set
+    renders them on every platform (regional-indicator emoji show as letters
+    on Windows).
+  - Steppers on the year and price fields, with a step per currency (1, but
+    100 for yen and rupees), if people ask; the rating fields have them.
 - Staged publishing (DECISIONS.md D21): `publishType: STAGED_PUBLISH` in
   `scripts/upload-cws.ts`, so an approved version waits for one click in the
   dashboard before users get it. Decide when the listing is public.

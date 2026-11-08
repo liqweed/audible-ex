@@ -7,6 +7,7 @@ import {
   updatePrefs,
 } from '@/storage/prefs'
 import {
+  describeYears,
   draftFromPrefs,
   exportPrefs,
   importPrefs,
@@ -54,6 +55,28 @@ describe('settings drafts', () => {
     expect(() =>
       prefsFromDraft({ ...draftFromPrefs(DEFAULT_PREFS), [key]: value })
     ).toThrow()
+  })
+  test('trims labels and drops blanks and repeats without regard to case', () => {
+    const draft = draftFromPrefs(DEFAULT_PREFS)
+    expect(
+      prefsFromDraft({
+        ...draft,
+        hiddenLabels: [' Fantasy', 'fantasy ', '', 'Romance'],
+      }).filters.hiddenLabels
+    ).toEqual(['Fantasy', 'Romance'])
+  })
+  test.each([
+    ['', '', 'Any year'],
+    ['1990', '', '1990 or later'],
+    ['', '2020', '2020 or earlier'],
+    ['1990', '2020', '1990 to 2020'],
+    ['-800', '-700', '800 BCE to 700 BCE'],
+    ['2000', '2000', '2000'],
+    ['2020', '2000', undefined],
+    ['abc', '', undefined],
+    ['0', '', undefined],
+  ])('describes the years %p to %p as %p', (from, to, text) => {
+    expect(describeYears(from, to)).toBe(text)
   })
   test('refuses reversed years and invalid prices', () => {
     const draft = draftFromPrefs(DEFAULT_PREFS)

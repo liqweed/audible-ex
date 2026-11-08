@@ -39,6 +39,7 @@ import {
   HousekeepingRecord,
   MetaRecord,
   OverrideRecord,
+  type PinList,
   PinRecord,
   RatingRecord,
 } from '../schema/cache'
@@ -64,6 +65,9 @@ export interface CacheStats {
   readonly bytes: number
   /** Books pinned from Library or Wish List. */
   readonly pinned: number
+  /** Of the pinned books, those last seen in the Library, and in the Wish List; older pins have neither. */
+  readonly library: number
+  readonly wishlist: number
 }
 
 /** IndexedDB failed (quota, a blocked upgrade, a closed database); `operation` says what we tried. */
@@ -104,8 +108,14 @@ export interface BookCacheService {
   readonly setDetails: (
     details: Unstamped<Details>
   ) => Effect.Effect<void, CacheError>
-  /** Records that the book was seen in Library or Wish List; writes at most once a day per book. */
-  readonly pin: (asin: string) => Effect.Effect<void, CacheError>
+  /**
+   * Records that the book was seen in Library or Wish List (`list` says which, when known); writes at
+   * most once a day per book, and at once when the list changes or becomes known.
+   */
+  readonly pin: (
+    asin: string,
+    list?: PinList
+  ) => Effect.Effect<void, CacheError>
   /**
    * The daily clean-up: drops pins last seen over 180 days ago, then unpinned entries saved over 32
    * days ago. Returns how many entries it deleted.
@@ -116,6 +126,12 @@ export interface BookCacheService {
   /** Deletes entries of any age and returns how many; pins that lapsed are dropped first. */
   readonly clear: (scope: ClearScope) => Effect.Effect<number, CacheError>
   readonly stats: Effect.Effect<CacheStats, CacheError>
+  /**
+   * Every Goodreads genre the cached books carry, the most common first, for the options page's
+   * label suggestions. It is read from the stored details, so a genre disappears with the last book
+   * that had it.
+   */
+  readonly genres: Effect.Effect<readonly string[], CacheError>
 }
 
 export class BookCache extends Context.Service<BookCache, BookCacheService>()(
@@ -387,12 +403,31 @@ const statsNow = async (db: Db): Promise<CacheStats> => {
   const bytes = [ratings, meta, details, pins, overrides]
     .flat()
     .reduce((sum, record) => sum + JSON.stringify(record).length, 0)
+  const lists = pins.map(pin =>
+    Option.getOrUndefined(Option.map(decodePin(pin), p => p.list))
+  )
   return {
     books: ratings.length,
     entries: ratings.length + meta.length + details.length + overrides.length,
     bytes,
     pinned: pins.length,
+    library: lists.filter(l => l === 'library').length,
+    wishlist: lists.filter(l => l === 'wishlist').length,
   }
+}
+
+const genresNow = async (db: Db): Promise<readonly string[]> => {
+  const counts = new Map<string, number>()
+  for (const raw of await db.getAll('details')) {
+    const record = decodeDetails(raw)
+    if (Option.isNone(record)) continue
+    for (const genre of new Set(record.value.genres)) {
+      counts.set(genre, (counts.get(genre) ?? 0) + 1)
+    }
+  }
+  return [...counts]
+    .sort(([a, x], [b, y]) => y - x || a.localeCompare(b))
+    .map(([genre]) => genre)
 }
 
 /** One consistent snapshot, including expired ratings and metadata-only books. */
@@ -472,11 +507,24 @@ const deleteBookNow = async (db: Db, asin: string) => {
   await tx.done
 }
 
-const pinNow = async (db: Db, asin: string, now: number) => {
+const pinNow = async (
+  db: Db,
+  asin: string,
+  now: number,
+  list: PinList | undefined
+) => {
   const tx = db.transaction('pins', 'readwrite')
-  const existing = decodePin(await tx.store.get(asin))
-  if (needsPinWrite(Option.getOrUndefined(existing)?.lastSeen, now)) {
-    await tx.store.put({ asin, lastSeen: now })
+  const existing = Option.getOrUndefined(decodePin(await tx.store.get(asin)))
+  const known = list ?? existing?.list
+  if (
+    needsPinWrite(existing?.lastSeen, now) ||
+    (list !== undefined && existing?.list !== list)
+  ) {
+    await tx.store.put({
+      asin,
+      lastSeen: now,
+      ...(known !== undefined && { list: known }),
+    })
   }
   await tx.done
 }
@@ -571,11 +619,12 @@ const make = (factory: IDBFactory) =>
         () => TTL_DETAILS
       ),
       setDetails: set('setDetails', r => db.put('details', r)),
-      pin: asin => atNow('pin', now => pinNow(db, asin, now)),
+      pin: (asin, list) => atNow('pin', now => pinNow(db, asin, now, list)),
       purge: atNow('purge', now => purgeNow(db, now)),
       purgeIfDue: atNow('purgeIfDue', now => purgeIfDueNow(db, now)),
       clear: scope => atNow('clear', now => clearNow(db, now, scope)),
       stats: run('stats', () => statsNow(db)),
+      genres: run('genres', () => genresNow(db)),
     }
 
     yield* Effect.forkScoped(sweeper(service))

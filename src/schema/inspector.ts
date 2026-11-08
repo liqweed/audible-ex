@@ -15,6 +15,7 @@ export const CachedBook = Schema.Struct({
 export type CachedBook = typeof CachedBook.Type
 export const InspectorRequest = Schema.Union([
   Schema.TaggedStruct('ListCachedBooks', {}),
+  Schema.TaggedStruct('ListGenres', {}),
   Schema.TaggedStruct('DeleteCachedBook', { asin: Asin }),
   Schema.TaggedStruct('CorrectCachedBook', {
     asin: Asin,
@@ -24,6 +25,7 @@ export const InspectorRequest = Schema.Union([
 export type InspectorRequest = typeof InspectorRequest.Type
 export const InspectorReply = Schema.Union([
   Schema.TaggedStruct('CachedBooks', { books: Schema.Array(CachedBook) }),
+  Schema.TaggedStruct('Genres', { genres: Schema.Array(Schema.String) }),
   Schema.TaggedStruct('CacheChanged', {}),
   Schema.TaggedStruct('Failed', { message: Schema.String }),
 ])

@@ -6,8 +6,10 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react'
 import { fakeBrowser } from 'wxt/testing/fake-browser'
+import type { CacheBackend } from '@/options/cache-backend'
 import { exportPrefs } from '@/options/settings'
 import { DEFAULT_PREFS, readPrefs, updateFilters } from '@/storage/prefs'
 import { App } from './App'
@@ -17,11 +19,28 @@ beforeEach(() => {
   fakeBrowser.reset()
 })
 
+/** A cache of 880 books, 312 from Library and Wish List, whose books carry these genres. */
+const backend: CacheBackend = {
+  list: async () => [],
+  genres: async () => ['Fantasy', 'Fiction', 'Romance', 'Science Fiction'],
+  stats: async () => ({
+    _tag: 'Stats',
+    books: 880,
+    entries: 2640,
+    bytes: 869 * 1024,
+    pinned: 312,
+    library: 200,
+    wishlist: 100,
+  }),
+  deleteBook: async () => {},
+  correct: async () => {},
+}
+
 async function show(download = (_text: string) => {}) {
   await act(async () => {
-    render(<App download={download} />)
+    render(<App download={download} backend={backend} />)
   })
-  await screen.findByRole('button', { name: 'Save settings' })
+  await screen.findByRole('heading', { name: 'Display' })
 }
 const save = async () =>
   act(async () => {
@@ -31,6 +50,15 @@ const value = (label: string) =>
   (screen.getByLabelText(label) as HTMLInputElement).value
 const change = (label: string, v: string) =>
   fireEvent.change(screen.getByLabelText(label), { target: { value: v } })
+const click = (name: string) =>
+  fireEvent.click(screen.getByRole('button', { name }))
+/** Types a label into one of the lists' fields and presses Enter. */
+async function addLabel(list: string, label: string) {
+  change(list, label)
+  await act(async () => {
+    fireEvent.keyDown(screen.getByLabelText(list), { key: 'Enter' })
+  })
+}
 
 async function upload(text: string) {
   const file = new File([text], 'prefs.json', { type: 'application/json' })
@@ -52,7 +80,8 @@ describe('options settings', () => {
     change('To year', '-700')
     change('audible.co.uk (GBP)', '0')
     change('Highlight price on audible.com (USD)', '5.5')
-    change('Hidden labels', 'Fantasy\nHistory, Politics')
+    await addLabel('Hidden labels', 'Fantasy')
+    await addLabel('Hidden labels', 'History, Politics')
     expect((await readPrefs()).display.labels).toBe(4)
     await save()
     await screen.findByText('Settings saved.')
@@ -155,7 +184,7 @@ describe('options settings', () => {
         .getByRole('link', { name: 'Privacy statement' })
         .getAttribute('href')
     ).toContain('PRIVACY')
-    expect(screen.getByRole('link', { name: 'Source code' })).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'GitHub repository' })).toBeTruthy()
     expect(
       screen.getByText('Not affiliated with Audible, Amazon or Goodreads.')
     ).toBeTruthy()
@@ -175,6 +204,324 @@ describe('options settings', () => {
     } finally {
       fakeBrowser.storage.sync.set = original
     }
+  })
+})
+
+describe('options page design', () => {
+  test('the bar of unsaved changes appears with the first edit and goes with Save or Discard', async () => {
+    await show()
+    expect(screen.queryByText('Unsaved changes')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Save settings' })).toBeNull()
+    click('Increase Minimum rating')
+    expect(screen.getByText('Unsaved changes')).toBeTruthy()
+    click('Discard changes')
+    expect(screen.queryByText('Unsaved changes')).toBeNull()
+    expect(value('Minimum rating')).toBe('4')
+    click('Increase Minimum rating')
+    await save()
+    await screen.findByText('Settings saved.')
+    expect(screen.queryByText('Unsaved changes')).toBeNull()
+    expect((await readPrefs()).filters.minRating).toBe(4.1)
+  })
+  test('the number fields step by their own increments and stop at their limits', async () => {
+    await show()
+    click('Increase Minimum rating')
+    click('Increase Minimum rating')
+    expect(value('Minimum rating')).toBe('4.2')
+    click('Decrease Minimum rating')
+    expect(value('Minimum rating')).toBe('4.1')
+    change('Minimum rating', '5')
+    click('Increase Minimum rating')
+    expect(value('Minimum rating')).toBe('5')
+    expect(
+      (
+        screen.getByRole('button', {
+          name: 'Increase Minimum rating',
+        }) as HTMLButtonElement
+      ).disabled
+    ).toBe(true)
+    click('Increase Minimum ratings')
+    expect(value('Minimum ratings')).toBe('60')
+    // A blank optional field starts from a sensible value.
+    expect(value('Highlight rating')).toBe('')
+    click('Increase Highlight rating')
+    expect(value('Highlight rating')).toBe('4.5')
+    click('Decrease Highlight rating')
+    expect(value('Highlight rating')).toBe('4.4')
+  })
+  test('labels per book has a slider that moves with the number', async () => {
+    await show()
+    const thumb = screen.getByRole('slider', {
+      name: 'Labels per book (slider)',
+    })
+    expect(thumb.getAttribute('aria-valuenow')).toBe('4')
+    fireEvent.keyDown(thumb, { key: 'ArrowRight' })
+    expect(value('Labels per book')).toBe('5')
+    click('Decrease Labels per book')
+    expect(thumb.getAttribute('aria-valuenow')).toBe('4')
+  })
+  test('hidden and highlighted labels are chips removed by a click, added with suggestions from the cache', async () => {
+    await updateFilters({
+      hiddenLabels: ['Horror'],
+      highlightLabels: ['Fiction'],
+    })
+    await show()
+    const hidden = screen.getByLabelText('Hidden labels')
+    expect(
+      screen
+        .getByRole('button', { name: 'Remove Horror from the hidden labels' })
+        .getAttribute('title')
+    ).toContain('Click to remove')
+    // Suggestions come from the cached books, minus the labels already in either list.
+    fireEvent.focus(hidden)
+    const suggestions = screen.getByRole('group', {
+      name: 'Suggestions for the hidden labels',
+    })
+    expect(
+      within(suggestions)
+        .getAllByRole('button')
+        .map(b => b.textContent)
+    ).toEqual(['Fantasy', 'Romance', 'Science Fiction'])
+    change('Hidden labels', 'rom')
+    fireEvent.click(
+      within(suggestions).getByRole('button', { name: 'Romance' })
+    )
+    expect(
+      screen.getByRole('button', {
+        name: 'Remove Romance from the hidden labels',
+      })
+    ).toBeTruthy()
+    click('Remove Horror from the hidden labels')
+    // A label added to one list leaves the other.
+    await addLabel('Highlighted labels', 'Romance')
+    expect(
+      screen.queryByRole('button', {
+        name: 'Remove Romance from the hidden labels',
+      })
+    ).toBeNull()
+    expect(
+      screen.getByRole('button', {
+        name: 'Remove Romance from the highlighted labels',
+      })
+    ).toBeTruthy()
+    await save()
+    await screen.findByText('Settings saved.')
+    expect((await readPrefs()).filters).toMatchObject({
+      hiddenLabels: [],
+      highlightLabels: ['Fiction', 'Romance'],
+    })
+  })
+  test('free text is added when no suggestion fits, and a label is never added twice', async () => {
+    await show()
+    await addLabel('Hidden labels', 'Kitchen Sink Realism')
+    await addLabel('Hidden labels', 'kitchen sink realism')
+    expect(
+      screen.getAllByRole('button', {
+        name: /^Remove .* from the hidden labels$/,
+      })
+    ).toHaveLength(1)
+  })
+  test('what happens to a failing book is a list of Hide/Dim choices', async () => {
+    await show()
+    const rating = screen.getByRole('group', {
+      name: 'Below the minimum rating',
+    })
+    expect(
+      (within(rating).getByRole('radio', { name: 'Hide' }) as HTMLInputElement)
+        .checked
+    ).toBe(true)
+    fireEvent.click(within(rating).getByRole('radio', { name: 'Dim' }))
+    const missing = screen.getByRole('group', { name: 'Not on Goodreads' })
+    expect(within(missing).getAllByRole('radio')).toHaveLength(3)
+    fireEvent.click(within(missing).getByRole('radio', { name: 'Hide' }))
+    await save()
+    await screen.findByText('Settings saved.')
+    const { filters } = await readPrefs()
+    expect(filters.modes).toEqual({
+      ...DEFAULT_PREFS.filters.modes,
+      rating: 'dim',
+    })
+    expect(filters.notFound).toBe('hide')
+  })
+  test('maximum and highlight prices share one table with a link to each marketplace', async () => {
+    await show()
+    const table = screen.getByRole('table')
+    expect(
+      within(table)
+        .getAllByRole('columnheader')
+        .map(h => h.textContent)
+    ).toEqual(['Marketplace', 'Maximum price', 'Highlight price'])
+    expect(within(table).getAllByRole('row')).toHaveLength(11)
+    expect(
+      within(table)
+        .getByRole('link', { name: 'audible.co.uk' })
+        .getAttribute('href')
+    ).toBe('https://www.audible.co.uk/')
+    expect(screen.queryByText(/^Highlight price on audible/)).toBeNull()
+  })
+  test('the year range reads as one range and says when it is reversed', async () => {
+    await show()
+    expect(screen.getByText('Any year')).toBeTruthy()
+    change('From year', '1990')
+    expect(screen.getByText('1990 or later')).toBeTruthy()
+    change('To year', '2020')
+    expect(screen.getByText('1990 to 2020')).toBeTruthy()
+    change('To year', '1980')
+    expect(screen.getByText('“From” is later than “To”.')).toBeTruthy()
+  })
+  test('arrow keys step a number field, and the pointer-only buttons and links are skipped by Tab', async () => {
+    await show()
+    const field = screen.getByLabelText('Minimum rating')
+    fireEvent.keyDown(field, { key: 'ArrowUp' })
+    expect(value('Minimum rating')).toBe('4.1')
+    fireEvent.keyDown(field, { key: 'ArrowDown' })
+    fireEvent.keyDown(field, { key: 'ArrowDown' })
+    expect(value('Minimum rating')).toBe('3.9')
+    expect(
+      screen
+        .getByRole('button', { name: 'Increase Minimum rating' })
+        .getAttribute('tabindex')
+    ).toBe('-1')
+    for (const link of within(screen.getByRole('table')).getAllByRole('link')) {
+      expect(link.getAttribute('tabindex')).toBe('-1')
+    }
+  })
+  test('the suggestions can be reached and chosen with the keyboard', async () => {
+    await show()
+    const field = screen.getByLabelText('Hidden labels')
+    fireEvent.focus(field)
+    fireEvent.keyDown(field, { key: 'ArrowDown' })
+    const first = screen.getByRole('button', { name: 'Fantasy' })
+    expect(document.activeElement).toBe(first)
+    fireEvent.keyDown(first, { key: 'ArrowDown' })
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: 'Fiction' })
+    )
+    fireEvent.keyDown(document.activeElement as Element, { key: 'ArrowUp' })
+    fireEvent.keyDown(document.activeElement as Element, { key: 'ArrowUp' })
+    expect(document.activeElement).toBe(field)
+  })
+  test('the master switch lives with the display settings, and prices have currency signs', async () => {
+    await show()
+    expect(screen.queryByRole('heading', { name: 'General' })).toBeNull()
+    const display = screen
+      .getByRole('heading', { name: 'Display' })
+      .closest('section') as HTMLElement
+    expect(
+      within(display).getByLabelText('Show ratings on Audible')
+    ).toBeTruthy()
+    const row = screen
+      .getByRole('link', { name: 'audible.de' })
+      .closest('tr') as HTMLElement
+    expect(row.textContent).toContain('€')
+    const uk = screen.getByRole('link', { name: 'audible.co.uk' }).closest('tr')
+    expect(uk?.textContent).toContain('£')
+  })
+  test('the preview is one book inside the display settings and follows the draft', async () => {
+    await show()
+    const display = screen
+      .getByRole('heading', { name: 'Display' })
+      .closest('section') as HTMLElement
+    const preview = within(display).getByText('Preview')
+      .parentElement as HTMLElement
+    expect(within(preview).getByText('Orbit of Glass')).toBeTruthy()
+    // The default shows four labels and the year.
+    expect(within(preview).getByText('Science Fiction')).toBeTruthy()
+    expect(within(preview).getByText('Fiction')).toBeTruthy()
+    expect(within(preview).queryByText('Humor')).toBeNull()
+    expect(within(preview).getByText('2021')).toBeTruthy()
+    change('Labels per book', '6')
+    expect(within(preview).getByText('Humor')).toBeTruthy()
+    change('Labels per book', '1')
+    expect(within(preview).queryByText('Space Opera')).toBeNull()
+    fireEvent.click(screen.getByLabelText('Show first-published year'))
+    expect(within(preview).queryByText('2021')).toBeNull()
+    // The lists colour the labels they name; nothing is saved.
+    change('Labels per book', '4')
+    await addLabel('Highlighted labels', 'Adventure')
+    expect(within(preview).getByText('Adventure').className).toContain(
+      'font-semibold'
+    )
+    await addLabel('Hidden labels', 'Space Opera')
+    expect(within(preview).getByText('Space Opera').className).toContain(
+      'line-through'
+    )
+    expect(await readPrefs()).toEqual(DEFAULT_PREFS)
+  })
+  test('hovering the preview rating shows the overview box, or the plain tooltip when it is off', async () => {
+    await show()
+    const badge = () => screen.getByRole('button', { name: /^★ 4\.52/ })
+    expect(screen.queryByRole('tooltip')).toBeNull()
+    fireEvent.pointerEnter(badge())
+    const tip = screen.getByRole('tooltip')
+    expect(tip.textContent).toContain('21,340 ratings')
+    expect(tip.textContent).toContain('first published 2021')
+    expect(tip.textContent).toContain('A lone engineer wakes aboard')
+    fireEvent.pointerLeave(badge())
+    expect(screen.queryByRole('tooltip')).toBeNull()
+    // The year follows its switch, and with the overview off only the native tooltip is left.
+    fireEvent.click(screen.getByLabelText('Show first-published year'))
+    fireEvent.pointerEnter(badge())
+    expect(screen.getByRole('tooltip').textContent).not.toContain(
+      'first published'
+    )
+    fireEvent.click(screen.getByLabelText('Show overview on hover'))
+    expect(screen.queryByRole('tooltip')).toBeNull()
+    expect(badge().getAttribute('title')).toContain('from 21,340 ratings')
+  })
+  test('the price table is not an inner scroll area, and its currency signs share one width', async () => {
+    await show()
+    const table = screen.getByRole('table')
+    expect(table.parentElement?.className ?? '').not.toContain('overflow')
+    const signs = [...table.querySelectorAll('span[aria-hidden="true"]')]
+    expect(signs.length).toBe(20)
+    for (const sign of signs) expect(sign.className).toContain('w-10')
+  })
+  test('opened at #cache, the page scrolls to the cache section once the settings are drawn', async () => {
+    const scrolled: string[] = []
+    const original = Element.prototype.scrollIntoView
+    Element.prototype.scrollIntoView = function (this: Element) {
+      scrolled.push(this.id)
+    }
+    location.hash = '#cache'
+    try {
+      await show()
+      await waitFor(() => expect(scrolled).toEqual(['cache']))
+    } finally {
+      location.hash = ''
+      Element.prototype.scrollIntoView = original
+    }
+  })
+  test('the preview says when ratings are off', async () => {
+    await show()
+    fireEvent.click(screen.getByLabelText('Show ratings on Audible'))
+    expect(screen.getByText(/Ratings are off/)).toBeTruthy()
+    expect(screen.queryByText('Orbit of Glass')).toBeNull()
+  })
+  test('shows the state of the cache with its split', async () => {
+    await show()
+    await screen.findByText(
+      '880 books cached (869 KB), 312 from Library and Wish List.'
+    )
+    expect(
+      screen.getByRole('img', {
+        name: 'Cached books: 200 Library, 100 Wish List, 12 Library or Wish List, not told apart yet, 568 Everything else',
+      })
+    ).toBeTruthy()
+  })
+  test('links to the repository and the store page', async () => {
+    await show()
+    const nav = screen.getByRole('navigation', { name: 'Project links' })
+    expect(
+      within(nav)
+        .getByRole('link', { name: 'GitHub repository' })
+        .getAttribute('href')
+    ).toContain('github.com/')
+    expect(
+      within(nav)
+        .getByRole('link', { name: 'Chrome Web Store page' })
+        .getAttribute('href')
+    ).toContain('chromewebstore.google.com')
   })
 })
 

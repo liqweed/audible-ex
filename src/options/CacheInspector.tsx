@@ -22,8 +22,11 @@ const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 export function CacheInspector({
   backend = cacheBackend,
+  onChange,
 }: {
   backend?: CacheBackend
+  /** Called after a book was deleted or corrected, so a summary of the cache can read it again. */
+  onChange?: () => void
 }) {
   const [books, setBooks] = useState<readonly CachedBook[]>([])
   const [query, setQuery] = useState('')
@@ -90,6 +93,7 @@ export function CacheInspector({
       await action()
       setSelected(undefined)
       setMessage(success)
+      onChange?.()
       await refresh()
     } catch (e) {
       setError(messageOf(e))
