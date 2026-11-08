@@ -125,14 +125,31 @@ async function settled(page: Page) {
       (await bar.getAttribute('aria-valuemax'))
     )
   }
-  await expect
-    .poll(
-      async () =>
-        (await full('Ratings looked up')) &&
-        (await full('Genres and details read')),
-      { timeout: 90_000 }
+  try {
+    await expect
+      .poll(
+        async () =>
+          (await full('Ratings looked up')) &&
+          (await full('Genres and details read')),
+        { timeout: 90_000 }
+      )
+      .toBe(true)
+  } catch (error) {
+    // Say where the bars stopped: a rate limit, a failed lookup or a page that never loaded.
+    const bars = await page
+      .getByRole('progressbar')
+      .evaluateAll(all =>
+        all.map(
+          bar =>
+            `${bar.getAttribute('aria-label')}: ${bar.getAttribute('aria-valuenow')}/${bar.getAttribute('aria-valuemax')}`
+        )
+      )
+    const status = await page.getByRole('status').allInnerTexts()
+    console.error(
+      `The panel's bars did not fill: ${bars.join('; ')} | ${status.join(' | ')}`
     )
-    .toBe(true)
+    throw error
+  }
 }
 
 /**
