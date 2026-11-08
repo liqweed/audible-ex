@@ -656,5 +656,5 @@ Rejected: a badge or a number on the toolbar icon (a constant reminder, and it n
 worker to track state); a page on first install (no use to judge yet); a notification
 (needs a permission); asking again after "Not now" after some months (the request was
 "no more than a single nudge"; the permanent links cover the rest); counting in the worker
-(couples the lookup path to a product feature). Revisit the 200 and the three days with the
-store's own numbers once there are some.
+(couples the lookup path to a product feature). The 200 ratings and three days are
+starting points, not measured.

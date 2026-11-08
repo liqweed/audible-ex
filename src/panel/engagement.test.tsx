@@ -90,4 +90,12 @@ describe('useCountRatings', () => {
     unmount()
     expect(written).toEqual([1])
   })
+
+  test('writes what is waiting when the page is left', async () => {
+    const { books, written, probe } = setup()
+    render(probe)
+    await act(async () => books.set('A', { status: 'ready', rating }))
+    window.dispatchEvent(new Event('pagehide'))
+    expect(written).toEqual([1])
+  })
 })

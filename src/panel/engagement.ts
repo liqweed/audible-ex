@@ -53,6 +53,14 @@ export function useCountRatings(
     timer.current ??= setTimeout(flush.current, flushMs)
   }, [shown, flushMs])
 
-  // Nothing waits in memory once the panel goes away.
-  useEffect(() => flush.current, [])
+  // Nothing waits in memory once the panel goes away. A content script's tree is not unmounted when
+  // the user navigates away or closes the tab, so the page's own `pagehide` flushes too.
+  useEffect(() => {
+    const write = flush.current
+    window.addEventListener('pagehide', write)
+    return () => {
+      window.removeEventListener('pagehide', write)
+      write()
+    }
+  }, [])
 }
