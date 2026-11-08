@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-11-08
+
+### Changed
+
+- The settings page asks before it is closed or left while there are unsaved changes, so an edit is not lost by closing the tab.
+
 ## [0.9.0] - 2026-11-08
 
 ### Changed
@@ -223,7 +229,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   extensions page, in place of the working name `audible-ex`. Its description no
   longer mentions filters, which haven't shipped yet.
 
-[Unreleased]: https://github.com/liqweed/audible-ex/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/liqweed/audible-ex/compare/v0.9.1...HEAD
+[0.9.1]: https://github.com/liqweed/audible-ex/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/liqweed/audible-ex/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/liqweed/audible-ex/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/liqweed/audible-ex/compare/v0.6.1...v0.7.0
