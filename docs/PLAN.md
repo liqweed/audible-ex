@@ -214,6 +214,7 @@ loaded.
       the cache's state as a bar, and the project links at the bottom. The
       popup has the logo, the same bar and an icon on every button, and opens
       the options page at its Cache section.
+- [x] The page warns before it is closed or left with unsaved changes.
 - [x] Pins record the list they were seen on (`library` or `wishlist`) and the
       cache counts each; older pins have none until the book is seen again.
 
@@ -287,8 +288,6 @@ Afterwards, before 1.0
   not planned. Removal is unknowable until the page is seen again without it,
   so the mark expires with the pin.
 - Settings page follow-ups, in the order worth doing them:
-  - Warn before leaving the page with unsaved changes (`beforeunload`), now
-    that a bar says there are some.
   - Show the filters in the preview: a few sample books that are hidden or
     dimmed, with the reason, and a price chip, using `judge` and `failures`
     from `src/core/filter.ts` (a first version was drawn and dropped as too

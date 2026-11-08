@@ -181,6 +181,18 @@ function Settings({
     }
   }, [backend])
 
+  // Closing the tab or navigating away with unsaved changes asks first; a clean form does not.
+  useEffect(() => {
+    const warn = (event: BeforeUnloadEvent) => {
+      if (form.state.isDefaultValue) return
+      event.preventDefault()
+      // Older browsers read the return value instead.
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [form])
+
   // A confirmation fades from the bar after a few seconds; an error stays until the next action.
   useEffect(() => {
     if (!message) return undefined
