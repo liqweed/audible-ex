@@ -4,15 +4,15 @@
  * verdict into an attribute and CSS. The inputs are structural, so this module needs nothing from
  * the content script or from storage.
  *
- * The rule that matters most: a filter acts only on data that has arrived, and is never undone by
- * later data, because hiding a book and then showing it makes the page jump. Each filter acts as
- * soon as the data it reads is known: the price (from Audible) can hide a book before its rating,
- * the rating before its genres and year. That is also what lets the content script stop a book's
- * lookup early (`lookupDepth`, eager filtering).
+ * Rules are evaluated in the user's priority order (`ruleOrder`, highest first): the first active
+ * rule a book matches decides its verdict (`hide`/`dim` for filter dimensions, `show` for highlight
+ * rules, or the `notFound` policy). A highlight above a `hide` rule keeps matching books visible; a
+ * `dim` rule above a `hide` rule dims instead of hiding.
  *
- * Each filter has its own miss mode: a book that fails a `hide` filter is hidden, one that fails only
- * `dim` filters is dimmed. Highlights (labels, a rating, a price) are not a filter: they never change the verdict;
- * the content script draws a highlighted book that is dimmed at full strength (badges.css, D30).
+ * Monotonicity (no page jumps): a book is never given a stricter verdict than a pending higher-
+ * priority rule could still produce once its data arrives. Taking the least strict verdict across
+ * the first match and all pending higher-priority rules guarantees verdicts can only tighten as data
+ * arrives, and lets eager filtering (`lookupDepth`) stop as soon as a `hide` verdict is final.
  */
 
 import type { PageKind } from './page'
@@ -36,6 +36,22 @@ export const DIMENSIONS = [
 ] as const
 export type Dimension = (typeof DIMENSIONS)[number]
 
+/** Every rule that participates in priority order, highest priority first by default (DECISIONS.md D33). */
+export const RULES = [
+  'rating',
+  'count',
+  'year',
+  'price',
+  'labels',
+  'highlightLabels',
+  'highlightRating',
+  'highlightPrice',
+  'notFound',
+] as const
+export type Rule = (typeof RULES)[number]
+
+export const DEFAULT_RULE_ORDER: readonly Rule[] = RULES
+
 /** The part of the user's preferences the verdict reads (`Prefs['filters']`). */
 export interface FilterSettings {
   /** The filters' master switch; the extension's own switch removes the whole content script. */
@@ -47,19 +63,21 @@ export interface FilterSettings {
   readonly minYear: number | null
   readonly maxYear: number | null
   readonly maxPrice: Readonly<Partial<Record<RegionCode, number>>>
-  /** Prices at or under this are marked, never filtered (`isPriceHighlighted`); absent is off. */
+  /** Prices at or under this are marked (`isPriceHighlighted`); absent is off. */
   readonly highlightPrice: Readonly<Partial<Record<RegionCode, number>>>
-  /** The price limit applies on deals pages only (`settingsFor`). */
+  /** The price limit applies on deals/sale pages only (`settingsFor`). */
   readonly priceOnDeals: boolean
   /** Goodreads genre names, compared without regard to case. */
   readonly hiddenLabels: readonly string[]
-  /** Genres the user is interested in: their books are marked, never filtered. */
+  /** Genres the user is interested in: their books are marked, and keep matching books visible over lower rules. */
   readonly highlightLabels: readonly string[]
-  /** Books rated at least this are marked, never filtered; null turns it off. */
+  /** Books rated at least this are marked, and keep matching books visible over lower rules; null turns it off. */
   readonly highlightRating: number | null
   readonly notFound: NotFoundPolicy
   /** What a book that fails each filter gets. */
   readonly modes: Readonly<Record<Dimension, MissMode>>
+  /** Priority order of the rules, highest first. Defaults to `DEFAULT_RULE_ORDER` when omitted. */
+  readonly ruleOrder?: readonly Rule[] | undefined
 }
 
 /** The part of a book view the verdict reads. */
@@ -68,6 +86,8 @@ export interface FilterBook {
   readonly price?:
     | { readonly amount: number; readonly currency: string }
     | undefined
+  /** Whether the public price lookup has settled; omitted means settled. */
+  readonly priced?: boolean | undefined
   readonly rating?: { readonly r: number; readonly n: number } | undefined
   readonly details?:
     | { readonly genres: readonly string[]; readonly year?: number }
@@ -146,9 +166,156 @@ export function failures(
   return failed
 }
 
+const STRICTNESS: Record<Verdict, number> = { show: 0, dim: 1, hide: 2 }
+const leastStrict = (a: Verdict, b: Verdict): Verdict =>
+  STRICTNESS[a] <= STRICTNESS[b] ? a : b
+
+/** The verdict `rule` assigns to a book that matches it. */
+export function ruleOutcome(rule: Rule, settings: FilterSettings): Verdict {
+  switch (rule) {
+    case 'rating':
+    case 'count':
+    case 'labels':
+    case 'year':
+    case 'price':
+      return settings.modes[rule]
+    case 'highlightLabels':
+    case 'highlightRating':
+    case 'highlightPrice':
+      return 'show'
+    case 'notFound':
+      return settings.notFound
+  }
+}
+
+type RuleMatch = 'match' | 'miss' | 'pending'
+
+/** Whether `rule` is configured and can match books on `region`. */
+function isRuleActive(
+  rule: Rule,
+  settings: FilterSettings,
+  region?: RegionCode
+): boolean {
+  switch (rule) {
+    case 'rating':
+    case 'notFound':
+      return true
+    case 'count':
+      return settings.minRatings > 0
+    case 'labels':
+      return settings.hiddenLabels.length > 0
+    case 'year':
+      return settings.minYear !== null || settings.maxYear !== null
+    case 'price':
+      return region !== undefined && settings.maxPrice[region] !== undefined
+    case 'highlightLabels':
+      return settings.highlightLabels.length > 0
+    case 'highlightRating':
+      return settings.highlightRating !== null
+    case 'highlightPrice':
+      return (
+        region !== undefined && settings.highlightPrice[region] !== undefined
+      )
+  }
+}
+
 /**
- * The verdict before the card's place is considered: `show`, or what the book gets for failing a
- * filter. This is also what the `12 hidden` counter counts (`hide` here, outside carousels).
+ * Evaluates one active rule against `book`: `'match'` when known data satisfies it, `'miss'` when
+ * known data rules it out, and `'pending'` when the data it reads has not arrived yet.
+ */
+function evaluateRule(
+  rule: Rule,
+  book: FilterBook,
+  settings: FilterSettings,
+  region?: RegionCode
+): RuleMatch {
+  const waitingGoodreads = book.status === 'queued' || book.status === 'loading'
+  switch (rule) {
+    case 'price': {
+      const limit = region === undefined ? undefined : settings.maxPrice[region]
+      if (region === undefined || limit === undefined) return 'miss'
+      if (book.price !== undefined) {
+        return book.price.currency === regionByCode(region).currency &&
+          book.price.amount > limit
+          ? 'match'
+          : 'miss'
+      }
+      return book.priced === false ? 'pending' : 'miss'
+    }
+    case 'highlightPrice': {
+      const limit =
+        region === undefined ? undefined : settings.highlightPrice[region]
+      if (region === undefined || limit === undefined) return 'miss'
+      if (book.price !== undefined) {
+        return book.price.currency === regionByCode(region).currency &&
+          book.price.amount <= limit
+          ? 'match'
+          : 'miss'
+      }
+      return book.priced === false ? 'pending' : 'miss'
+    }
+    case 'rating':
+      if (book.status === 'ready' && book.rating)
+        return book.rating.r < settings.minRating ? 'match' : 'miss'
+      return waitingGoodreads ? 'pending' : 'miss'
+    case 'count':
+      if (settings.minRatings <= 0) return 'miss'
+      if (book.status === 'ready' && book.rating)
+        return book.rating.n < settings.minRatings ? 'match' : 'miss'
+      return waitingGoodreads ? 'pending' : 'miss'
+    case 'highlightRating':
+      if (settings.highlightRating === null) return 'miss'
+      if (book.status === 'ready' && book.rating)
+        return book.rating.r >= settings.highlightRating ? 'match' : 'miss'
+      return waitingGoodreads ? 'pending' : 'miss'
+    case 'notFound':
+      if (book.status === 'notFound') return 'match'
+      return waitingGoodreads ? 'pending' : 'miss'
+    case 'labels':
+      if (settings.hiddenLabels.length === 0) return 'miss'
+      if (book.status === 'ready') {
+        if (!book.details) return 'pending'
+        return book.details.genres.some(genre =>
+          hasLabel(settings.hiddenLabels, genre)
+        )
+          ? 'match'
+          : 'miss'
+      }
+      return waitingGoodreads ? 'pending' : 'miss'
+    case 'year': {
+      if (settings.minYear === null && settings.maxYear === null) return 'miss'
+      if (book.status === 'ready') {
+        if (!book.details) return 'pending'
+        const { year } = book.details
+        // 0 means Goodreads has no year.
+        return year !== undefined &&
+          year !== 0 &&
+          ((settings.minYear !== null && year < settings.minYear) ||
+            (settings.maxYear !== null && year > settings.maxYear))
+          ? 'match'
+          : 'miss'
+      }
+      return waitingGoodreads ? 'pending' : 'miss'
+    }
+    case 'highlightLabels':
+      if (settings.highlightLabels.length === 0) return 'miss'
+      if (book.status === 'ready') {
+        if (!book.details) return 'pending'
+        return book.details.genres.some(genre =>
+          hasLabel(settings.highlightLabels, genre)
+        )
+          ? 'match'
+          : 'miss'
+      }
+      return waitingGoodreads ? 'pending' : 'miss'
+  }
+}
+
+/**
+ * The verdict before the card's place is considered: `show`, `dim`, or `hide`. Evaluated in
+ * `ruleOrder` (highest priority first): the first matching rule wins, bounded below by any pending
+ * higher-priority rule's outcome so verdicts are monotonic and never cause page jumps.
+ * This is also what the `12 hidden` counter counts (`hide` here, outside carousels).
  */
 export function judge(
   book: FilterBook | undefined,
@@ -156,28 +323,23 @@ export function judge(
   region?: RegionCode
 ): Verdict {
   if (!settings.enabled || !book) return 'show'
-  const failed = failures(book, settings, region)
-  // The strictest filter the book fails decides: one `hide` is enough to hide it.
-  const verdict: Verdict =
-    failed.length === 0
-      ? 'show'
-      : failed.some(dimension => settings.modes[dimension] === 'hide')
-        ? 'hide'
-        : 'dim'
-  // A book not on Goodreads gets the not-found policy, or a failed price limit if that is stricter.
-  return book.status === 'notFound'
-    ? strictest(settings.notFound, verdict)
-    : verdict
+  const order = settings.ruleOrder ?? DEFAULT_RULE_ORDER
+  let floor: Verdict = 'hide'
+  for (const rule of order) {
+    if (!isRuleActive(rule, settings, region)) continue
+    const state = evaluateRule(rule, book, settings, region)
+    if (state === 'match')
+      return leastStrict(ruleOutcome(rule, settings), floor)
+    if (state === 'pending')
+      floor = leastStrict(floor, ruleOutcome(rule, settings))
+  }
+  return 'show'
 }
-
-const STRICTNESS: Record<Verdict, number> = { show: 0, dim: 1, hide: 2 }
-const strictest = (a: Verdict, b: Verdict): Verdict =>
-  STRICTNESS[a] >= STRICTNESS[b] ? a : b
 
 /**
  * Does `book` carry a label the user highlights, or a rating at or above their highlight rating?
- * Independent of the filters' switch and verdict: a highlighted book that fails a filter is still
- * hidden; a dimmed one is drawn at full strength.
+ * Visual highlight mark: works with filtering off too. When filtering is on, a highlight rule's
+ * position in `ruleOrder` decides whether it overrides lower-priority hide or dim rules.
  */
 export const isHighlighted = (
   book: FilterBook | undefined,
@@ -193,9 +355,10 @@ export const isHighlighted = (
       )))
 
 /**
- * Is this book's public cash price at or under the user's highlight price for the marketplace? Like
- * the other highlights it never changes the verdict and works with the filters off. A missing price,
- * or one in another currency, is not highlighted.
+ * Is this book's public cash price at or under the user's highlight price for the marketplace?
+ * Visual price chip: works with filtering off too. When filtering is on, `highlightPrice`'s
+ * position in `ruleOrder` decides whether it keeps a book visible over lower-priority rules.
+ * A missing price, or one in another currency, is not highlighted.
  */
 export const isPriceHighlighted = (
   book: FilterBook | undefined,
@@ -246,13 +409,23 @@ export interface DepthContext extends Placement {
   readonly priced: boolean
 }
 
+const isDetailsRule = (rule: Rule) =>
+  rule === 'labels' || rule === 'year' || rule === 'highlightLabels'
+
+const isGoodreadsRule = (rule: Rule) =>
+  rule !== 'price' && rule !== 'highlightPrice'
+
+const isRatingStageRule = (rule: Rule) =>
+  rule === 'rating' || rule === 'count' || rule === 'notFound'
+
 /**
- * Eager filtering (PRD R3): how much of `book`'s lookup to ask for now. A filter's failures only
- * grow as data arrives, so a book that a `hide` filter hides on what is known stays hidden whatever
- * else arrives: nothing more is fetched for it (`none`). While a hiding price limit waits for the
- * book's price only what the cache has is asked for (`cached`), which costs Goodreads nothing; while
- * a hiding rating filter could still hide it only the rating (`rating`); the book page follows when
- * the rating lets the book through.
+ * Eager filtering (PRD R3): how much of `book`'s lookup to ask for now. Verdicts are monotonic as
+ * data arrives, so a book that `judge` hides on what is known stays hidden whatever else arrives:
+ * nothing more is fetched for it (`none`). While a hiding price limit that no higher-priority
+ * non-hiding Goodreads rule can override waits for the book's price, only what the cache has is
+ * asked for (`cached`); while a hiding rating-stage rule that no higher-priority non-hiding
+ * details rule can override waits for the rating, only the rating (`rating`); the book page
+ * follows when the rating lets the book through.
  *
  * A book that would be dimmed is still seen, so it gets everything (`details`), and so does every
  * book in a carousel or while the user peeks: neither is ever hidden (`place`). The caller asks
@@ -265,14 +438,44 @@ export function lookupDepth(
   region?: RegionCode
 ): Depth {
   if (!settings.enabled || where.inCarousel || where.peek) return 'details'
-  if (judge(book, settings, region) === 'hide') return 'none'
+  const current = book ? { ...book, priced: where.priced } : undefined
+  if (judge(current, settings, region) === 'hide') return 'none'
+  const order = settings.ruleOrder ?? DEFAULT_RULE_ORDER
+
+  // Can `price` hide the book as soon as the price arrives, without consulting Goodreads?
   const limit = region === undefined ? undefined : settings.maxPrice[region]
-  if (!where.priced && limit !== undefined && settings.modes.price === 'hide')
-    return 'cached'
-  const ratingCanHide =
-    settings.modes.rating === 'hide' ||
-    (settings.modes.count === 'hide' && settings.minRatings > 0)
-  if (!(book?.status === 'ready' && book.rating) && ratingCanHide)
-    return 'rating'
+  if (!where.priced && limit !== undefined && settings.modes.price === 'hide') {
+    let blockedByGoodreads = false
+    for (const rule of order) {
+      if (rule === 'price') break
+      if (
+        isGoodreadsRule(rule) &&
+        isRuleActive(rule, settings, region) &&
+        ruleOutcome(rule, settings) !== 'hide'
+      ) {
+        blockedByGoodreads = true
+        break
+      }
+    }
+    if (!blockedByGoodreads) return 'cached'
+  }
+
+  // Can a rating-stage rule hide the book before its Goodreads book page (details) is fetched?
+  if (!(book?.status === 'ready' && book.rating)) {
+    let blockedByDetails = false
+    for (const rule of order) {
+      if (!isRuleActive(rule, settings, region)) continue
+      const outcome = ruleOutcome(rule, settings)
+      if (isDetailsRule(rule) && outcome !== 'hide') {
+        blockedByDetails = true
+      } else if (
+        !blockedByDetails &&
+        isRatingStageRule(rule) &&
+        outcome === 'hide'
+      ) {
+        return 'rating'
+      }
+    }
+  }
   return 'details'
 }

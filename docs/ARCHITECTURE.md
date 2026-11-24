@@ -418,42 +418,43 @@ Verdict for one card (pure function in `src/core/filter.ts`):
    too (step 3). With `priceOnDeals`, the limit is in force only on a deals page (`pageKind`):
    `settingsFor(settings, page)` empties `maxPrice` elsewhere, and everything on the page reads the
    settings through it (the verdict, `lookupDepth`, the price requests).
-7. A book that fails no filter: `show`. Otherwise each filter it fails has its own miss mode,
-   `modes[filter]` (`hide` by default, `dim` as an option): `hide` if any of them is `hide`, else
-   `dim`. `failures` (`src/core/filter.ts`) lists the filters a book fails, in this order.
+7. Rules are evaluated in the user's priority order (`ruleOrder`, highest first; D33). The nine
+   rules are the five filter dimensions (`rating`, `count`, `year`, `price`, `labels`), the three
+   highlights (`highlightLabels`, `highlightRating`, `highlightPrice`) and `notFound`. Each active
+   rule has an outcome (`modes[d]` for filter dimensions, `show` for highlights, `notFound` for
+   books not on Goodreads). The first matching rule decides the verdict, bounded below by the least
+   strict outcome of any active higher-priority rule still waiting for data, so verdicts are
+   monotonic and never cause page jumps. `failures` (`src/core/filter.ts`) lists every filter
+   dimension a book fails.
 
-**Highlights** are not a filter. A `ready` book is highlighted (`isHighlighted`) if it has any
-genre in `highlightLabels` (case-insensitive), or a rating of at least `highlightRating` (inclusive,
-like `minRating`; `null` is off), whether or not the filters are on and whatever its verdict: a
-highlighted book that fails a `hide` filter is still hidden, and one that is dimmed is drawn at full
-strength (`badges.css`; its verdict and the counters do not change, D30). Either reason gives the card the same
-outline; only the label reason marks a pill. A label is in one of the `hiddenLabels` and
-`highlightLabels` lists at most; the panel and the label popover move it from one to the other. The
-rating acts as soon as the rating arrives; nothing is fetched for it (`lookupDepth` ignores it, since a
-book a `hide` filter holds back is not seen).
-A price at or under `highlightPrice[region]` (`isPriceHighlighted`: the public cash price, in the
-marketplace's currency, inclusive, whatever the verdict or the filters' switch) is a highlight too, but of
-the price alone: the applier adds an `agx-price` chip with the price (`markPrice`) after the badge and the
-year, and leaves the cover and the card unmarked (D31). `priceOnDeals` does not limit it.
+**Highlights** mark books visually whether or not the filters are on: `isHighlighted` (`highlightLabels`
+or `highlightRating`) gives the cover an amber glow (`data-agx-highlight` / `data-agx-shine`) and
+marks matching label pills; `isPriceHighlighted` (`highlightPrice[region]`) draws an amber `agx-price`
+chip beside the rating (`markPrice`) and leaves the cover alone (D31, not restricted by `priceOnDeals`).
+When filtering is on, each highlight rule's position in `ruleOrder` decides whether it keeps matching
+books visible (`show`) over lower-priority `hide` or `dim` rules (D33). A label is in one of the
+`hiddenLabels` and `highlightLabels` lists at most; the panel and the label popover move it from one
+to the other.
 
 Two adjustments follow the verdict: a card inside a carousel gets `dim` for `hide`, and so does every
 card while `peek` is on (the `12 hidden · Show` counter reveals the hidden books, dimmed, without
 touching the filters). `judge` gives the verdict before the adjustments and is what the counter
 counts; `place` applies them; `verdict` is both (`src/core/filter.ts`, inputs are structural so the
-module needs nothing from the content script or storage). A price filter acts as soon as the price
-arrives, a rating filter as soon as the rating has; hidden-label and year filters act once the details
-have. More data only ever adds failures, so a verdict of `hide` is never taken back by data arriving.
+module needs nothing from the content script or storage).
 
-**Eager filtering.** Because a `hide` verdict is final for the data, the content script fetches no
-more for a book it already hides (`lookupDepth`, `src/core/filter.ts`; `lookUp`,
-`src/content/main.ts`). For each book it asks the background for one of:
+**Eager filtering.** Because verdicts are monotonic as data arrives, once `judge` returns `hide`
+the verdict is final and the content script fetches no more for that book (`lookupDepth`,
+`src/core/filter.ts`; `lookUp`, `src/content/main.ts`). For each book it asks the background for
+one of:
 
-- nothing, when a `hide` filter already fails the book;
+- nothing (`none`), when `judge` already returns `hide`;
 - what the cache has (`Lookup` with `cacheOnly`), while a hiding price limit is active for the
-  marketplace and the book's price has not been answered: a cached rating shows (and can hide the
-  book) at once, and a book the cache lacks waits for its price before Goodreads is asked;
-- the rating only (`Lookup` with `ratingOnly`), while a hiding rating or count filter could still
-  hide it; when the rating lets it through, the details follow (`DetailsLookup`);
+  marketplace, the book's price has not been answered, and no active higher-priority Goodreads rule
+  with outcome other than `hide` could override it;
+- the rating only (`Lookup` with `ratingOnly`), while a hiding rating-stage rule (`rating`, `count`
+  or `notFound`) could hide it before details arrive and no active higher-priority details rule
+  (`labels`, `year`, `highlightLabels`) with outcome other than `hide` sits above it; when the
+  rating lets it through, the details follow (`DetailsLookup`);
 - everything (`Lookup`), otherwise.
 
 A book that would only be dimmed is still seen, so dimming filters hold nothing back, nor does a book
@@ -519,7 +520,7 @@ once: the panel when its lookups are done and it is open, the popup when it is o
 it sets `shown` as it appears, so ignoring it also uses it up. Neither item is ever sent anywhere.
 
 `src/storage/prefs.ts` holds `enabled` (the extension's master switch), `filters` and `display`,
-version 7. The options page edits all of them; the popup edits the master switch and the panel
+version 9. The options page edits all of them; the popup edits the master switch and the panel
 edits filters.
 WXT runs the version 1 → 2 migration when the
 module loads (it was `enabled` alone; the migrated record has the filters at their defaults).
@@ -539,13 +540,16 @@ Version 6 → 7 adds `highlightRating: null`, preserving every existing choice; 
 Version 7 → 8 adds `priceOnDeals: false` and `highlightPrice: {}`, preserving every existing choice: the
 price limit stays in force on every page until the user restricts it to deals pages, and no price is
 highlighted.
+Version 8 → 9 adds `ruleOrder` (all nine filter and highlight rules, highest priority first; D33).
+`upgradeRuleOrder` translates pre-v9 records and backups to preserve v8's `hide` > highlights > `dim`
+precedence.
 The content script runs only while the extension is on
 (`src/content/lifecycle.ts`): turning it off
 removes the badges, the overview and the stylesheet and closes the port, which ends this tab's
 lookups; turning it on starts the script again.
 
 ```ts
-// Prefs v8, defaults shown
+// Prefs v9, defaults shown
 {
   enabled: true,
   filters: {
@@ -555,15 +559,19 @@ lookups; turning it on starts the script again.
     minYear: null,           // inclusive; null is no lower bound, negative is BCE
     maxYear: null,           // inclusive; null is no upper bound
     hiddenLabels: [],        // Goodreads genre names
-    highlightLabels: [],     // Goodreads genre names; marked, never filtered
-    highlightRating: null,   // 1–5; books rated at least this are marked, never filtered; null is off
+    highlightLabels: [],     // Goodreads genre names; marked, overrides lower rules
+    highlightRating: null,   // 1–5; marked, overrides lower rules; null is off
     notFound: 'show',        // 'show' | 'dim' | 'hide'
     modes: {                 // each 'hide' | 'dim', per filter
       rating: 'hide', count: 'hide', labels: 'hide', year: 'hide', price: 'hide',
     },
+    ruleOrder: [             // priority order of all 9 rules, highest first
+      'rating', 'count', 'year', 'price', 'labels',
+      'highlightLabels', 'highlightRating', 'highlightPrice', 'notFound',
+    ],
     maxPrice: {},            // optional ceilings by region, e.g. { UK: 10, US: 20 }
-    highlightPrice: {},      // optional ceilings by region; a price at or under it is marked, never filtered
-    priceOnDeals: false,     // the price limit applies on deals pages only
+    highlightPrice: {},      // optional ceilings by region; marked, overrides lower rules
+    priceOnDeals: false,     // the price limit applies on deals and sale pages only
   },
   display: { labels: 4, year: true, overview: true },
 }

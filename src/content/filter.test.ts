@@ -598,8 +598,53 @@ describe('the highlight price on cards', () => {
   })
 })
 
-describe('a highlighted book that a filter dims', () => {
-  test('keeps its dim verdict and carries the highlight, which the stylesheet draws at full strength', async () => {
+describe('rule priority on cards', () => {
+  test('a highlight above a hide or dim rule keeps the card visible and highlighted', async () => {
+    loadBody(
+      '<article><h3><a href="/pd/Book/B000000001">Book</a></h3><img src="https://m.media-amazon.com/images/I/x.jpg"></article>'
+    )
+    const world = startWorld({
+      hostname: 'www.audible.com',
+      filters: new FakeFilters({
+        ...FILTERS,
+        highlightLabels: ['Fantasy'],
+        modes: { ...FILTERS.modes, rating: 'hide' },
+        ruleOrder: [
+          'highlightLabels',
+          'rating',
+          'count',
+          'year',
+          'price',
+          'labels',
+          'highlightRating',
+          'highlightPrice',
+          'notFound',
+        ],
+      }),
+    })
+    await flush()
+    world.io.intersect()
+    // First rating arrives (< 4.0): card stays visible while waiting for details, and details are fetched.
+    world.port.receive(ready('B000000001', { r: 3, n: 900 }))
+    const card = document.querySelector('article') as Element
+    expect(card.getAttribute('data-agx-filter')).toBeNull()
+    // Details arrive with Fantasy: highlight wins over hide, card stays visible with highlight.
+    world.port.receive(
+      ready(
+        'B000000001',
+        { r: 3, n: 900 },
+        { genres: ['Fantasy'], year: 2000, desc: '' }
+      )
+    )
+    expect(card.getAttribute('data-agx-filter')).toBeNull()
+    expect(card.hasAttribute('data-agx-highlight')).toBe(true)
+    expect(document.querySelector('img[data-agx-shine]')).not.toBeNull()
+    expect(currentHandle()?.filter.get().hidden).toBe(0)
+    expect(currentHandle()?.filter.get().dimmed).toBe(0)
+    world.content?.remove()
+  })
+
+  test('a dim rule above a highlight dims the card while keeping its highlight mark', async () => {
     loadBody(
       '<article><h3><a href="/pd/Book/B000000001">Book</a></h3><img src="https://m.media-amazon.com/images/I/x.jpg"></article>'
     )

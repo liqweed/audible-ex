@@ -19,8 +19,16 @@ const under = (path: string, base: string) =>
   path === base || path.startsWith(`${base}/`)
 
 /**
- * Wish List before Library (it lives under `/library/wishlist`), and deals before the rest: the
- * deals page is `/ep/audiobook-deals` and other campaign pages carry `deals` in their path too.
+ * Paths of Audible deals and sale campaigns (`/ep/audiobook-deals`, `/ep/summer-deals-2026`,
+ * `/ep/bfcm-uk`, `/ep/cash-sale`, `/ep/2-for-1`). Bounded on the left so unrelated words such as
+ * `/author/saleem` or `wholesale` do not match; digits may follow directly (`bfcm2026`).
+ */
+const DEALS_PATH =
+  /(?:^|[/_-])(?:deals?|sales?|bfcm|black-?friday|cyber-?monday|2-?for-?1)(?:$|[/_-\d])/
+
+/**
+ * Wish List before Library (it lives under `/library/wishlist`), product pages before deals (a book
+ * title can contain "sale" or "deal"), and deals/sales before the rest.
  */
 export function pageKind(pathname: string): PageKind {
   const path = pathname.toLowerCase()
@@ -29,7 +37,8 @@ export function pageKind(pathname: string): PageKind {
   if (under(path, '/library')) return 'library'
   if (under(path, '/search')) return 'search'
   if (under(path, '/cat') || under(path, '/categories')) return 'category'
-  if (path.includes('deals')) return 'deals'
+  if (under(path, '/pd')) return 'other'
+  if (DEALS_PATH.test(path)) return 'deals'
   return 'other'
 }
 

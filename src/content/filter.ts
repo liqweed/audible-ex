@@ -13,6 +13,8 @@
  */
 import { createStore, type Store } from '@tanstack/store'
 import {
+  DEFAULT_RULE_ORDER,
+  type FilterBook,
   type FilterSettings,
   hasLabel,
   isHighlighted,
@@ -59,6 +61,7 @@ export const NO_FILTERS: FilterSettings = {
     year: 'hide',
     price: 'hide',
   },
+  ruleOrder: DEFAULT_RULE_ORDER,
 }
 
 /** What the panel shows of the filters. */
@@ -97,7 +100,7 @@ export function createFilterApplier(options: {
   page?: PageKind
   /** The cards on the page, by ASIN. */
   cards(): ReadonlyMap<string, ReadonlySet<Element>>
-  viewOf(asin: string): BookView | undefined
+  viewOf(asin: string): (BookView & Pick<FilterBook, 'priced'>) | undefined
 }): FilterApplier {
   const state = createStore<FilterState>({
     hidden: 0,

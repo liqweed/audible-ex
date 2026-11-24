@@ -99,13 +99,6 @@
   /* biome-ignore lint/complexity/noImportantStyles: as above */
   opacity: 0.9 !important;
 }
-/* A book the user highlighted stays at full strength when a filter dims it (a price over the limit,
-   a carousel slide): they asked to be told about it. Its verdict is unchanged, and it is never hidden. */
-[data-agx-filter='dim'][data-agx-highlight] {
-  /* biome-ignore lint/complexity/noImportantStyles: as above */
-  opacity: 1 !important;
-  filter: none;
-}
 
 /* A label pill is a button for the label popover; one the user filters on is struck through. */
 .agx-label:hover,

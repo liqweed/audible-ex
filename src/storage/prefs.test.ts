@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
 import { fakeBrowser } from 'wxt/testing/fake-browser'
+import { DEFAULT_RULE_ORDER } from '../core/filter'
 import {
   DEFAULT_DISPLAY,
   DEFAULT_FILTERS,
@@ -49,6 +50,7 @@ describe('decodePrefs', () => {
         year: 'hide',
         price: 'hide',
       },
+      ruleOrder: DEFAULT_RULE_ORDER,
     })
   })
 
@@ -198,7 +200,7 @@ describe('the version 1 record', () => {
     })
   })
 
-  test('is rewritten as version 8 when the extension starts', async () => {
+  test('is rewritten as version 9 when the extension starts', async () => {
     await seedV1()
     // WXT migrates when the item is defined, which is when the module loads: load a fresh copy.
     const fresh = (await import(
@@ -214,7 +216,7 @@ describe('the version 1 record', () => {
       const meta = (await fakeBrowser.storage.sync.get('prefs$')).prefs$ as
         | { v?: number }
         | undefined
-      if (meta?.v === 8) break
+      if (meta?.v === 9) break
       await Bun.sleep(10)
     }
     const stored = await fakeBrowser.storage.sync.get(['prefs', 'prefs$'])
@@ -223,7 +225,7 @@ describe('the version 1 record', () => {
       enabled: false,
       filters: DEFAULT_FILTERS,
     })
-    expect(stored.prefs$).toEqual({ v: 8 })
+    expect(stored.prefs$).toEqual({ v: 9 })
   })
 })
 
@@ -264,18 +266,29 @@ describe('the version 2 record', () => {
           year: 'dim',
           price: 'dim',
         } as const,
+        ruleOrder: [
+          'highlightLabels',
+          'highlightRating',
+          'rating',
+          'count',
+          'year',
+          'price',
+          'labels',
+          'notFound',
+          'highlightPrice',
+        ] as const,
       },
     }
     expect(await fresh.readPrefs()).toEqual(expected)
     for (let i = 0; i < 100; i++) {
       const stored = await fakeBrowser.storage.sync.get(['prefs', 'prefs$'])
-      if ((stored.prefs$ as { v?: number } | undefined)?.v === 8) break
+      if ((stored.prefs$ as { v?: number } | undefined)?.v === 9) break
       await Bun.sleep(10)
     }
     const stored = await fakeBrowser.storage.sync.get(['prefs', 'prefs$'])
     expect(stored).toEqual({
       prefs: expected,
-      prefs$: { v: 8 },
+      prefs$: { v: 9 },
     })
   })
 
@@ -375,13 +388,13 @@ describe('marketplace price prefs', () => {
       const meta = (await fakeBrowser.storage.sync.get('prefs$')).prefs$ as
         | { v?: number }
         | undefined
-      if (meta?.v === 8) break
+      if (meta?.v === 9) break
       await Bun.sleep(10)
     }
     const stored = await fakeBrowser.storage.sync.get(['prefs', 'prefs$'])
     expect(stored).toEqual({
       prefs: expected,
-      prefs$: { v: 8 },
+      prefs$: { v: 9 },
     })
   })
   test('simultaneous edits preserve limits in other marketplaces and notify tabs', async () => {
@@ -416,13 +429,13 @@ describe('display prefs', () => {
       const meta = (await fakeBrowser.storage.sync.get('prefs$')).prefs$ as
         | { v?: number }
         | undefined
-      if (meta?.v === 8) break
+      if (meta?.v === 9) break
       await Bun.sleep(10)
     }
     const stored = await fakeBrowser.storage.sync.get(['prefs', 'prefs$'])
     expect(stored).toEqual({
       prefs: { enabled: false, filters, display: DEFAULT_DISPLAY },
-      prefs$: { v: 8 },
+      prefs$: { v: 9 },
     })
   })
   test.each([-1, 11, 1.5])('rejects label count %s', labels => {
@@ -432,7 +445,12 @@ describe('display prefs', () => {
 
 describe('the version 5 record', () => {
   test('gives every filter the old mode and highlights no label', async () => {
-    const { modes: _, highlightLabels: __, ...v5 } = DEFAULT_FILTERS
+    const {
+      modes: _,
+      highlightLabels: __,
+      ruleOrder: ___,
+      ...v5
+    } = DEFAULT_FILTERS
     await fakeBrowser.storage.sync.set({
       prefs: {
         enabled: true,
@@ -457,6 +475,17 @@ describe('the version 5 record', () => {
           year: 'dim',
           price: 'dim',
         } as const,
+        ruleOrder: [
+          'highlightLabels',
+          'highlightRating',
+          'rating',
+          'count',
+          'year',
+          'price',
+          'labels',
+          'highlightPrice',
+          'notFound',
+        ] as const,
       },
     }
     expect(await fresh.readPrefs()).toEqual(expected)
@@ -464,11 +493,55 @@ describe('the version 5 record', () => {
       const meta = (await fakeBrowser.storage.sync.get('prefs$')).prefs$ as
         | { v?: number }
         | undefined
-      if (meta?.v === 8) break
+      if (meta?.v === 9) break
       await Bun.sleep(10)
     }
     const stored = await fakeBrowser.storage.sync.get(['prefs', 'prefs$'])
-    expect(stored).toEqual({ prefs: expected, prefs$: { v: 8 } })
+    expect(stored).toEqual({ prefs: expected, prefs$: { v: 9 } })
+  })
+})
+
+describe('ruleOrder (prefs v9)', () => {
+  test('migrates v8 mixed hide/dim modes to preserve hide > highlight > dim', async () => {
+    const { ruleOrder: _, ...v8 } = DEFAULT_FILTERS
+    await fakeBrowser.storage.sync.set({
+      prefs: {
+        enabled: true,
+        display: DEFAULT_DISPLAY,
+        filters: {
+          ...v8,
+          modes: { ...DEFAULT_FILTERS.modes, rating: 'dim', price: 'dim' },
+          notFound: 'hide',
+        },
+      },
+      prefs$: { v: 8 },
+    })
+    const fresh = (await import(
+      `./prefs.ts?fresh=${Math.random()}`
+    )) as typeof import('./prefs')
+    expect((await fresh.readPrefs()).filters.ruleOrder).toEqual([
+      'count',
+      'year',
+      'labels',
+      'notFound',
+      'highlightLabels',
+      'highlightRating',
+      'rating',
+      'price',
+      'highlightPrice',
+    ])
+  })
+
+  test('rejects incomplete, duplicate or unknown ruleOrder entries', () => {
+    for (const bad of [
+      ['rating'],
+      [...DEFAULT_RULE_ORDER.slice(0, -1), 'rating'],
+      [...DEFAULT_RULE_ORDER.slice(0, -1), 'unknown'],
+    ]) {
+      expect(
+        decodePrefs({ filters: { ...DEFAULT_FILTERS, ruleOrder: bad } })
+      ).toEqual(DEFAULT_PREFS)
+    }
   })
 })
 

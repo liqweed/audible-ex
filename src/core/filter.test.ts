@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import {
+  DEFAULT_RULE_ORDER,
   DIMENSIONS,
   type Dimension,
   type FilterBook,
@@ -12,6 +13,7 @@ import {
   labelKey,
   lookupDepth,
   place,
+  type Rule,
   settingsFor,
   verdict,
   wantsPrices,
@@ -94,9 +96,18 @@ describe('judge', () => {
     )
   })
 
-  test('one hiding filter is enough to hide; dimming filters alone dim', () => {
+  test('the highest-priority failing filter decides between dim and hide', () => {
     const book = ready(3, 10)
-    expect(judge(book, with_({ modes: dimming('rating') }))).toBe('hide')
+    // In default order rating comes before count: rating (dim) wins over count (hide).
+    expect(judge(book, with_({ modes: dimming('rating') }))).toBe('dim')
+    // Putting count above rating lets count (hide) win.
+    const countFirst: Rule[] = [
+      'count',
+      ...DEFAULT_RULE_ORDER.filter(r => r !== 'count'),
+    ]
+    expect(
+      judge(book, with_({ modes: dimming('rating'), ruleOrder: countFirst }))
+    ).toBe('hide')
     expect(judge(book, with_({ modes: dimming('rating', 'count') }))).toBe(
       'dim'
     )
@@ -271,11 +282,12 @@ describe('maximum price per marketplace', () => {
     }
     expect(failures(priced('loading'), limits, 'UK')).toEqual(['price'])
   })
-  test('a book not on Goodreads gets the stricter of its price and the not-found policy', () => {
+  test('a book not on Goodreads follows priority between price and notFound', () => {
     const missing: FilterBook = {
       status: 'notFound',
       price: { amount: 20, currency: 'GBP' },
     }
+    // Default order puts price before notFound.
     expect(judge(missing, limits, 'UK')).toBe('hide')
     expect(judge(missing, { ...limits, modes: dimming('price') }, 'UK')).toBe(
       'dim'
@@ -286,8 +298,160 @@ describe('maximum price per marketplace', () => {
         { ...limits, modes: dimming('price'), notFound: 'hide' },
         'UK'
       )
+    ).toBe('dim')
+    // Putting notFound above price lets notFound decide first.
+    const notFoundFirst: Rule[] = [
+      'notFound',
+      ...DEFAULT_RULE_ORDER.filter(r => r !== 'notFound'),
+    ]
+    expect(
+      judge(
+        missing,
+        {
+          ...limits,
+          modes: dimming('price'),
+          notFound: 'hide',
+          ruleOrder: notFoundFirst,
+        },
+        'UK'
+      )
     ).toBe('hide')
+    expect(
+      judge(
+        missing,
+        { ...limits, notFound: 'show', ruleOrder: notFoundFirst },
+        'UK'
+      )
+    ).toBe('show')
     expect(judge({ status: 'notFound' }, limits, 'UK')).toBe('show')
+  })
+})
+
+describe('rule priority', () => {
+  const first = (...top: Rule[]): Rule[] => [
+    ...top,
+    ...DEFAULT_RULE_ORDER.filter(r => !top.includes(r)),
+  ]
+
+  test('a highlight rule above a hide or dim rule keeps matching books visible', () => {
+    const sciFi = ready(3.5, 900, ['Science Fiction'])
+    expect(
+      judge(
+        sciFi,
+        with_({
+          highlightLabels: ['Science Fiction'],
+          ruleOrder: first('highlightLabels'),
+        })
+      )
+    ).toBe('show')
+    // Below rating (hide), rating wins and hides it.
+    expect(
+      judge(
+        sciFi,
+        with_({
+          highlightLabels: ['Science Fiction'],
+          ruleOrder: DEFAULT_RULE_ORDER,
+        })
+      )
+    ).toBe('hide')
+
+    // Highlight rating above max price (hide) keeps a pricey gem visible.
+    const priceyGem: FilterBook = {
+      ...ready(4.7, 900),
+      price: { amount: 20, currency: 'GBP' },
+    }
+    expect(
+      judge(
+        priceyGem,
+        with_({
+          maxPrice: { UK: 10 },
+          highlightRating: 4.5,
+          ruleOrder: first('highlightRating'),
+        }),
+        'UK'
+      )
+    ).toBe('show')
+
+    // Highlight price above minRating (hide) keeps a cheap low-rated book visible.
+    const cheap: FilterBook = {
+      ...ready(3.2, 900),
+      price: { amount: 2.99, currency: 'GBP' },
+    }
+    expect(
+      judge(
+        cheap,
+        with_({
+          highlightPrice: { UK: 3 },
+          ruleOrder: first('highlightPrice'),
+        }),
+        'UK'
+      )
+    ).toBe('show')
+  })
+
+  test('waits for pending higher-priority rules so verdicts never jump back', () => {
+    // Highlight labels needs details; rating arrived first and would hide.
+    const ratingOnly = ready(3.5, 900)
+    const s = with_({
+      highlightLabels: ['Science Fiction'],
+      ruleOrder: first('highlightLabels', 'rating'),
+    })
+    expect(judge(ratingOnly, s)).toBe('show')
+    // Once details arrive without Sci-Fi, rating hides it.
+    expect(judge(ready(3.5, 900, ['Romance']), s)).toBe('hide')
+    // Once details arrive with Sci-Fi, highlight keeps it visible.
+    expect(judge(ready(3.5, 900, ['Science Fiction']), s)).toBe('show')
+
+    // A pending dim rule above a matching hide rule dims at most, never hides prematurely.
+    const pricePending: FilterBook = { ...ready(3.5, 900), priced: false }
+    const dimPriceFirst = with_({
+      maxPrice: { UK: 10 },
+      modes: dimming('price'),
+      ruleOrder: first('price', 'rating'),
+    })
+    expect(judge(pricePending, dimPriceFirst, 'UK')).toBe('dim')
+    // Once price arrives with no price (settled), rating hides it.
+    expect(
+      judge({ ...ready(3.5, 900), priced: true }, dimPriceFirst, 'UK')
+    ).toBe('hide')
+  })
+
+  test('eager filtering fetches details when a higher-priority details rule can rescue the book', () => {
+    const s = with_({
+      highlightLabels: ['Science Fiction'],
+      ruleOrder: first('highlightLabels', 'rating'),
+    })
+    // Even with rating < minRating, we must fetch details to see if highlightLabels rescues it.
+    expect(
+      lookupDepth(ready(3.5, 900), s, { ...flat, priced: true }, 'UK')
+    ).toBe('details')
+    expect(
+      lookupDepth({ status: 'queued' }, s, { ...flat, priced: true }, 'UK')
+    ).toBe('details')
+    // When highlightLabels is empty (inactive), rating can still stop early.
+    const inactive = with_({
+      highlightLabels: [],
+      ruleOrder: first('highlightLabels', 'rating'),
+    })
+    expect(
+      lookupDepth(
+        { status: 'queued' },
+        inactive,
+        { ...flat, priced: true },
+        'UK'
+      )
+    ).toBe('rating')
+  })
+
+  test('eager filtering does not stall on price when a higher-priority Goodreads rule can override hide', () => {
+    const s = with_({
+      maxPrice: { UK: 10 },
+      highlightRating: 4.5,
+      ruleOrder: first('highlightRating', 'price'),
+    })
+    expect(
+      lookupDepth({ status: 'queued' }, s, { ...flat, priced: false }, 'UK')
+    ).toBe('rating')
   })
 })
 

@@ -255,7 +255,7 @@ describe('prefs backups', () => {
     ).toEqual({ ...DEFAULT_PREFS, enabled: false })
   })
   test("a backup's single mode from before prefs v6 becomes every filter's", () => {
-    const { modes: _, ...filters } = DEFAULT_PREFS.filters
+    const { modes: _, ruleOrder: __, ...filters } = DEFAULT_PREFS.filters
     const prefs = importPrefs(
       JSON.stringify({
         format: 'audible-ex-prefs',
@@ -270,5 +270,28 @@ describe('prefs backups', () => {
       'dim',
       'dim',
     ])
+    // Pre-v9 backup gets highlights above dim filters to preserve v8 behaviour.
+    expect(prefs.filters.ruleOrder.indexOf('highlightLabels')).toBeLessThan(
+      prefs.filters.ruleOrder.indexOf('rating')
+    )
+  })
+  test('merges ruleOrder edits without clobbering unrelated changes in another tab', () => {
+    const base = DEFAULT_PREFS
+    const reordered = [
+      'highlightLabels',
+      ...base.filters.ruleOrder.filter(r => r !== 'highlightLabels'),
+    ] as const
+    const next = {
+      ...base,
+      filters: { ...base.filters, ruleOrder: reordered },
+    }
+    const current = {
+      ...base,
+      filters: { ...base.filters, minRating: 4.5 },
+    }
+    expect(mergeSettings(base, next, current).filters).toMatchObject({
+      ruleOrder: reordered,
+      minRating: 4.5,
+    })
   })
 })

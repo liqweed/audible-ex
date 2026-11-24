@@ -658,3 +658,39 @@ worker to track state); a page on first install (no use to judge yet); a notific
 "no more than a single nudge"; the permanent links cover the rest); counting in the worker
 (couples the lookup path to a product feature). The 200 ratings and three days are
 starting points, not measured.
+
+## D33 — Priority-ordered filter and highlight rules, and broader sale-page detection (2026-11-25)
+
+Supersedes the fixed "any `hide` wins" rule in D25 and the CSS-only "highlighted books lift
+dimming" override in D30.
+
+Users want to drag and drop filter and highlight rules to decide which rule wins when a book
+matches more than one (for example, keeping a highlighted genre or cheap book visible despite a
+`hide` rating filter, or letting a `dim` rule win over a `hide` rule).
+
+- **Model (`src/core/filter.ts`).** Prefs v9 adds `filters.ruleOrder`, an ordered permutation of
+  all 9 rules (`rating`, `count`, `year`, `price`, `labels`, `highlightLabels`, `highlightRating`,
+  `highlightPrice`, `notFound`). `judge` walks `ruleOrder` top to bottom: the first matching active
+  rule decides the verdict (`modes[d]` for filter dimensions, `show` for highlights, `notFound` for
+  books not on Goodreads). To keep verdicts monotonic and prevent page jumps while later data is
+  still arriving, the returned verdict is bounded below by the least strict outcome of any active
+  higher-priority rule that is still pending. Eager filtering (`lookupDepth`) stops only when a
+  `hide` verdict is final (no active higher-priority non-`hide` rule could still override it).
+- **Migration.** `upgradeRuleOrder` translates pre-v9 prefs (and v1 backups) into the order that
+  matches v8 semantics (`hide` filters, then `notFound` if `hide`, then `highlightLabels` and
+  `highlightRating`, then `dim` filters, then `notFound` if `dim`, then `highlightPrice`, then
+  `notFound` if `show`), so existing users keep their exact behaviour on upgrade. Because highlights
+  above `dim` rules now produce `show` directly, `[data-agx-filter='dim'][data-agx-highlight]` is
+  removed from `badges.css`, so a `dim` rule explicitly prioritized above a highlight actually dims.
+- **UI (`src/lib/reorder.ts`).** Both the floating panel and the options page offer pointer
+  drag-and-drop on each rule's grip handle plus `ArrowUp`/`ArrowDown` keyboard reordering, using
+  Pointer Events (like `src/panel/drag.ts`) with no new dependency so it works reliably inside
+  Shadow DOM and stays within `panel.js`'s 120 KB budget.
+- **Sale pages (`src/core/page.ts`).** Audible's sale campaigns do not all contain `deals` in their
+  path (e.g. `/ep/bfcm-uk`). `pageKind` now matches bounded deals/sale campaign segments (`deals?`,
+  `sales?`, `bfcm`, `black-friday`, `cyber-monday`, `2-for-1`/`2for1`) and excludes `/pd/` product
+  pages so book titles containing those words do not trigger deals-only limits.
+
+Rejected: adding `@dnd-kit` or HTML5 drag-and-drop (bundle budget and Shadow DOM quirks), keeping a
+separate override toggle for highlights (one ordered list answers every precedence question), and
+matching all `/ep/` paths (includes non-sale pages like `/ep/plus-catalogue`).
