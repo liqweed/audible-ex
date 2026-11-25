@@ -161,6 +161,7 @@ export function startContent(deps: ContentDeps): Content | undefined {
         const known = books.get(message.asin)
         if (known && message.price)
           books.set(message.asin, { ...known, price: message.price })
+        else filter.refresh()
         lookUp([message.asin])
       } else {
         const { _tag, ...progress } = message
@@ -176,7 +177,10 @@ export function startContent(deps: ContentDeps): Content | undefined {
     region: region.code,
     page,
     cards: () => cardsByAsin,
-    viewOf: asin => books.get(asin),
+    viewOf: asin => {
+      const view = books.get(asin)
+      return view ? { ...view, priced: priced.has(asin) } : undefined
+    },
   })
   const pricesAsked = new Set<string>()
   const requestPrices = () => {

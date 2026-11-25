@@ -6,6 +6,7 @@ import {
   Download,
   Funnel,
   Github,
+  GripVertical,
   RotateCcw,
   Save,
   ShieldCheck,
@@ -18,7 +19,7 @@ import {
   X,
 } from 'lucide-react'
 import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
-import { type Dimension, labelKey } from '@/core/filter'
+import { type Dimension, labelKey, type Rule } from '@/core/filter'
 import { REGIONS, type RegionCode } from '@/core/regions'
 import { currencySymbol } from '@/lib/format'
 import { Logo } from '@/lib/Logo'
@@ -29,6 +30,7 @@ import {
   REVIEW_URL,
   SOURCE_URL,
 } from '@/lib/links'
+import { moveItem, useReorder } from '@/lib/reorder'
 import { CacheInspector } from '@/options/CacheInspector'
 import { CacheSummary } from '@/options/CacheSummary'
 import { type CacheBackend, cacheBackend } from '@/options/cache-backend'
@@ -99,14 +101,87 @@ const SHOW_DIM_OR_HIDE = [
   { value: 'hide', text: 'Hide' },
 ] as const
 
-/** Each filter with its own hide-or-dim choice, as the options page names it. */
-const MODE_FIELDS: ReadonlyArray<readonly [Dimension, string]> = [
-  ['rating', 'Below the minimum rating'],
-  ['count', 'Too few ratings'],
-  ['labels', 'Carrying a hidden label'],
-  ['price', 'Above the maximum price'],
-  ['year', 'Outside the year range'],
-]
+/** Every rule as the options page names it in the priority list. */
+const RULE_LABELS: Record<Rule, string> = {
+  rating: 'Below the minimum rating',
+  count: 'Too few ratings',
+  labels: 'Carrying a hidden label',
+  price: 'Above the maximum price',
+  year: 'Outside the year range',
+  highlightLabels: 'Carrying a highlighted label',
+  highlightRating: 'At or above the highlight rating',
+  highlightPrice: 'At or under the highlight price',
+  notFound: 'Not on Goodreads',
+}
+
+/** Drag-and-drop (and arrow-key) priority list for all filter and highlight rules. */
+function RulePriorityList({
+  order,
+  onChange,
+  renderControl,
+}: {
+  order: readonly Rule[]
+  onChange(next: Rule[]): void
+  renderControl(rule: Rule): ReactNode
+}) {
+  const onMove = useCallback(
+    (from: number, to: number) => onChange(moveItem(order, from, to)),
+    [order, onChange]
+  )
+  const reorder = useReorder(order.length, onMove)
+  return (
+    <>
+      <p role='status' className='sr-only'>
+        {reorder.announcement}
+      </p>
+      <ul
+        aria-label='Rule priority'
+        className={`mt-2 divide-y divide-slate-200 rounded-md border border-slate-200 ${reorder.dragging !== undefined ? 'select-none' : ''}`}
+      >
+        {order.map((rule, index) => {
+          const isDragged = reorder.dragging === index
+          const dropAbove =
+            reorder.dragging !== undefined &&
+            reorder.over === index &&
+            reorder.over < reorder.dragging
+          const dropBelow =
+            reorder.dragging !== undefined &&
+            reorder.over === index &&
+            reorder.over > reorder.dragging
+          const label = RULE_LABELS[rule]
+          return (
+            <li
+              key={rule}
+              ref={reorder.itemRef(index)}
+              data-rule={rule}
+              className={`flex items-center gap-2.5 px-2.5 py-1.5 transition-colors ${isDragged ? 'bg-indigo-50/80 opacity-75' : ''} ${dropAbove ? 'border-t-2 border-t-indigo-600' : ''} ${dropBelow ? 'border-b-2 border-b-indigo-600' : ''}`}
+            >
+              <button
+                type='button'
+                {...reorder.handleProps(index, label)}
+                aria-label={`Reorder ${label} (${index + 1} of ${order.length})`}
+                title='Drag to prioritize, or press Up and Down arrow keys'
+                className='flex h-7 w-6 shrink-0 cursor-grab touch-none items-center justify-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-700 active:cursor-grabbing'
+              >
+                <GripVertical aria-hidden='true' className='h-4 w-4' />
+              </button>
+              <span
+                aria-hidden='true'
+                className='w-4 shrink-0 text-right text-xs tabular-nums text-slate-400'
+              >
+                {index + 1}
+              </span>
+              <span aria-hidden='true' className='flex-1 text-sm'>
+                {label}
+              </span>
+              {renderControl(rule)}
+            </li>
+          )
+        })}
+      </ul>
+    </>
+  )
+}
 
 const without = (labels: readonly string[], label: string) =>
   labels.filter(l => labelKey(l) !== labelKey(label))
@@ -287,26 +362,31 @@ function Settings({
       </form.Field>
     )
   }
-  function modeRow(
-    name: PolicyKey,
-    label: string,
-    options: typeof HIDE_OR_DIM | typeof SHOW_DIM_OR_HIDE
-  ) {
+  function ruleControl(rule: Rule): ReactNode {
+    const label = RULE_LABELS[rule]
+    if (
+      rule === 'highlightLabels' ||
+      rule === 'highlightRating' ||
+      rule === 'highlightPrice'
+    ) {
+      return (
+        <span className='rounded-md border border-amber-300 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-900'>
+          Highlight (show)
+        </span>
+      )
+    }
+    const name: PolicyKey = rule === 'notFound' ? 'notFound' : `modes.${rule}`
+    const options = rule === 'notFound' ? SHOW_DIM_OR_HIDE : HIDE_OR_DIM
     return (
       <form.Field key={name} name={name}>
         {f => (
-          <li className='flex items-center justify-between gap-4 px-3 py-1.5'>
-            <span aria-hidden='true' className='text-sm'>
-              {label}
-            </span>
-            <Segmented<string>
-              name={name}
-              label={label}
-              value={f.state.value}
-              options={options}
-              onChange={mode => f.handleChange(mode as typeof f.state.value)}
-            />
-          </li>
+          <Segmented<string>
+            name={name}
+            label={label}
+            value={f.state.value}
+            options={options}
+            onChange={mode => f.handleChange(mode as typeof f.state.value)}
+          />
         )}
       </form.Field>
     )
@@ -441,8 +521,9 @@ function Settings({
                 <p className='options-hint'>
                   Books below the minimum rating, or with fewer ratings than the
                   minimum, fail the filter. Books rated at least the highlight
-                  rating get an outline, even with filtering off; highlighting
-                  never hides a book. The panel's slider offers 3.0–5.0.
+                  rating get an outline, even with filtering off, and override
+                  lower-priority filters according to their priority below. The
+                  panel's slider offers 3.0–5.0.
                 </p>
                 <form.Subscribe
                   selector={s =>
@@ -514,24 +595,26 @@ function Settings({
                 <div className='space-y-4 border-t border-slate-200 pt-4'>
                   <fieldset className='mx-0 mt-0 border-0 p-0'>
                     <legend className='text-sm font-medium'>
-                      What happens to a book that fails each filter
+                      Rule priority and what happens to matching books
                     </legend>
-                    <ul className='mt-2 divide-y divide-slate-200 rounded-md border border-slate-200'>
-                      {MODE_FIELDS.map(([dimension, label]) =>
-                        modeRow(`modes.${dimension}`, label, HIDE_OR_DIM)
+                    <form.Field name='ruleOrder'>
+                      {f => (
+                        <RulePriorityList
+                          order={f.state.value}
+                          onChange={f.handleChange}
+                          renderControl={ruleControl}
+                        />
                       )}
-                      {modeRow(
-                        'notFound',
-                        'Not on Goodreads',
-                        SHOW_DIM_OR_HIDE
-                      )}
-                    </ul>
+                    </form.Field>
                   </fieldset>
                   <p className='options-hint'>
-                    A book that fails several filters is hidden if any of them
-                    hides. Cards in carousels are always dimmed. Books stay
-                    visible until their ratings arrive; missing years and prices
-                    do not fail those filters.
+                    Drag rules (or press Up and Down arrows on a grip) to set
+                    their priority. When a book matches more than one rule, the
+                    highest one in the list wins: a highlight above a hide rule
+                    keeps matching books visible, and a dim rule above a hide
+                    rule dims instead of hiding. Cards in carousels are always
+                    dimmed. Books stay visible until the data higher-priority
+                    rules need arrives.
                   </p>
                 </div>
                 <fieldset className='m-0 space-y-2 border-0 border-t border-slate-200 p-0 pt-4'>
@@ -632,7 +715,9 @@ function Settings({
                     </dt>
                     <dd className='inline'>
                       books at or under it show their price in amber beside the
-                      rating, whatever the filters do and on every page.
+                      rating on every page, even with filtering off, and
+                      override lower-priority filters according to their
+                      priority above.
                     </dd>
                   </div>
                   <p>
@@ -701,9 +786,8 @@ function Settings({
                   'Apply the maximum price on deals pages only'
                 )}
                 <p className='options-hint'>
-                  A page is a deals page when its address has “deals” in it,
-                  such as /ep/audiobook-deals. Elsewhere books are not filtered
-                  by price.
+                  Applies on deals and sale pages (such as /ep/audiobook-deals
+                  or /ep/bfcm-uk). Elsewhere books are not filtered by price.
                 </p>
               </section>
             </fieldset>

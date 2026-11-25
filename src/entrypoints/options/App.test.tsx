@@ -343,6 +343,57 @@ describe('options page design', () => {
     })
     expect(filters.notFound).toBe('hide')
   })
+  test('rules can be reordered by keyboard and drag-and-drop and saved', async () => {
+    await show()
+    const list = screen.getByRole('list', { name: 'Rule priority' })
+    const order = () =>
+      [...list.querySelectorAll('li[data-rule]')].map(li =>
+        li.getAttribute('data-rule')
+      )
+    expect(order().slice(0, 2)).toEqual(['rating', 'count'])
+    // Keyboard reorder marks the draft dirty and keeps focus on the moved grip.
+    fireEvent.keyDown(
+      screen.getByRole('button', { name: /^Reorder Too few ratings/ }),
+      { key: 'ArrowUp' }
+    )
+    expect(order().slice(0, 2)).toEqual(['count', 'rating'])
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: /^Reorder Too few ratings/ })
+    )
+    expect(screen.getByText('Unsaved changes')).toBeTruthy()
+    // Pointer drag moves Highlight labels to the top.
+    const items = [...list.querySelectorAll('li[data-rule]')]
+    items.forEach((el, i) => {
+      el.getBoundingClientRect = () =>
+        ({
+          top: i * 40,
+          bottom: (i + 1) * 40,
+          height: 40,
+          left: 0,
+          right: 400,
+          width: 400,
+          x: 0,
+          y: i * 40,
+          toJSON: () => ({}),
+        }) as DOMRect
+    })
+    const grip = screen.getByRole('button', {
+      name: /^Reorder Carrying a highlighted label/,
+    })
+    fireEvent.pointerDown(grip, { button: 0, clientY: 220, pointerId: 1 })
+    fireEvent.pointerMove(grip, { clientY: 5, pointerId: 1 })
+    expect(list.className).toContain('select-none')
+    fireEvent.pointerUp(grip, { clientY: 5, pointerId: 1 })
+    expect(list.className).not.toContain('select-none')
+    expect(order()[0]).toBe('highlightLabels')
+    await save()
+    await screen.findByText('Settings saved.')
+    expect((await readPrefs()).filters.ruleOrder.slice(0, 3)).toEqual([
+      'highlightLabels',
+      'count',
+      'rating',
+    ])
+  })
   test('maximum and highlight prices share one table with a link to each marketplace', async () => {
     await show()
     const table = screen.getByRole('table')

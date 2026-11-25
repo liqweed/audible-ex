@@ -78,33 +78,39 @@ catalogue goes unchecked.
 - Hidden labels: hide books carrying any of the chosen Goodreads genres, picked
   with autocomplete from genres already seen.
 - What happens to a book that fails a filter, chosen for each filter (rating,
-  number of ratings, labels, year, price): hidden (default) or dimmed. A book
-  failing several filters is hidden if any of them hides. Books in carousels
-  are always dimmed, never removed.
+  number of ratings, labels, year, price): hidden (default) or dimmed. Books in
+  carousels are always dimmed, never removed.
+- Prioritized filter and highlight rules: users can drag and drop (or reorder
+  with the keyboard) all filter dimensions, highlight rules and the not-found
+  policy in both the floating panel and the options page. When a book matches
+  more than one rule, the highest-priority rule wins (for example, a highlight
+  rule above a `hide` rule keeps matching books visible, and a `dim` rule above
+  a `hide` rule dims instead of hiding).
 - Highlighted labels (areas of interest): books carrying any of the chosen
-  Goodreads genres get a soft glow around their cover and their label is marked. Highlighting
-  never hides a book and works with filtering off. A label is hidden or
+  Goodreads genres get a soft glow around their cover and their label is marked.
+  Highlighting works with filtering off; when filtering is on, its priority
+  decides whether it overrides lower-priority filters. A label is hidden or
   highlighted, not both; the label popover offers either.
 - Highlight rating: books rated at least the chosen Goodreads rating (1–5; blank is off, the
-  default) get the same outline as highlighted labels. Like them it never hides a book and works
-  with filtering off.
-- A highlighted book that a filter only dims is drawn at full strength; one a filter hides stays
-  hidden.
-- The price limit can apply on deals pages only, leaving search, categories and the library
-  unfiltered by price.
+  default) get the same outline as highlighted labels. Like them it works with
+  filtering off and follows its priority when filtering is on.
+- The price limit can apply on deals and sale pages only (including campaign
+  URLs such as `/ep/audiobook-deals` and `/ep/bfcm-uk`), leaving search,
+  categories and the library unfiltered by price.
 - Highlight price: a book whose public price is at or under the chosen amount for the marketplace
-  shows that price as an amber chip beside its rating. Blank is off, the default. It never hides or
-  dims a book, leaves the cover alone, works with filtering off and on every page.
+  shows that price as an amber chip beside its rating. Blank is off, the default. It leaves the
+  cover alone, works with filtering off and on every page, and follows its priority when filtering
+  is on.
 - Books not found on Goodreads: shown (default), dimmed or hidden.
-- A book is never hidden for data that hasn't loaded. Each filter applies as
-  soon as its data has: the price (from Audible) before the rating, the rating
-  before the genres and year.
-- Eager filtering: no more is fetched for a book a hiding filter already
-  hides (no Goodreads lookup for a book over the price limit, no book page for
-  one under the minimum rating). If it would be seen again (the filter is
-  turned off or set to dim, the filters are switched off, or the user peeks),
-  the rest of its lookup follows. Dimmed books and books in carousels are
-  looked up in full.
+- A book is never hidden for data that hasn't loaded, and verdicts never jump
+  back to less strict as later data arrives: higher-priority pending rules hold
+  a stricter lower-priority verdict until their data settles.
+- Eager filtering: no more is fetched for a book once a hiding verdict is final
+  (no higher-priority non-hiding rule can still override it). If it would be
+  seen again (the filter is turned off or set to dim, a higher-priority
+  highlight is placed above it, the filters are switched off, or the user
+  peeks), the rest of its lookup follows. Dimmed books and books in carousels
+  are looked up in full.
 - A counter, `12 hidden · Show`, reveals hidden books (dimmed) without changing
   the filters. It counts the books that are hidden, not those dimmed in carousels.
 - A master switch turns filtering off.

@@ -1,21 +1,41 @@
 import * as Slider from '@radix-ui/react-slider'
 import * as Switch from '@radix-ui/react-switch'
 import { useStore } from '@tanstack/react-store'
+import { GripVertical } from 'lucide-react'
 import {
   type ReactNode,
   type RefObject,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from 'react'
 import type { PanelHandle } from '@/content/shared'
-import { type Dimension, labelKey, type MissMode } from '@/core/filter'
+import {
+  type Dimension,
+  labelKey,
+  type MissMode,
+  type Rule,
+} from '@/core/filter'
 import { type Region, regionFromHost } from '@/core/regions'
+import { moveItem, useReorder } from '@/lib/reorder'
 import type { Filters as FilterPrefs } from '@/storage/prefs'
 import { Choice, InfoTip } from './controls'
 import { genresSeen, suggestions } from './genres'
 import { type FilterChange, useDebouncedValue, useFilterPrefs } from './prefs'
+
+const RULE_NAMES: Record<Rule, string> = {
+  rating: 'Minimum rating',
+  count: 'Minimum ratings',
+  year: 'Published',
+  price: 'Max price',
+  labels: 'Hide labels',
+  highlightLabels: 'Highlight labels',
+  highlightRating: 'Highlight rating',
+  highlightPrice: 'Highlight price',
+  notFound: 'Not on Goodreads',
+}
 
 const field =
   'rounded border border-slate-300 bg-white px-1.5 py-0.5 text-xs text-slate-900'
@@ -223,10 +243,10 @@ function PriceLimit({
         />
         <span className={quiet}>Only on deals pages</span>
         <InfoTip label='About deals pages only'>
-          Applies the price limit on deals pages and nowhere else, so search,
-          categories and your library are not filtered by price. A page counts
-          as a deals page when its address has &ldquo;deals&rdquo; in it, like
-          /ep/audiobook-deals.
+          Applies the price limit on deals and sale pages and nowhere else, so
+          search, categories and your library are not filtered by price. Covers
+          campaign paths like /ep/audiobook-deals, /ep/bfcm-uk and other sale
+          URLs.
         </InfoTip>
       </label>
     </div>
@@ -240,7 +260,7 @@ function ratingBound(text: string): number | null | undefined {
   return Number.isFinite(n) && n >= 1 && n <= 5 ? n : undefined
 }
 
-/** The rating from which books are highlighted. Not a filter, so no hide-or-dim choice. */
+/** The rating from which books are highlighted; overrides lower-priority hide or dim rules. */
 function HighlightRating({
   filters,
   change,
@@ -262,8 +282,8 @@ function HighlightRating({
         </label>
         <InfoTip label='About the highlight rating'>
           Books rated at least this get an outline, like the highlighted labels.
-          Blank is off. Highlighting never hides a book, and it works with the
-          filters off.
+          Blank is off. Works with the filters off, and overrides lower-priority
+          hide or dim rules.
         </InfoTip>
         <input
           id='agx-highlight-rating'
@@ -285,7 +305,7 @@ function HighlightRating({
   )
 }
 
-/** A cash price at or under which a book's price is marked, for this marketplace. Not a filter, so no hide-or-dim choice. */
+/** A cash price at or under which a book's price is marked, for this marketplace; overrides lower-priority hide or dim rules. */
 function HighlightPrice({
   filters,
   change,
@@ -318,8 +338,8 @@ function HighlightPrice({
         <InfoTip label='About the highlight price'>
           Books priced at or under this show their price in amber beside the
           rating. Public catalogue prices on this marketplace; member offers may
-          differ. Blank is off; 0 is free only. Highlighting never hides a book,
-          and it works with the filters off.
+          differ. Blank is off; 0 is free only. Works with the filters off, and
+          overrides lower-priority hide or dim rules.
         </InfoTip>
         <input
           id='agx-highlight-price'
@@ -452,10 +472,9 @@ function LabelPicker({
 
 /**
  * The filters (PRD R3): the master switch, `12 hidden · Show`, and below them a settings area with
- * one row per filter, each with its own hide-or-dim choice, then the hidden and highlighted labels
- * and the policy for books not on Goodreads. They are the `filters` pref, shared by every Audible
- * tab. The settings stay reachable with the filters off, because highlighting does not depend on
- * them.
+ * one draggable row per filter, highlight rule and the not-found policy, ordered by `ruleOrder`
+ * (highest priority first). They are the `filters` pref, shared by every Audible tab. The settings
+ * stay reachable with the filters off, because highlighting does not depend on them.
  */
 export function Filters({
   handle,
@@ -496,7 +515,212 @@ export function Filters({
   const [count, setCount] = useDebouncedValue(filters?.minRatings ?? 50, v =>
     change({ minRatings: v })
   )
+  const visibleRules = useMemo(
+    () =>
+      (filters?.ruleOrder ?? []).filter(
+        r => region !== undefined || (r !== 'price' && r !== 'highlightPrice')
+      ),
+    [filters?.ruleOrder, region]
+  )
+  const onMove = useCallback(
+    (from: number, to: number) => {
+      const fromRule = visibleRules[from]
+      const toRule = visibleRules[to]
+      if (!fromRule || !toRule) return
+      change(current => {
+        const fromIdx = current.ruleOrder.indexOf(fromRule)
+        const toIdx = current.ruleOrder.indexOf(toRule)
+        if (fromIdx < 0 || toIdx < 0) return {}
+        return { ruleOrder: moveItem(current.ruleOrder, fromIdx, toIdx) }
+      })
+    },
+    [visibleRules, change]
+  )
+  const reorder = useReorder(visibleRules.length, onMove)
   if (!filters) return null
+
+  function renderRule(rule: Rule): ReactNode {
+    if (!filters) return null
+    switch (rule) {
+      case 'rating':
+        return (
+          <div>
+            <div className={row}>
+              <span id='agx-min-rating-label' className={quiet}>
+                Minimum rating
+              </span>
+              <InfoTip label='About the minimum rating'>
+                The Goodreads average a book needs. It applies as soon as the
+                rating arrives.
+              </InfoTip>
+              <span className='ml-auto text-xs font-medium'>
+                {rating.toFixed(1)}
+              </span>
+              <ModeChoice
+                dimension='rating'
+                label='the minimum rating'
+                filters={filters}
+                change={change}
+              />
+            </div>
+            <Slider.Root
+              min={3}
+              max={5}
+              step={0.1}
+              value={[rating]}
+              onValueChange={([v]) => setRating(tenth(v ?? rating))}
+              className='relative mt-1 flex h-4 w-full touch-none items-center select-none'
+            >
+              <Slider.Track className='relative h-1.5 grow rounded-full bg-slate-200'>
+                <Slider.Range className='absolute h-full rounded-full bg-indigo-600' />
+              </Slider.Track>
+              <Slider.Thumb
+                aria-labelledby='agx-min-rating-label'
+                className='block h-4 w-4 rounded-full border border-indigo-600 bg-white shadow focus:outline-2 focus:outline-indigo-400'
+              />
+            </Slider.Root>
+          </div>
+        )
+      case 'count':
+        return (
+          <div className={row}>
+            <label htmlFor='agx-min-ratings' className={quiet}>
+              Minimum ratings
+            </label>
+            <InfoTip label='About the minimum number of ratings'>
+              How many Goodreads ratings a book needs, so a few enthusiastic
+              readers do not decide. 0 turns this off.
+            </InfoTip>
+            <input
+              id='agx-min-ratings'
+              type='number'
+              min={0}
+              step={10}
+              value={count}
+              onChange={e => {
+                const n = Math.floor(Number(e.target.value))
+                if (Number.isFinite(n) && n >= 0) setCount(n)
+              }}
+              className={`${field} ml-auto w-14 text-right`}
+            />
+            <ModeChoice
+              dimension='count'
+              label='the minimum ratings'
+              filters={filters}
+              change={change}
+            />
+          </div>
+        )
+      case 'year':
+        return <YearRange filters={filters} change={change} />
+      case 'price':
+        return region ? (
+          <PriceLimit
+            key={region.code}
+            filters={filters}
+            change={change}
+            region={region}
+          />
+        ) : null
+      case 'labels':
+        return (
+          <LabelPicker
+            id='agx-labels'
+            title='Hide labels'
+            help='Books carrying any of these Goodreads genres fail. Genres arrive after the rating, so this filter acts a moment later.'
+            aside={
+              <ModeChoice
+                dimension='labels'
+                label='the hidden labels'
+                filters={filters}
+                change={change}
+              />
+            }
+            labels={filters.hiddenLabels}
+            other={filters.highlightLabels}
+            seen={seen}
+            tone='hide'
+            removeText={label => `Stop hiding ${label}`}
+            onAdd={label =>
+              change(current => ({
+                hiddenLabels: [...current.hiddenLabels, label],
+                highlightLabels: without(current.highlightLabels, label),
+              }))
+            }
+            onRemove={label =>
+              change(current => ({
+                hiddenLabels: without(current.hiddenLabels, label),
+              }))
+            }
+          />
+        )
+      case 'highlightLabels':
+        return (
+          <LabelPicker
+            id='agx-highlight-labels'
+            title='Highlight labels'
+            help='Your areas of interest: books carrying any of these genres get an outline. Highlighting works with the filters off, and overrides lower-priority hide or dim rules.'
+            aside={
+              highlighted > 0 && (
+                <span className='text-[11px] text-slate-500'>
+                  {highlighted} on this page
+                </span>
+              )
+            }
+            labels={filters.highlightLabels}
+            other={filters.hiddenLabels}
+            seen={seen}
+            tone='highlight'
+            removeText={label => `Stop highlighting ${label}`}
+            onAdd={label =>
+              change(current => ({
+                highlightLabels: [...current.highlightLabels, label],
+                hiddenLabels: without(current.hiddenLabels, label),
+              }))
+            }
+            onRemove={label =>
+              change(current => ({
+                highlightLabels: without(current.highlightLabels, label),
+              }))
+            }
+          />
+        )
+      case 'highlightRating':
+        return <HighlightRating filters={filters} change={change} />
+      case 'highlightPrice':
+        return region ? (
+          <HighlightPrice
+            key={region.code}
+            filters={filters}
+            change={change}
+            region={region}
+          />
+        ) : null
+      case 'notFound':
+        return (
+          <div className={row}>
+            <span className={quiet}>Not on Goodreads</span>
+            <InfoTip label='About books not on Goodreads'>
+              Books Goodreads has no match for. They have no rating, so the
+              other filters cannot judge them.
+            </InfoTip>
+            <span className='ml-auto'>
+              <Choice<FilterPrefs['notFound']>
+                name='agx-not-found'
+                label='Books not on Goodreads'
+                value={filters.notFound}
+                options={[
+                  { value: 'show', text: 'Show' },
+                  { value: 'dim', text: 'Dim' },
+                  { value: 'hide', text: 'Hide' },
+                ]}
+                onChange={notFound => change({ notFound })}
+              />
+            </span>
+          </div>
+        )
+    }
+  }
 
   return (
     <section
@@ -539,181 +763,67 @@ export function Filters({
         {open ? 'Hide filter settings' : 'Filter settings'}
       </button>
       {open && (
-        <div className='mt-2 space-y-2.5'>
-          <p className='flex items-center justify-end gap-1 text-[11px] text-slate-500'>
-            Books that fail
-            <InfoTip label='About hide and dim'>
-              Each filter hides the books that fail it, or only dims them. A
-              book failing several filters is hidden if any of them hides. In
-              carousels books are always dimmed, and no book is hidden before
-              its rating has loaded.
-            </InfoTip>
-          </p>
-
-          <div>
-            <div className={row}>
-              <span id='agx-min-rating-label' className={quiet}>
-                Minimum rating
-              </span>
-              <InfoTip label='About the minimum rating'>
-                The Goodreads average a book needs. It applies as soon as the
-                rating arrives.
+        <div className='mt-2 space-y-2'>
+          <div className='flex items-center justify-between gap-1 text-[11px] text-slate-500'>
+            <span className='flex items-center gap-1'>
+              Drag to prioritize (top wins)
+              <InfoTip label='About rule priority'>
+                Drag rules by their grip (or press Up and Down arrows) to set
+                priority. When a book matches more than one rule, the highest
+                one wins: a highlight above a hide rule keeps matching books
+                visible, and a dim rule above a hide rule dims instead of
+                hiding.
               </InfoTip>
-              <span className='ml-auto text-xs font-medium'>
-                {rating.toFixed(1)}
-              </span>
-              <ModeChoice
-                dimension='rating'
-                label='the minimum rating'
-                filters={filters}
-                change={change}
-              />
-            </div>
-            <Slider.Root
-              min={3}
-              max={5}
-              step={0.1}
-              value={[rating]}
-              onValueChange={([v]) => setRating(tenth(v ?? rating))}
-              className='relative mt-1 flex h-4 w-full touch-none items-center select-none'
-            >
-              <Slider.Track className='relative h-1.5 grow rounded-full bg-slate-200'>
-                <Slider.Range className='absolute h-full rounded-full bg-indigo-600' />
-              </Slider.Track>
-              <Slider.Thumb
-                aria-labelledby='agx-min-rating-label'
-                className='block h-4 w-4 rounded-full border border-indigo-600 bg-white shadow focus:outline-2 focus:outline-indigo-400'
-              />
-            </Slider.Root>
-          </div>
-
-          <div className={row}>
-            <label htmlFor='agx-min-ratings' className={quiet}>
-              Minimum ratings
-            </label>
-            <InfoTip label='About the minimum number of ratings'>
-              How many Goodreads ratings a book needs, so a few enthusiastic
-              readers do not decide. 0 turns this off.
-            </InfoTip>
-            <input
-              id='agx-min-ratings'
-              type='number'
-              min={0}
-              step={10}
-              value={count}
-              onChange={e => {
-                const n = Math.floor(Number(e.target.value))
-                if (Number.isFinite(n) && n >= 0) setCount(n)
-              }}
-              className={`${field} ml-auto w-14 text-right`}
-            />
-            <ModeChoice
-              dimension='count'
-              label='the minimum ratings'
-              filters={filters}
-              change={change}
-            />
-          </div>
-
-          <YearRange filters={filters} change={change} />
-          {region && (
-            <PriceLimit
-              key={region.code}
-              filters={filters}
-              change={change}
-              region={region}
-            />
-          )}
-
-          <LabelPicker
-            id='agx-labels'
-            title='Hide labels'
-            help='Books carrying any of these Goodreads genres fail. Genres arrive after the rating, so this filter acts a moment later.'
-            aside={
-              <ModeChoice
-                dimension='labels'
-                label='the hidden labels'
-                filters={filters}
-                change={change}
-              />
-            }
-            labels={filters.hiddenLabels}
-            other={filters.highlightLabels}
-            seen={seen}
-            tone='hide'
-            removeText={label => `Stop hiding ${label}`}
-            onAdd={label =>
-              change(current => ({
-                hiddenLabels: [...current.hiddenLabels, label],
-                highlightLabels: without(current.highlightLabels, label),
-              }))
-            }
-            onRemove={label =>
-              change(current => ({
-                hiddenLabels: without(current.hiddenLabels, label),
-              }))
-            }
-          />
-
-          <LabelPicker
-            id='agx-highlight-labels'
-            title='Highlight labels'
-            help='Your areas of interest: books carrying any of these genres get an outline. Highlighting never hides a book, and it works with the filters off.'
-            aside={
-              highlighted > 0 && (
-                <span className='text-[11px] text-slate-500'>
-                  {highlighted} on this page
-                </span>
-              )
-            }
-            labels={filters.highlightLabels}
-            other={filters.hiddenLabels}
-            seen={seen}
-            tone='highlight'
-            removeText={label => `Stop highlighting ${label}`}
-            onAdd={label =>
-              change(current => ({
-                highlightLabels: [...current.highlightLabels, label],
-                hiddenLabels: without(current.hiddenLabels, label),
-              }))
-            }
-            onRemove={label =>
-              change(current => ({
-                highlightLabels: without(current.highlightLabels, label),
-              }))
-            }
-          />
-
-          <HighlightRating filters={filters} change={change} />
-          {region && (
-            <HighlightPrice
-              key={region.code}
-              filters={filters}
-              change={change}
-              region={region}
-            />
-          )}
-
-          <div className={row}>
-            <span className={quiet}>Not on Goodreads</span>
-            <InfoTip label='About books not on Goodreads'>
-              Books Goodreads has no match for. They have no rating, so the
-              other filters cannot judge them.
-            </InfoTip>
-            <span className='ml-auto'>
-              <Choice<FilterPrefs['notFound']>
-                name='agx-not-found'
-                label='Books not on Goodreads'
-                value={filters.notFound}
-                options={[
-                  { value: 'show', text: 'Show' },
-                  { value: 'dim', text: 'Dim' },
-                  { value: 'hide', text: 'Hide' },
-                ]}
-                onChange={notFound => change({ notFound })}
-              />
+            </span>
+            <span className='flex items-center gap-1'>
+              Books that fail
+              <InfoTip label='About hide and dim'>
+                Each filter hides the books that fail it, or only dims them. In
+                carousels books are always dimmed, and no book is hidden before
+                higher-priority data has loaded.
+              </InfoTip>
             </span>
           </div>
+
+          <p role='status' className='sr-only'>
+            {reorder.announcement}
+          </p>
+
+          <ul
+            aria-label='Filter and highlight rules'
+            className={`m-0 list-none space-y-2 p-0 ${reorder.dragging !== undefined ? 'select-none' : ''}`}
+          >
+            {visibleRules.map((rule, index) => {
+              const isDragged = reorder.dragging === index
+              const dropAbove =
+                reorder.dragging !== undefined &&
+                reorder.over === index &&
+                reorder.over < reorder.dragging
+              const dropBelow =
+                reorder.dragging !== undefined &&
+                reorder.over === index &&
+                reorder.over > reorder.dragging
+              return (
+                <li
+                  key={rule}
+                  ref={reorder.itemRef(index)}
+                  data-rule={rule}
+                  className={`flex items-start gap-1 rounded transition-colors ${isDragged ? 'bg-indigo-50/80 opacity-75 ring-1 ring-indigo-300' : ''} ${dropAbove ? 'border-t-2 border-indigo-600 pt-1' : ''} ${dropBelow ? 'border-b-2 border-indigo-600 pb-1' : ''}`}
+                >
+                  <button
+                    type='button'
+                    {...reorder.handleProps(index, RULE_NAMES[rule])}
+                    aria-label={`Reorder ${RULE_NAMES[rule]} (${index + 1} of ${visibleRules.length})`}
+                    title='Drag to prioritize, or press Up and Down arrow keys'
+                    className='mt-0.5 flex h-5 w-4 shrink-0 cursor-grab touch-none items-center justify-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-700 active:cursor-grabbing'
+                  >
+                    <GripVertical aria-hidden='true' className='h-3.5 w-3.5' />
+                  </button>
+                  <div className='min-w-0 flex-1'>{renderRule(rule)}</div>
+                </li>
+              )
+            })}
+          </ul>
 
           {openOptions && (
             <p className='text-right'>

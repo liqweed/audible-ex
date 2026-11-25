@@ -7,14 +7,21 @@
  * shape → bump `version` and add a migration. Version 2 added `filters`, version 3 the year bounds;
  * version 4 adds marketplace price limits, version 5 the display settings, version 6 a miss mode for
  * each filter (replacing the single `mode`) and highlighted labels; version 7 adds the highlight rating;
- * version 8 lets the price limit apply on deals pages only and adds the highlight price.
+ * version 8 lets the price limit apply on deals pages only and adds the highlight price; version 9
+ * adds `ruleOrder` so filter and highlight rules are prioritized top-to-bottom.
  */
 import * as Effect from 'effect/Effect'
 import * as Option from 'effect/Option'
 import * as Schema from 'effect/Schema'
 import { storage } from 'wxt/utils/storage'
 import { DEFAULT_DISPLAY } from '../core/display'
-import type { Dimension, MissMode } from '../core/filter'
+import {
+  DEFAULT_RULE_ORDER,
+  type Dimension,
+  type MissMode,
+  RULES,
+  type Rule,
+} from '../core/filter'
 import { GENRES_MAX, Region } from '../schema/common'
 import { serial } from './serial'
 
@@ -84,11 +91,11 @@ export const Filters = Schema.Struct({
   hiddenLabels: Schema.Array(Schema.String).pipe(
     Schema.withDecodingDefaultKey(Effect.succeed<readonly string[]>([]))
   ),
-  /** Goodreads genre names whose books are highlighted; never a reason to hide one. */
+  /** Goodreads genre names whose books are highlighted and kept visible over lower-priority rules. */
   highlightLabels: Schema.Array(Schema.String).pipe(
     Schema.withDecodingDefaultKey(Effect.succeed<readonly string[]>([]))
   ),
-  /** Books rated at least this are highlighted, never filtered; null is off. */
+  /** Books rated at least this are highlighted and kept visible over lower-priority rules; null is off. */
   highlightRating: Schema.NullOr(
     Schema.Finite.check(Schema.isBetween({ minimum: 1, maximum: 5 }))
   ).pipe(Schema.withDecodingDefaultKey(Effect.succeed<number | null>(null))),
@@ -101,6 +108,20 @@ export const Filters = Schema.Struct({
   modes: Modes.pipe(
     Schema.withDecodingDefaultKey(Effect.succeed(DEFAULT_MODES))
   ),
+  /** Priority order of filter and highlight rules, highest first (DECISIONS.md D33). */
+  ruleOrder: Schema.Array(Schema.Literals(RULES))
+    .check(
+      Schema.makeFilter(order =>
+        order.length === RULES.length && new Set(order).size === RULES.length
+          ? undefined
+          : 'Rule order must include each rule once'
+      )
+    )
+    .pipe(
+      Schema.withDecodingDefaultKey(
+        Effect.succeed<readonly Rule[]>(DEFAULT_RULE_ORDER)
+      )
+    ),
 }).check(
   Schema.makeFilter(filters =>
     filters.minYear !== null &&
@@ -126,6 +147,7 @@ export const DEFAULT_FILTERS: Filters = {
   highlightRating: null,
   notFound: 'show',
   modes: DEFAULT_MODES,
+  ruleOrder: DEFAULT_RULE_ORDER,
 }
 
 export { DEFAULT_DISPLAY } from '../core/display'
@@ -143,7 +165,7 @@ export const Display = Schema.Struct({
 })
 export type Display = typeof Display.Type
 
-/** Prefs v8. A key missing from the stored record takes its default. */
+/** Prefs v9. A key missing from the stored record takes its default. */
 export const Prefs = Schema.Struct({
   /** The extension's master switch: off removes the badges and stops the lookups. */
   enabled: Schema.Boolean.pipe(
@@ -189,17 +211,56 @@ export function upgradeModes(raw: unknown): unknown {
   return { ...raw, filters }
 }
 
+const ORDERED_DIMS: readonly Dimension[] = [
+  'rating',
+  'count',
+  'year',
+  'price',
+  'labels',
+]
+
+/**
+ * Prefs up to v8 had fixed precedence (`hide` filters beat highlights, highlights beat `dim`
+ * filters). Derive the equivalent `ruleOrder` so existing users keep their exact behaviour after
+ * upgrading to v9 (DECISIONS.md D33). Records that already carry `ruleOrder` pass unchanged.
+ */
+export function upgradeRuleOrder(raw: unknown): unknown {
+  if (!isRecord(raw) || !isRecord(raw.filters) || 'ruleOrder' in raw.filters)
+    return raw
+  const modes = isRecord(raw.filters.modes) ? raw.filters.modes : undefined
+  const notFound = raw.filters.notFound
+  const dimMode = (d: Dimension) => (modes?.[d] === 'dim' ? 'dim' : 'hide')
+  const hideDims = ORDERED_DIMS.filter(d => dimMode(d) === 'hide')
+  const dimDims = ORDERED_DIMS.filter(d => dimMode(d) === 'dim')
+  const ruleOrder: Rule[] = [
+    ...hideDims,
+    ...(notFound === 'hide' ? (['notFound'] as const) : []),
+    'highlightLabels',
+    'highlightRating',
+    ...dimDims,
+    ...(notFound === 'dim' ? (['notFound'] as const) : []),
+    'highlightPrice',
+    ...(notFound !== 'hide' && notFound !== 'dim'
+      ? (['notFound'] as const)
+      : []),
+  ]
+  return { ...raw, filters: { ...raw.filters, ruleOrder } }
+}
+
 /**
  * The prefs a stored value stands for. A value that is not a record of prefs (damaged, or written
  * by a newer version) gives the defaults rather than an error: the UI must always have prefs.
  */
 export function decodePrefs(raw: unknown): Prefs {
-  return Option.getOrElse(decode(upgradeModes(raw)), () => DEFAULT_PREFS)
+  return Option.getOrElse(
+    decode(upgradeRuleOrder(upgradeModes(raw))),
+    () => DEFAULT_PREFS
+  )
 }
 
 const item = storage.defineItem<unknown>('sync:prefs', {
   fallback: DEFAULT_PREFS,
-  version: 8,
+  version: 9,
   migrations: {
     // v1 held `enabled` alone. Add the filters with defaults filled in.
     2: decodePrefs,
@@ -215,6 +276,8 @@ const item = storage.defineItem<unknown>('sync:prefs', {
     7: decodePrefs,
     // v7 had no deals-only price limit: the limit applies everywhere, as before.
     8: decodePrefs,
+    // v8 had fixed hide > highlight > dim precedence: preserve it as `ruleOrder`.
+    9: decodePrefs,
   },
 })
 

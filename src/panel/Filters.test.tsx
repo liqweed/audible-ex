@@ -696,3 +696,72 @@ describe('highlight price', () => {
     expect((await saved()).highlightPrice).toEqual({ UK: 5 })
   })
 })
+
+describe('rule priority drag and drop', () => {
+  test('reorders rules with arrow keys and persists ruleOrder', async () => {
+    await act(async () => {
+      render(<Filters handle={setup().handle} region={regionByCode('UK')} />)
+    })
+    openSettings()
+    const list = screen.getByRole('list', {
+      name: 'Filter and highlight rules',
+    })
+    const order = () =>
+      [...list.querySelectorAll('li[data-rule]')].map(li =>
+        li.getAttribute('data-rule')
+      )
+    expect(order()[0]).toBe('rating')
+    expect(order()[1]).toBe('count')
+
+    const handle = screen.getByRole('button', {
+      name: /^Reorder Minimum ratings/,
+    })
+    fireEvent.keyDown(handle, { key: 'ArrowUp' })
+    await waitFor(async () =>
+      expect((await saved()).ruleOrder[0]).toBe('count')
+    )
+    expect(order()[0]).toBe('count')
+    expect(order()[1]).toBe('rating')
+    // Focus stays on the moved handle so consecutive arrow presses work without re-tabbing.
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: /^Reorder Minimum ratings/ })
+    )
+  })
+
+  test('reorders rules by dragging a grip past sibling midpoints', async () => {
+    await act(async () => {
+      render(<Filters handle={setup().handle} region={regionByCode('UK')} />)
+    })
+    openSettings()
+    const list = screen.getByRole('list', {
+      name: 'Filter and highlight rules',
+    })
+    const items = [...list.querySelectorAll('li[data-rule]')]
+    items.forEach((el, i) => {
+      el.getBoundingClientRect = () =>
+        ({
+          top: i * 40,
+          bottom: (i + 1) * 40,
+          height: 40,
+          left: 0,
+          right: 260,
+          width: 260,
+          x: 0,
+          y: i * 40,
+          toJSON: () => ({}),
+        }) as DOMRect
+    })
+    const grip = screen.getByRole('button', {
+      name: /^Reorder Highlight labels/,
+    })
+    // Highlight labels starts at index 5 (top 200..240); drag it to top (y = 5, before index 0).
+    fireEvent.pointerDown(grip, { button: 0, clientY: 220, pointerId: 1 })
+    fireEvent.pointerMove(grip, { clientY: 5, pointerId: 1 })
+    expect(list.className).toContain('select-none')
+    fireEvent.pointerUp(grip, { clientY: 5, pointerId: 1 })
+    expect(list.className).not.toContain('select-none')
+    await waitFor(async () =>
+      expect((await saved()).ruleOrder[0]).toBe('highlightLabels')
+    )
+  })
+})

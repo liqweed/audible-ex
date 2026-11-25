@@ -1,12 +1,13 @@
 /** Options drafts and prefs-only backups. Invalid input throws before a storage write. */
 import * as Schema from 'effect/Schema'
-import { DIMENSIONS, labelKey } from '@/core/filter'
+import { DIMENSIONS, labelKey, type Rule } from '@/core/filter'
 import { REGIONS, type RegionCode } from '@/core/regions'
 import {
   type Prefs,
   Prefs as PrefsSchema,
   updatePrefs,
   upgradeModes,
+  upgradeRuleOrder,
 } from '@/storage/prefs'
 
 export interface SettingsDraft {
@@ -22,6 +23,7 @@ export interface SettingsDraft {
   highlightLabels: string[]
   notFound: Prefs['filters']['notFound']
   modes: Prefs['filters']['modes']
+  ruleOrder: Rule[]
   prices: Record<RegionCode, string>
   highlightPrices: Record<RegionCode, string>
   labels: string
@@ -42,6 +44,7 @@ export const draftFromPrefs = (prefs: Prefs): SettingsDraft => ({
   highlightLabels: [...prefs.filters.highlightLabels],
   notFound: prefs.filters.notFound,
   modes: prefs.filters.modes,
+  ruleOrder: [...prefs.filters.ruleOrder],
   prices: Object.fromEntries(
     REGIONS.map(r => [r.code, prefs.filters.maxPrice[r.code]?.toString() ?? ''])
   ) as Record<RegionCode, string>,
@@ -99,6 +102,7 @@ export function prefsFromDraft(draft: SettingsDraft): Prefs {
       notFound: draft.notFound,
       priceOnDeals: draft.priceOnDeals,
       modes: draft.modes,
+      ruleOrder: draft.ruleOrder,
       maxPrice: Object.fromEntries(
         REGIONS.filter(r => draft.prices[r.code].trim() !== '').map(r => [
           r.code,
@@ -150,6 +154,7 @@ export function mergeSettings(base: Prefs, next: Prefs, current: Prefs): Prefs {
     'highlightLabels',
     'priceOnDeals',
     'notFound',
+    'ruleOrder',
   ] as const) {
     if (!same(base.filters[key], next.filters[key]))
       Object.assign(filters, { [key]: next.filters[key] })
@@ -224,10 +229,10 @@ export const exportPrefs = (prefs: Prefs): string =>
     2
   )}\n`
 
-/** A backup from before prefs v6 has one `mode` for all filters; it becomes each filter's. */
+/** A backup from before prefs v6 has one `mode`, and before v9 no `ruleOrder`; upgrade both. */
 const upgradeBackup = (raw: unknown): unknown =>
   typeof raw === 'object' && raw !== null && 'prefs' in raw
-    ? { ...raw, prefs: upgradeModes(raw.prefs) }
+    ? { ...raw, prefs: upgradeRuleOrder(upgradeModes(raw.prefs)) }
     : raw
 
 export const importPrefs = (text: string): Prefs =>

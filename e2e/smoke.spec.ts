@@ -160,7 +160,7 @@ async function waitForPriceChips(page: Page) {
 async function setFilters(filters: Record<string, unknown>) {
   await worker.evaluate(
     filters =>
-      chrome.storage.sync.set({ prefs: { filters }, prefs$: { v: 8 } }),
+      chrome.storage.sync.set({ prefs: { filters }, prefs$: { v: 9 } }),
     filters
   )
 }
