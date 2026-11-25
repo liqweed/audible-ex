@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-11-25
+
+### Added
+
+- Filter and highlight rules can now be prioritized by drag-and-drop (or Up/Down arrow keys on each rule's grip) in both the floating panel and the settings page. When a book matches more than one rule, the highest-priority rule wins: a highlight rule above a hide rule keeps matching books visible, and a dim rule above a hide rule dims instead of hiding. Existing preferences migrate to preserve their current behaviour.
+
+### Fixed
+
+- Sale campaign pages without "deals" in their address (such as `/ep/bfcm-uk`, Black Friday, Cyber Monday, cash sale, and 2-for-1 pages) are now recognized as deals pages for the "Only on deals pages" price limit, while `/pd/`, `/author/` and `/series/` pages whose names contain those words are no longer misclassified.
+
 ## [0.10.0] - 2026-11-08
 
 ### Added
@@ -241,7 +251,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   extensions page, in place of the working name `audible-ex`. Its description no
   longer mentions filters, which haven't shipped yet.
 
-[Unreleased]: https://github.com/liqweed/audible-ex/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/liqweed/audible-ex/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/liqweed/audible-ex/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/liqweed/audible-ex/compare/v0.9.1...v0.10.0
 [0.9.1]: https://github.com/liqweed/audible-ex/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/liqweed/audible-ex/compare/v0.8.0...v0.9.0
