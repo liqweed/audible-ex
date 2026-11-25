@@ -8,6 +8,7 @@ import {
   type KeyboardEvent,
   type PointerEvent,
   useCallback,
+  useLayoutEffect,
   useRef,
   useState,
 } from 'react'
@@ -81,6 +82,7 @@ export interface ReorderState {
     index: number,
     label: string
   ): {
+    ref(el: HTMLButtonElement | null): void
     onPointerDown(e: PointerEvent<HTMLButtonElement>): void
     onPointerMove(e: PointerEvent<HTMLButtonElement>): void
     onPointerUp(e: PointerEvent<HTMLButtonElement>): void
@@ -94,6 +96,8 @@ export function useReorder(
   onMove: (from: number, to: number) => void
 ): ReorderState {
   const nodes = useRef<Array<HTMLElement | null>>([])
+  const handles = useRef<Array<HTMLButtonElement | null>>([])
+  const pendingFocus = useRef<number | undefined>(undefined)
   const drag = useRef<{
     from: number
     startY: number
@@ -107,6 +111,14 @@ export function useReorder(
     over: number | undefined
   }>({ dragging: undefined, over: undefined })
   const [announcement, setAnnouncement] = useState('')
+
+  // Reordering DOM nodes via `insertBefore` blurs the focused handle in browsers; restore it.
+  useLayoutEffect(() => {
+    const target = pendingFocus.current
+    if (target === undefined) return
+    pendingFocus.current = undefined
+    handles.current[target]?.focus()
+  })
 
   const itemRef = useCallback(
     (index: number) => (el: HTMLElement | null) => {
@@ -126,6 +138,9 @@ export function useReorder(
 
   const handleProps = useCallback(
     (index: number, label: string) => ({
+      ref(el: HTMLButtonElement | null) {
+        handles.current[index] = el
+      },
       onPointerDown(e: PointerEvent<HTMLButtonElement>) {
         if (e.button !== 0) return
         const rects = Array.from({ length: count }, (_, i) => {
@@ -172,9 +187,11 @@ export function useReorder(
       onKeyDown(e: KeyboardEvent<HTMLButtonElement>) {
         if (e.key === 'ArrowUp' && index > 0) {
           e.preventDefault()
+          pendingFocus.current = index - 1
           commit(index, index - 1, label)
         } else if (e.key === 'ArrowDown' && index < count - 1) {
           e.preventDefault()
+          pendingFocus.current = index + 1
           commit(index, index + 1, label)
         }
       },

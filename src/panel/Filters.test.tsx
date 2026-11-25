@@ -722,6 +722,10 @@ describe('rule priority drag and drop', () => {
     )
     expect(order()[0]).toBe('count')
     expect(order()[1]).toBe('rating')
+    // Focus stays on the moved handle so consecutive arrow presses work without re-tabbing.
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: /^Reorder Minimum ratings/ })
+    )
   })
 
   test('reorders rules by dragging a grip past sibling midpoints', async () => {
@@ -753,7 +757,9 @@ describe('rule priority drag and drop', () => {
     // Highlight labels starts at index 5 (top 200..240); drag it to top (y = 5, before index 0).
     fireEvent.pointerDown(grip, { button: 0, clientY: 220, pointerId: 1 })
     fireEvent.pointerMove(grip, { clientY: 5, pointerId: 1 })
+    expect(list.className).toContain('select-none')
     fireEvent.pointerUp(grip, { clientY: 5, pointerId: 1 })
+    expect(list.className).not.toContain('select-none')
     await waitFor(async () =>
       expect((await saved()).ruleOrder[0]).toBe('highlightLabels')
     )

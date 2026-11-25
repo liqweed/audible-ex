@@ -91,11 +91,11 @@ export const Filters = Schema.Struct({
   hiddenLabels: Schema.Array(Schema.String).pipe(
     Schema.withDecodingDefaultKey(Effect.succeed<readonly string[]>([]))
   ),
-  /** Goodreads genre names whose books are highlighted; never a reason to hide one. */
+  /** Goodreads genre names whose books are highlighted and kept visible over lower-priority rules. */
   highlightLabels: Schema.Array(Schema.String).pipe(
     Schema.withDecodingDefaultKey(Effect.succeed<readonly string[]>([]))
   ),
-  /** Books rated at least this are highlighted, never filtered; null is off. */
+  /** Books rated at least this are highlighted and kept visible over lower-priority rules; null is off. */
   highlightRating: Schema.NullOr(
     Schema.Finite.check(Schema.isBetween({ minimum: 1, maximum: 5 }))
   ).pipe(Schema.withDecodingDefaultKey(Effect.succeed<number | null>(null))),

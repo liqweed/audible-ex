@@ -351,12 +351,15 @@ describe('options page design', () => {
         li.getAttribute('data-rule')
       )
     expect(order().slice(0, 2)).toEqual(['rating', 'count'])
-    // Keyboard reorder marks the draft dirty.
+    // Keyboard reorder marks the draft dirty and keeps focus on the moved grip.
     fireEvent.keyDown(
       screen.getByRole('button', { name: /^Reorder Too few ratings/ }),
       { key: 'ArrowUp' }
     )
     expect(order().slice(0, 2)).toEqual(['count', 'rating'])
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: /^Reorder Too few ratings/ })
+    )
     expect(screen.getByText('Unsaved changes')).toBeTruthy()
     // Pointer drag moves Highlight labels to the top.
     const items = [...list.querySelectorAll('li[data-rule]')]
@@ -379,7 +382,9 @@ describe('options page design', () => {
     })
     fireEvent.pointerDown(grip, { button: 0, clientY: 220, pointerId: 1 })
     fireEvent.pointerMove(grip, { clientY: 5, pointerId: 1 })
+    expect(list.className).toContain('select-none')
     fireEvent.pointerUp(grip, { clientY: 5, pointerId: 1 })
+    expect(list.className).not.toContain('select-none')
     expect(order()[0]).toBe('highlightLabels')
     await save()
     await screen.findByText('Settings saved.')

@@ -415,17 +415,17 @@ const isDetailsRule = (rule: Rule) =>
 const isGoodreadsRule = (rule: Rule) =>
   rule !== 'price' && rule !== 'highlightPrice'
 
-const isRatingStageRule = (rule: Rule) =>
-  rule === 'rating' || rule === 'count' || rule === 'notFound'
+// Only rules that can hide a found book at the rating stage (`notFound` books have no book page to skip).
+const isRatingStageRule = (rule: Rule) => rule === 'rating' || rule === 'count'
 
 /**
  * Eager filtering (PRD R3): how much of `book`'s lookup to ask for now. Verdicts are monotonic as
  * data arrives, so a book that `judge` hides on what is known stays hidden whatever else arrives:
- * nothing more is fetched for it (`none`). While a hiding price limit that no higher-priority
- * non-hiding Goodreads rule can override waits for the book's price, only what the cache has is
- * asked for (`cached`); while a hiding rating-stage rule that no higher-priority non-hiding
- * details rule can override waits for the rating, only the rating (`rating`); the book page
- * follows when the rating lets the book through.
+ * nothing more is fetched for it (`none`). While a hiding price limit that no still-live higher-
+ * priority non-hiding Goodreads rule can override waits for the book's price, only what the cache
+ * has is asked for (`cached`); while a hiding rating-stage rule (`rating` or `count`) or an already-
+ * matched hide rule held only by a pending price rule could still hide the book without details,
+ * only the rating (`rating`); the book page follows once the book can no longer be hidden without it.
  *
  * A book that would be dimmed is still seen, so it gets everything (`details`), and so does every
  * book in a carousel or while the user peeks: neither is ever hidden (`place`). The caller asks
@@ -440,6 +440,10 @@ export function lookupDepth(
   if (!settings.enabled || where.inCarousel || where.peek) return 'details'
   const current = book ? { ...book, priced: where.priced } : undefined
   if (judge(current, settings, region) === 'hide') return 'none'
+  const probe: FilterBook = current ?? {
+    status: 'queued',
+    priced: where.priced,
+  }
   const order = settings.ruleOrder ?? DEFAULT_RULE_ORDER
 
   // Can `price` hide the book as soon as the price arrives, without consulting Goodreads?
@@ -451,7 +455,8 @@ export function lookupDepth(
       if (
         isGoodreadsRule(rule) &&
         isRuleActive(rule, settings, region) &&
-        ruleOutcome(rule, settings) !== 'hide'
+        ruleOutcome(rule, settings) !== 'hide' &&
+        evaluateRule(rule, probe, settings, region) !== 'miss'
       ) {
         blockedByGoodreads = true
         break
@@ -460,12 +465,20 @@ export function lookupDepth(
     if (!blockedByGoodreads) return 'cached'
   }
 
-  // Can a rating-stage rule hide the book before its Goodreads book page (details) is fetched?
-  if (!(book?.status === 'ready' && book.rating)) {
+  // Can a rating-stage rule (or an already-matched hide rule waiting only on price) hide the book
+  // before its Goodreads book page (details) is fetched?
+  if (!book?.details) {
     let blockedByDetails = false
     for (const rule of order) {
       if (!isRuleActive(rule, settings, region)) continue
+      const state = evaluateRule(rule, probe, settings, region)
+      if (state === 'miss') continue
       const outcome = ruleOutcome(rule, settings)
+      if (state === 'match') {
+        if (outcome !== 'hide') break
+        if (!blockedByDetails) return 'rating'
+        break
+      }
       if (isDetailsRule(rule) && outcome !== 'hide') {
         blockedByDetails = true
       } else if (

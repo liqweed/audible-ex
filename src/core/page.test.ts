@@ -32,6 +32,8 @@ describe('pageKind', () => {
     ['/catalog', 'other'],
     ['/author/Andy-Weir/B00G0WYW92', 'other'],
     ['/author/Saleem-Khan/B00G0WYW92', 'other'],
+    ['/author/John-Sale/B00G0WYW92', 'other'],
+    ['/series/Black-Friday-Series/B00G0WYW92', 'other'],
     ['/ep/wholesale', 'other'],
     ['/ep/plus-catalogue', 'other'],
   ] as const)('%s is %s', (path, kind) => {

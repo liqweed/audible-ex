@@ -452,6 +452,54 @@ describe('rule priority', () => {
     expect(
       lookupDepth({ status: 'queued' }, s, { ...flat, priced: false }, 'UK')
     ).toBe('rating')
+    // Once the rating misses highlightRating, price can still hide it: wait on price before details.
+    expect(
+      lookupDepth(ready(4.1, 900), s, { ...flat, priced: false }, 'UK')
+    ).toBe('cached')
+    // Once the rating matches highlightRating, fetch details immediately without waiting on price.
+    expect(
+      lookupDepth(ready(4.7, 900), s, { ...flat, priced: false }, 'UK')
+    ).toBe('details')
+  })
+
+  test('eager filtering holds details while a higher-priority price rule could still let a hide rule win', () => {
+    const s = with_({
+      highlightPrice: { UK: 5 },
+      ruleOrder: first('highlightPrice', 'rating'),
+    })
+    // Rating failed (< 4.0) while price is still pending: hold details until price arrives.
+    expect(
+      lookupDepth(ready(3.5, 900), s, { ...flat, priced: false }, 'UK')
+    ).toBe('rating')
+    // Once price arrives above highlightPrice, rating hides it.
+    expect(
+      lookupDepth(
+        { ...ready(3.5, 900), price: { amount: 15, currency: 'GBP' } },
+        s,
+        { ...flat, priced: true },
+        'UK'
+      )
+    ).toBe('none')
+    // Once price arrives at or under highlightPrice, highlight rescues it and details follow.
+    expect(
+      lookupDepth(
+        { ...ready(3.5, 900), price: { amount: 4, currency: 'GBP' } },
+        s,
+        { ...flat, priced: true },
+        'UK'
+      )
+    ).toBe('details')
+  })
+
+  test('notFound hide alone does not split found books into rating-only lookups', () => {
+    const s = with_({
+      modes: dimming('rating'),
+      minRatings: 0,
+      notFound: 'hide',
+    })
+    expect(
+      lookupDepth({ status: 'queued' }, s, { ...flat, priced: true }, 'UK')
+    ).toBe('details')
   })
 })
 

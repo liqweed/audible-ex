@@ -8,4 +8,4 @@ release: minor
 
 ### Fixed
 
-- Sale campaign pages without "deals" in their address (such as `/ep/bfcm-uk`, Black Friday, Cyber Monday, cash sale, and 2-for-1 pages) are now recognized as deals pages for the "Only on deals pages" price limit, while `/pd/` product pages whose titles contain those words are no longer misclassified.
+- Sale campaign pages without "deals" in their address (such as `/ep/bfcm-uk`, Black Friday, Cyber Monday, cash sale, and 2-for-1 pages) are now recognized as deals pages for the "Only on deals pages" price limit, while `/pd/`, `/author/` and `/series/` pages whose names contain those words are no longer misclassified.

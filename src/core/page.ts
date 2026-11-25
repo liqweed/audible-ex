@@ -24,11 +24,12 @@ const under = (path: string, base: string) =>
  * `/author/saleem` or `wholesale` do not match; digits may follow directly (`bfcm2026`).
  */
 const DEALS_PATH =
-  /(?:^|[/_-])(?:deals?|sales?|bfcm|black-?friday|cyber-?monday|2-?for-?1)(?:$|[/_-\d])/
+  /(?:^|[/_-])(?:deals?|sales?|bfcm|black-?friday|cyber-?monday|2-?for-?1)(?:$|[-/_\d])/
 
 /**
- * Wish List before Library (it lives under `/library/wishlist`), product pages before deals (a book
- * title can contain "sale" or "deal"), and deals/sales before the rest.
+ * Wish List before Library (it lives under `/library/wishlist`), product/author/series pages before
+ * deals (titles, author names or series names can contain "sale" or "deal"), and deals/sales before
+ * the rest.
  */
 export function pageKind(pathname: string): PageKind {
   const path = pathname.toLowerCase()
@@ -37,7 +38,8 @@ export function pageKind(pathname: string): PageKind {
   if (under(path, '/library')) return 'library'
   if (under(path, '/search')) return 'search'
   if (under(path, '/cat') || under(path, '/categories')) return 'category'
-  if (under(path, '/pd')) return 'other'
+  if (under(path, '/pd') || under(path, '/author') || under(path, '/series'))
+    return 'other'
   if (DEALS_PATH.test(path)) return 'deals'
   return 'other'
 }

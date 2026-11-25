@@ -260,7 +260,7 @@ function ratingBound(text: string): number | null | undefined {
   return Number.isFinite(n) && n >= 1 && n <= 5 ? n : undefined
 }
 
-/** The rating from which books are highlighted. Not a filter, so no hide-or-dim choice. */
+/** The rating from which books are highlighted; overrides lower-priority hide or dim rules. */
 function HighlightRating({
   filters,
   change,
@@ -282,8 +282,8 @@ function HighlightRating({
         </label>
         <InfoTip label='About the highlight rating'>
           Books rated at least this get an outline, like the highlighted labels.
-          Blank is off. Highlighting never hides a book, and it works with the
-          filters off.
+          Blank is off. Works with the filters off, and overrides lower-priority
+          hide or dim rules.
         </InfoTip>
         <input
           id='agx-highlight-rating'
@@ -305,7 +305,7 @@ function HighlightRating({
   )
 }
 
-/** A cash price at or under which a book's price is marked, for this marketplace. Not a filter, so no hide-or-dim choice. */
+/** A cash price at or under which a book's price is marked, for this marketplace; overrides lower-priority hide or dim rules. */
 function HighlightPrice({
   filters,
   change,
@@ -338,8 +338,8 @@ function HighlightPrice({
         <InfoTip label='About the highlight price'>
           Books priced at or under this show their price in amber beside the
           rating. Public catalogue prices on this marketplace; member offers may
-          differ. Blank is off; 0 is free only. Highlighting never hides a book,
-          and it works with the filters off.
+          differ. Blank is off; 0 is free only. Works with the filters off, and
+          overrides lower-priority hide or dim rules.
         </InfoTip>
         <input
           id='agx-highlight-price'
@@ -472,10 +472,9 @@ function LabelPicker({
 
 /**
  * The filters (PRD R3): the master switch, `12 hidden · Show`, and below them a settings area with
- * one row per filter, each with its own hide-or-dim choice, then the hidden and highlighted labels
- * and the policy for books not on Goodreads. They are the `filters` pref, shared by every Audible
- * tab. The settings stay reachable with the filters off, because highlighting does not depend on
- * them.
+ * one draggable row per filter, highlight rule and the not-found policy, ordered by `ruleOrder`
+ * (highest priority first). They are the `filters` pref, shared by every Audible tab. The settings
+ * stay reachable with the filters off, because highlighting does not depend on them.
  */
 export function Filters({
   handle,
@@ -792,7 +791,7 @@ export function Filters({
 
           <ul
             aria-label='Filter and highlight rules'
-            className='m-0 list-none space-y-2 p-0'
+            className={`m-0 list-none space-y-2 p-0 ${reorder.dragging !== undefined ? 'select-none' : ''}`}
           >
             {visibleRules.map((rule, index) => {
               const isDragged = reorder.dragging === index

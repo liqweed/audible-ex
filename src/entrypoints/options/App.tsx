@@ -136,7 +136,7 @@ function RulePriorityList({
       </p>
       <ul
         aria-label='Rule priority'
-        className='mt-2 divide-y divide-slate-200 rounded-md border border-slate-200'
+        className={`mt-2 divide-y divide-slate-200 rounded-md border border-slate-200 ${reorder.dragging !== undefined ? 'select-none' : ''}`}
       >
         {order.map((rule, index) => {
           const isDragged = reorder.dragging === index
@@ -521,8 +521,9 @@ function Settings({
                 <p className='options-hint'>
                   Books below the minimum rating, or with fewer ratings than the
                   minimum, fail the filter. Books rated at least the highlight
-                  rating get an outline, even with filtering off; highlighting
-                  never hides a book. The panel's slider offers 3.0–5.0.
+                  rating get an outline, even with filtering off, and override
+                  lower-priority filters according to their priority below. The
+                  panel's slider offers 3.0–5.0.
                 </p>
                 <form.Subscribe
                   selector={s =>
@@ -714,7 +715,9 @@ function Settings({
                     </dt>
                     <dd className='inline'>
                       books at or under it show their price in amber beside the
-                      rating, whatever the filters do and on every page.
+                      rating on every page, even with filtering off, and
+                      override lower-priority filters according to their
+                      priority above.
                     </dd>
                   </div>
                   <p>

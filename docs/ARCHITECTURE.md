@@ -366,11 +366,13 @@ progress bar appears, which is the one thing `bun test` cannot prove about the s
   heading row while something failed, so neither the header nor the counts lose room.
 - Filters (`src/panel/Filters.tsx`, built, below the progress): the master switch and `12 hidden ·
   Show` always; a "Filter settings" area, open with the filters off too (highlights do not depend
-  on them), has one row per filter (the rating slider, 3.0–5.0, step 0.1; the minimum number of
-  ratings; the first-published year range; the marketplace public-price limit; the hidden labels),
-  each ending in its own Hide/Dim choice, then the highlighted labels with how many cards on the
-  page are highlighted, the highlight rating (a number from 1 to 5, blank is off; no Hide/Dim choice,
-  since it is not a filter), and the not-found policy (Show/Dim/Hide). The choices are radio buttons drawn as
+  on them), has one draggable row per rule in `ruleOrder` (the five filters — rating slider 3.0–5.0
+  step 0.1, minimum number of ratings, first-published year range, marketplace public-price limit,
+  hidden labels — each ending in its own Hide/Dim choice; the highlighted labels with how many cards
+  on the page are highlighted; the highlight rating, 1 to 5, blank is off; the highlight price; and
+  the not-found policy, Show/Dim/Hide). Each row starts with a grip button supporting pointer
+  drag-and-drop and `ArrowUp`/`ArrowDown` keyboard reordering (`useReorder`, `src/lib/reorder.ts`,
+  D33). The choices are radio buttons drawn as
   one bar (`Choice`, `src/panel/controls.tsx`). Explanations sit behind an `i` button
   (`InfoTip`): shown while it is hovered or focused, positioned fixed to the window above the button
   (below it near the top), and named by the button's `aria-describedby` while shown. It is
@@ -405,8 +407,8 @@ Verdict for one card (pure function in `src/core/filter.ts`):
    lookup's status (it comes from Audible, before the rating), the rating and count once the book is
    `ready`, labels and year once its details have arrived. A book whose data has not arrived fails
    nothing, so it is shown; hiding it on a guess and showing it again would make the page jump.
-3. `notFound` → the `notFound` policy (default `show`), or the price filter's verdict if that is
-   stricter.
+3. `notFound` → matches books not found on Goodreads, with outcome `notFound` (default `show`);
+   evaluated in `ruleOrder` alongside the price and highlight rules (step 7).
 4. Rating below `minRating` (`rating`), count below `minRatings` (`count`), any genre in
    `hiddenLabels`, case-insensitive (`labels`): the book fails that filter.
 5. Known first-published year outside the inclusive `minYear` / `maxYear` range (`year`): fails.
@@ -449,12 +451,13 @@ one of:
 
 - nothing (`none`), when `judge` already returns `hide`;
 - what the cache has (`Lookup` with `cacheOnly`), while a hiding price limit is active for the
-  marketplace, the book's price has not been answered, and no active higher-priority Goodreads rule
-  with outcome other than `hide` could override it;
-- the rating only (`Lookup` with `ratingOnly`), while a hiding rating-stage rule (`rating`, `count`
-  or `notFound`) could hide it before details arrive and no active higher-priority details rule
-  (`labels`, `year`, `highlightLabels`) with outcome other than `hide` sits above it; when the
-  rating lets it through, the details follow (`DetailsLookup`);
+  marketplace, the book's price has not been answered, and no still-live higher-priority Goodreads
+  rule with outcome other than `hide` could override it;
+- the rating only (`Lookup` with `ratingOnly`), while a hiding rating-stage rule (`rating` or
+  `count`) or an already-matched hide rule held only by a pending price rule could still hide the
+  book before details arrive and no active higher-priority details rule (`labels`, `year`,
+  `highlightLabels`) with outcome other than `hide` sits above it; when the book can no longer be
+  hidden without details, the details follow (`DetailsLookup`);
 - everything (`Lookup`), otherwise.
 
 A book that would only be dimmed is still seen, so dimming filters hold nothing back, nor does a book

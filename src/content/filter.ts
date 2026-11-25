@@ -3,8 +3,7 @@
  * is `src/core/filter.ts`'s; this module reads the book store and the settings, sets `data-agx-filter`
  * on each card (`hide` or `dim`, with CSS in badges.css) and counts the cards that are hidden, which
  * the panel's `12 hidden · Show` reports. A card whose book carries a highlighted label or is rated at or above the highlight rating gets
- * `data-agx-highlight`, and its cover `data-agx-shine`, whatever its verdict; badges.css draws a highlighted card that is dimmed at
- * full strength. A price at or under the highlight price gets a chip beside the badge (`markPrice`); the cover is left alone.
+ * `data-agx-highlight`, and its cover `data-agx-shine`; whether a highlight overrides a hide or dim rule is decided by `ruleOrder` (`judge`). A price at or under the highlight price gets a chip beside the badge (`markPrice`); the cover is left alone.
  * The book a product page is about (its hero) is never hidden or dimmed: the reader went there on purpose.
  * It touches only those attributes and the label pills' classes.
  *

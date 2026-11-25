@@ -115,8 +115,8 @@
 /* Highlighted labels (filter.ts): the cover of a highlighted book shines in the panel's amber, a
    thin ring just inside its rounded edge and a soft glow around it. Carousel slides clip what lies
    outside the cover, so the ring is drawn inside it (an outline follows the radius) and the glow
-   shows where there is room. The card itself is untouched, so nothing moves; a highlight never hides
-   a card, and a dimmed card that is highlighted is drawn at full strength (above). */
+   shows where there is room. The card itself is untouched, so nothing moves; whether a highlight
+   overrides a hide or dim rule is decided by `ruleOrder` in filter.ts (D33). */
 img[data-agx-shine] {
   outline: 2px solid rgb(251 191 36 / 0.95);
   outline-offset: -2px;

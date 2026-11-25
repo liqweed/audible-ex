@@ -688,8 +688,9 @@ matches more than one (for example, keeping a highlighted genre or cheap book vi
   Shadow DOM and stays within `panel.js`'s 120 KB budget.
 - **Sale pages (`src/core/page.ts`).** Audible's sale campaigns do not all contain `deals` in their
   path (e.g. `/ep/bfcm-uk`). `pageKind` now matches bounded deals/sale campaign segments (`deals?`,
-  `sales?`, `bfcm`, `black-friday`, `cyber-monday`, `2-for-1`/`2for1`) and excludes `/pd/` product
-  pages so book titles containing those words do not trigger deals-only limits.
+  `sales?`, `bfcm`, `black-friday`, `cyber-monday`, `2-for-1`/`2for1`) and excludes `/pd/`,
+  `/author/` and `/series/` pages so titles, author names or series names containing those words do
+  not trigger deals-only limits.
 
 Rejected: adding `@dnd-kit` or HTML5 drag-and-drop (bundle budget and Shadow DOM quirks), keeping a
 separate override toggle for highlights (one ordered list answers every precedence question), and
